@@ -1,7 +1,7 @@
 #ifndef CFRAN_HELPER_H
 #define CFRAN_HELPER_H
 
-#include "ns3/cfran-net-device.h"
+#include <ns3/cf-unit.h>
 
 namespace ns3
 {

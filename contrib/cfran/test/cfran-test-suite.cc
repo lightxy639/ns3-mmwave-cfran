@@ -1,6 +1,6 @@
 
 // Include a header file from your module to test.
-#include "ns3/cfran-net-device.h"
+#include "ns3/cf-unit-net-device.h"
 
 // An essential include is test.h
 #include "ns3/test.h"

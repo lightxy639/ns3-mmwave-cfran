@@ -5,16 +5,21 @@ endif()
 
 set(source_files
     helper/cfran-helper.cc
-    model/cfran-net-device.cc
+    model/cf-unit.cc
+    model/cf-model.cc
 )
 
 set(header_files
     helper/cfran-helper.h
-    model/cfran-net-device.h
+    model/cf-unit.h
+    model/cf-model.h
 )
 
 
-set(examples_as_tests_sources)
+set(examples_as_tests_sources
+    examples/cf-example.cc
+)
+
 if(${ENABLE_EXAMPLES})
     set(examples_as_tests_sources
         #test/cfran-examples-test-suite.cc
