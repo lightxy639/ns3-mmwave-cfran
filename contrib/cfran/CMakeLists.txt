@@ -5,14 +5,18 @@ endif()
 
 set(source_files
     helper/cfran-helper.cc
+    helper/system-info.cc
     model/cf-unit.cc
     model/cf-model.cc
+    model/vr-server.cc
 )
 
 set(header_files
     helper/cfran-helper.h
+    helper/system-info.h
     model/cf-unit.h
     model/cf-model.h
+    model/vr-server.h
 )
 
 

@@ -5,8 +5,8 @@
 #include <ns3/node.h>
 #include <ns3/simulator.h>
 
-#include <iostream>
 #include <iomanip>
+#include <iostream>
 
 namespace ns3
 {
@@ -80,27 +80,26 @@ CfUnit::ScheduleTasks()
 void
 CfUnit::AddNewUeTaskForSchedule(uint16_t id, UeTaskModel ueTask)
 {
-    NS_LOG_FUNCTION(this << id << ueTask.m_taskId);
+    NS_LOG_FUNCTION(this << id << ueTask.m_taskId << ueTask.m_cfLoad);
     auto it = m_ueTask.find(id);
     if (it != m_ueTask.end())
     {
-        NS_LOG_DEBUG("Add new task " << ueTask.m_taskId << " for the task vector of UE " << id
-                                     << std::endl);
+        NS_LOG_DEBUG("Add new task " << ueTask.m_taskId << " for UE " << id);
 
-        (it->second).push_back(ueTask);
+        NS_ASSERT(it->second.find(ueTask.m_taskId) == it->second.end()); // Ensure the uniqueness of the task id
+        it->second.insert(std::pair<uint16_t, UeTaskModel>(ueTask.m_taskId, ueTask));
     }
     else
     {
-        NS_LOG_DEBUG("Create new task vector for UE " << id << std::endl);
-        std::vector<UeTaskModel> ueTaskVector;
-        ueTaskVector.push_back(ueTask);
+        NS_LOG_DEBUG("Create new task map for UE " << id << std::endl);
+        std::map<uint16_t, UeTaskModel> ueTaskMap;
 
-        NS_LOG_DEBUG("Add new task " << ueTask.m_taskId << " for the task vector of UE " << id
-                                     << std::endl);
-        m_ueTask.insert(std::pair<uint16_t, std::vector<UeTaskModel>>(id, ueTaskVector));
+        NS_LOG_DEBUG("Add new task " << ueTask.m_taskId << " for the task vector of UE " << id);
+        ueTaskMap.insert(std::pair<uint16_t, UeTaskModel>(ueTask.m_taskId, ueTask));
+
+        m_ueTask.insert(std::pair<uint16_t, std::map<uint16_t, UeTaskModel>>(id, ueTaskMap));
     }
 
-    NS_LOG_DEBUG("m_enableAutoSchedule " << m_enableAutoSchedule);
     if (!m_enableAutoSchedule)
     {
         ScheduleNewTaskWithCommand(id, ueTask);
@@ -112,13 +111,14 @@ CfUnit::DeleteUeTask(uint16_t id, UeTaskModel ueTask)
 {
     NS_LOG_FUNCTION(this << id << ueTask.m_taskId);
 
-    auto it = m_ueTask.find(id);
-    NS_ASSERT(it != m_ueTask.end());
+    auto itUe = m_ueTask.find(id);
+    NS_ASSERT(itUe != m_ueTask.end());
 
-    auto itTask = find(it->second.begin(), it->second.end(), ueTask);
-    NS_ASSERT(itTask != it->second.end());
+    auto itTask = itUe->second.find(ueTask.m_taskId);
+    NS_ASSERT(itTask != itUe->second.end());
 
-    it->second.erase(itTask);
+    itUe->second.erase(itTask);
+
 }
 
 void
@@ -155,6 +155,9 @@ CfUnit::ScheduleNewTaskWithCommand(uint16_t id, UeTaskModel ueTask)
     AllocateCf(id, ueTask, ueTask.m_cfRequired);
 
     ExecuteTask(id, ueTask);
+
+
+    OutputCfAllocationInfo();
 }
 
 void
@@ -196,16 +199,37 @@ CfUnit::FreeCf(uint16_t id, UeTaskModel ueTask)
 void
 CfUnit::EndTask(uint16_t id, UeTaskModel ueTask)
 {
-    NS_LOG_DEBUG("UE " << id << " Task " << ueTask.m_taskId << " end");
+    NS_LOG_FUNCTION(this << id << ueTask.m_taskId);
+    // NS_LOG_DEBUG("UE " << id << " Task " << ueTask.m_taskId << " end");
     FreeCf(id, ueTask);
+    DeleteUeTask(id, ueTask);
+
+    OutputCfAllocationInfo();
     // TODO interact with app
 }
 
 void
 CfUnit::OutputCfAllocationInfo()
 {
+    uint tab = 20;
     std::ostringstream oss;
-    oss << std::endl << std::setfill(' ') << std::endl;
+    oss << std::setw(tab) << "ueId" << std::setw(tab) << "taskId" << std::setw(tab) << "cfLoad"
+        << std::setw(tab) << "cfAllocated" << std::endl;
+
+    for (auto itUe = m_cfAllocation.begin(); itUe != m_cfAllocation.end(); itUe++)
+    {
+        auto ueId = itUe->first;
+        for (auto itTask = itUe->second.begin(); itTask != itUe->second.end(); itTask++)
+        {
+            auto taskId = itTask->first;
+            auto cfAllocated = m_cfAllocation[ueId][taskId].m_cfCapacity;
+            auto cfLoad = m_ueTask[ueId][taskId].m_cfLoad;
+            oss << std::setw(tab) << ueId << std::setw(tab) << taskId << std::setw(tab) << cfLoad
+                << std::setw(tab) << cfAllocated << std::endl;
+        }
+
+    }
+    NS_LOG_DEBUG(oss.str());
 }
 
 CfModel

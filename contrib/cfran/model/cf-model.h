@@ -16,6 +16,7 @@ struct CfModel
     CfModel operator+(const CfModel&);
     CfModel operator-(const CfModel&);
     bool operator>=(const CfModel&);
+    CfModel operator/ (uint16_t num);
 
     std::string m_cfType; // CPU, GPU, FPGA,...
     float m_cfCapacity;   // MIPS, TFLOPS,...
@@ -27,6 +28,7 @@ struct CfModel
  */
 struct UeTaskModel
 {
+    UeTaskModel();
     UeTaskModel(uint16_t taskId, CfModel cfRequired, float cfLoad, float deadline);
     bool operator==(const UeTaskModel&);
 

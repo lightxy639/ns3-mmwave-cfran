@@ -47,6 +47,20 @@ CfModel::operator>=(const CfModel& param)
     return m_cfCapacity >= param.m_cfCapacity;
 }
 
+CfModel
+CfModel::operator/ (uint16_t num)
+{
+    NS_ASSERT(num != 0);
+    CfModel result(m_cfType, m_cfCapacity/num);
+
+    return result;
+}
+
+
+UeTaskModel::UeTaskModel() : m_taskId(0), m_cfRequired(CfModel("GPU", 0)),m_cfLoad(0), m_deadline(0)
+{
+}
+
 UeTaskModel::UeTaskModel(uint16_t taskId, CfModel cfRequired, float cfLoad, float deadline)
     : m_taskId(taskId),
       m_cfRequired(cfRequired),

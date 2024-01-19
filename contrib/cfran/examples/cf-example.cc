@@ -30,6 +30,7 @@ main(int argc, char* argv[])
 {
     LogComponentEnable("CfExample", LOG_DEBUG);
     LogComponentEnable("CfUnit", LOG_DEBUG);
+    LogComponentEnable("CfUnit", LOG_FUNCTION);
     
     bool verbose = true;
 
@@ -40,7 +41,6 @@ main(int argc, char* argv[])
 
     /* ... */
     // CfUnit cfUnitExample();
-    CfModel cfModel("GPU", 50);
     // Config::SetDefault("ns3::CfUnit::EnableAutoSchedule", BooleanValue(false));
     Ptr<CfUnit> cfUnitExample = CreateObject<CfUnit>();
     
@@ -48,6 +48,8 @@ main(int argc, char* argv[])
     
     CfModel cfRequired("GPU", 10);
     UeTaskModel ueTask(1, cfRequired, 20, 10);
+
+
     Simulator::Stop(Seconds(10));
     cfUnitExample->AddNewUeTaskForSchedule(1, ueTask);
     Simulator::Run();
