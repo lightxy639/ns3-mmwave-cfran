@@ -10,6 +10,27 @@ namespace ns3
 {
 NS_LOG_COMPONENT_DEFINE("CfModel");
 
+ATTRIBUTE_HELPER_CPP(CfModel);
+
+std::ostream&
+operator<<(std::ostream& os, const CfModel& cfModel)
+{
+    os << cfModel.m_cfType << "|" << cfModel.m_cfCapacity;
+    return os;
+}
+
+std::istream&
+operator>>(std::istream& is, CfModel& cfModel)
+{
+    char c1, c2;
+    is >> cfModel.m_cfType >> c1 >> cfModel.m_cfCapacity >> c2;
+    if (c1 != '|' || c2 != '|')
+    {
+        is.setstate(std::ios_base::failbit);
+    }
+    return is;
+}
+
 CfModel::CfModel()
     : m_cfType("GPU"),
       m_cfCapacity(82.6)
@@ -22,30 +43,30 @@ CfModel::CfModel(std::string cfType, float cfCapacity)
 {
 }
 
-TypeId
-CfModel::GetTypeId()
-{
-    static TypeId tid = TypeId("ns3::CfModel")
-                            .SetParent<Object>()
-                            .AddConstructor<CfModel>()
-                            .AddAttribute("CfType",
-                                          "The type of computing force.",
-                                          StringValue("GPU"),
-                                          MakeStringAccessor(&CfModel::m_cfType),
-                                          MakeStringChecker())
-                            .AddAttribute("CfCapacity",
-                                          "The capacity value of the cfunit.",
-                                          DoubleValue(82.6),
-                                          MakeDoubleAccessor(&CfModel::m_cfCapacity),
-                                          MakeDoubleChecker<double>());
+// TypeId
+// CfModel::GetTypeId()
+// {
+//     static TypeId tid = TypeId("ns3::CfModel")
+//                             .SetParent<Object>()
+//                             .AddConstructor<CfModel>()
+//                             .AddAttribute("CfType",
+//                                           "The type of computing force.",
+//                                           StringValue("GPU"),
+//                                           MakeStringAccessor(&CfModel::m_cfType),
+//                                           MakeStringChecker())
+//                             .AddAttribute("CfCapacity",
+//                                           "The capacity value of the cfunit.",
+//                                           DoubleValue(82.6),
+//                                           MakeDoubleAccessor(&CfModel::m_cfCapacity),
+//                                           MakeDoubleChecker<double>());
 
-    return tid;
-}
+//     return tid;
+// }
 
-CfModel::~CfModel()
-{
-    NS_LOG_FUNCTION(this);
-}
+// CfModel::~CfModel()
+// {
+//     NS_LOG_FUNCTION(this);
+// }
 
 CfModel
 CfModel::operator+(const CfModel& param)

@@ -17,6 +17,8 @@ namespace ns3
  */
 class CfranSystemInfo : public Object
 {
+
+  public:
     struct UeInfo
     {
         uint64_t m_imsi;       // imsi
@@ -30,8 +32,7 @@ class CfranSystemInfo : public Object
         uint64_t m_id;
         Ptr<mmwave::MmWaveEnbNetDevice> m_mmwaveEnbNetDevice;
     };
-
-  public:
+    
     CfranSystemInfo();
     virtual ~CfranSystemInfo();
 
@@ -43,6 +44,9 @@ class CfranSystemInfo : public Object
 
     UeInfo GetUeInfo(uint64_t imsi);
     CellInfo GetCellInfo(uint64_t cellId);
+
+    void AddUeInfo(uint64_t imsi, UeInfo ueInfo);
+    void AddCellInfo(uint64_t imsi, CellInfo cellInfo);
 
   protected:
     // inherited from Object

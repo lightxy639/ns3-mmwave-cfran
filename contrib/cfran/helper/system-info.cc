@@ -50,4 +50,17 @@ CfranSystemInfo::GetCellInfo(uint64_t imsi)
 
     return it->second;
 }
+
+void
+CfranSystemInfo::AddUeInfo(uint64_t imsi, UeInfo ueInfo)
+{
+    m_ueInfo.insert(std::pair<uint64_t, UeInfo>(imsi, ueInfo));
+}
+
+void
+CfranSystemInfo::AddCellInfo(uint64_t imsi, CellInfo cellInfo)
+{
+    m_cellInfo.insert(std::pair<uint64_t, CellInfo>(imsi, cellInfo));
+}
+
 } // namespace ns3

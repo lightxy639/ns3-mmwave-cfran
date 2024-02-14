@@ -18,7 +18,7 @@ TypeId
 CfUnit::GetTypeId()
 {
     static TypeId tid =
-        TypeId("ns3:CfUnit")
+        TypeId("ns3::CfUnit")
             .SetParent<Object>()
             .AddConstructor<CfUnit>()
             .AddAttribute("EnableAutoSchedule",
@@ -26,10 +26,12 @@ CfUnit::GetTypeId()
                           "Otherwise, CfUnit will obey the instructions of the application.",
                           BooleanValue(false),
                           MakeBooleanAccessor(&CfUnit::m_enableAutoSchedule),
-                          MakeBooleanChecker());
-            // .AddAttribute("CfModel",
-            // "The Computing force of the CfUnit",
-            // )
+                          MakeBooleanChecker())
+            .AddAttribute("CfModel",
+                          "The Computing force of the CfUnit",
+                          CfModelValue(CfModel()),
+                          MakeCfModelAccessor(&CfUnit::m_cf),
+                          MakeCfModelChecker());
 
     return tid;
 }

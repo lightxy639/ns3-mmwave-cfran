@@ -15,29 +15,36 @@ namespace ns3
  * \brief The model of computing force
  * \struct CfModel
  */
-class CfModel : public Object
+// class CfModel : public Object
+struct CfModel
 {
-public:
+//   public:
     CfModel();
 
     CfModel(std::string cfType, float cfCapacity);
 
-    virtual ~CfModel();
+    // virtual ~CfModel();
 
     /**
      * \brief Get the type ID.
      * \return the object TypeId
      */
-    static TypeId GetTypeId();
-    
+    // static TypeId GetTypeId();
+
     CfModel operator+(const CfModel&);
     CfModel operator-(const CfModel&);
     bool operator>=(const CfModel&);
     CfModel operator/(uint64_t num);
 
+//   private:
     std::string m_cfType; // CPU, GPU, FPGA,...
     float m_cfCapacity;   // MIPS, TFLOPS,...
 };
+
+std::ostream &operator <<(std::ostream &os, const CfModel &cfModel);
+std::istream &operator >>(std::istream &is, CfModel &cfModel);
+
+ATTRIBUTE_HELPER_HEADER(CfModel);
 
 /**
  * \brief The model of UE task
