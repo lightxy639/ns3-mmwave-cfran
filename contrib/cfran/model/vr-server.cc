@@ -12,7 +12,7 @@ TypeId
 VrServer::GetTypeId()
 {
     static TypeId tid = TypeId("ns3::VrServer")
-                            .SetParent<Application>()
+                            .SetParent<CfApplication>()
                             .AddConstructor<VrServer>()
                             .AddAttribute("CfranSystemInfo",
                                           "Global user information in cfran scenario",
@@ -51,7 +51,7 @@ VrServer::StopApplication()
     NS_LOG_FUNCTION(this);
 
     auto it = m_ueApplicationInfo.begin();
-    for(; it != m_ueApplicationInfo.end(); it++)
+    for (; it != m_ueApplicationInfo.end(); it++)
     {
         Simulator::Cancel(it->second.m_eventId);
     }
@@ -90,8 +90,11 @@ VrServer::Handle4Imsi(uint64_t imsi)
     task.m_cfLoad = ueInfo.m_taskModel.m_cfLoad;
     task.m_cfRequired = m_cfUnit->GetCf() / m_ueApplicationInfo.size(); // TODO operator overload
     task.m_deadline = ueInfo.m_taskModel.m_deadline;
+    task.m_application = this;
 
-    m_cfUnit->AddNewUeTaskForSchedule(imsi, task);
+    NS_LOG_DEBUG("The application pointer is " << task.m_application);
+    // m_cfUnit->AddNewUeTaskForSchedule(imsi, task);
+    this->LoadTaskToCfUnit(imsi, task);
 
     it->second.m_frameHandle++;
     it->second.m_eventId = Simulator::Schedule(MilliSeconds(ueInfo.m_taskPeriodity),
@@ -121,7 +124,7 @@ VrServer::AddApplicationInfoForImsi(uint64_t imsi, UeApplicationInfo info)
 
     NS_ASSERT(it == m_ueApplicationInfo.end());
 
-    m_ueApplicationInfo.insert(std::pair<uint16_t, UeApplicationInfo>(imsi, info));
+    m_ueApplicationInfo.insert(std::pair<uint64_t, UeApplicationInfo>(imsi, info));
 }
 
 void
@@ -134,6 +137,19 @@ VrServer::DeleteApplicationInfoForImsi(uint64_t imsi)
     NS_ASSERT(it != m_ueApplicationInfo.end());
 
     m_ueApplicationInfo.erase(it);
+}
+
+void
+VrServer::LoadTaskToCfUnit(uint64_t id, UeTaskModel ueTask)
+{
+    NS_LOG_FUNCTION(this);
+    m_cfUnit->AddNewUeTaskForSchedule(id, ueTask);
+}
+
+void
+VrServer::RecvTaskResult(uint64_t id, UeTaskModel ueTask)
+{
+    NS_LOG_FUNCTION(this << "UE " << id << " TASK " << ueTask.m_taskId);
 }
 
 } // namespace ns3

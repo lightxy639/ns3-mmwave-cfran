@@ -1,7 +1,10 @@
 #include "cf-model.h"
 
+// #include <ns3/cf-application.h>
 #include <ns3/assert.h>
+#include <ns3/double.h>
 #include <ns3/log.h>
+#include <ns3/string.h>
 
 namespace ns3
 {
@@ -17,6 +20,31 @@ CfModel::CfModel(std::string cfType, float cfCapacity)
     : m_cfType(cfType),
       m_cfCapacity(cfCapacity)
 {
+}
+
+TypeId
+CfModel::GetTypeId()
+{
+    static TypeId tid = TypeId("ns3::CfModel")
+                            .SetParent<Object>()
+                            .AddConstructor<CfModel>()
+                            .AddAttribute("CfType",
+                                          "The type of computing force.",
+                                          StringValue("GPU"),
+                                          MakeStringAccessor(&CfModel::m_cfType),
+                                          MakeStringChecker())
+                            .AddAttribute("CfCapacity",
+                                          "The capacity value of the cfunit.",
+                                          DoubleValue(82.6),
+                                          MakeDoubleAccessor(&CfModel::m_cfCapacity),
+                                          MakeDoubleChecker<double>());
+
+    return tid;
+}
+
+CfModel::~CfModel()
+{
+    NS_LOG_FUNCTION(this);
 }
 
 CfModel
@@ -48,20 +76,23 @@ CfModel::operator>=(const CfModel& param)
 }
 
 CfModel
-CfModel::operator/ (uint16_t num)
+CfModel::operator/(uint64_t num)
 {
     NS_ASSERT(num != 0);
-    CfModel result(m_cfType, m_cfCapacity/num);
+    CfModel result(m_cfType, m_cfCapacity / num);
 
     return result;
 }
 
-
-UeTaskModel::UeTaskModel() : m_taskId(0), m_cfRequired(CfModel("GPU", 0)),m_cfLoad(0), m_deadline(0)
+UeTaskModel::UeTaskModel()
+    : m_taskId(0),
+      m_cfRequired(CfModel("GPU", 0)),
+      m_cfLoad(0),
+      m_deadline(0)
 {
 }
 
-UeTaskModel::UeTaskModel(uint16_t taskId, CfModel cfRequired, float cfLoad, float deadline)
+UeTaskModel::UeTaskModel(uint64_t taskId, CfModel cfRequired, float cfLoad, float deadline)
     : m_taskId(taskId),
       m_cfRequired(cfRequired),
       m_cfLoad(cfLoad),

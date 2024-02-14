@@ -2,6 +2,7 @@
 #define VR_SERVER_H
 
 #include <ns3/application.h>
+#include <ns3/cf-application.h>
 #include <ns3/cf-model.h>
 #include <ns3/cf-unit.h>
 #include <ns3/event-id.h>
@@ -14,7 +15,7 @@ namespace ns3
  * The VR server implementation
  */
 
-class VrServer : public Application
+class VrServer : public CfApplication
 {
     struct UeApplicationInfo
     {
@@ -45,7 +46,7 @@ class VrServer : public Application
 
     VrServer();
 
-    ~VrServer() override;
+    ~VrServer();
 
     void StartServiceForImsi(uint64_t imsi);
 
@@ -58,6 +59,10 @@ class VrServer : public Application
     void AddApplicationInfoForImsi(uint64_t imsi, UeApplicationInfo info);
 
     void DeleteApplicationInfoForImsi(uint64_t imsi);
+
+    void LoadTaskToCfUnit(uint64_t id, UeTaskModel ueTask) override;
+
+    void RecvTaskResult(uint64_t id, UeTaskModel ueTask) override;
 
   protected:
     void DoDispose() override;
@@ -72,11 +77,11 @@ class VrServer : public Application
 
     void Send2Imsi(uint64_t imsi);
 
-    Ptr<CfUnit> m_cfUnit;
+    // Ptr<CfUnit> m_cfUnit;
 
     Ptr<CfranSystemInfo> m_cfranSystemInfo;
 
-    std::map<uint16_t, UeApplicationInfo> m_ueApplicationInfo;
+    std::map<uint64_t, UeApplicationInfo> m_ueApplicationInfo;
 };
 
 } // namespace ns3

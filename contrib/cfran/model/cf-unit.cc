@@ -27,6 +27,9 @@ CfUnit::GetTypeId()
                           BooleanValue(false),
                           MakeBooleanAccessor(&CfUnit::m_enableAutoSchedule),
                           MakeBooleanChecker());
+            // .AddAttribute("CfModel",
+            // "The Computing force of the CfUnit",
+            // )
 
     return tid;
 }
@@ -78,7 +81,7 @@ CfUnit::ScheduleTasks()
 }
 
 void
-CfUnit::AddNewUeTaskForSchedule(uint16_t id, UeTaskModel ueTask)
+CfUnit::AddNewUeTaskForSchedule(uint64_t id, UeTaskModel ueTask)
 {
     NS_LOG_FUNCTION(this << id << ueTask.m_taskId << ueTask.m_cfLoad);
     auto it = m_ueTask.find(id);
@@ -86,18 +89,19 @@ CfUnit::AddNewUeTaskForSchedule(uint16_t id, UeTaskModel ueTask)
     {
         NS_LOG_DEBUG("Add new task " << ueTask.m_taskId << " for UE " << id);
 
-        NS_ASSERT(it->second.find(ueTask.m_taskId) == it->second.end()); // Ensure the uniqueness of the task id
-        it->second.insert(std::pair<uint16_t, UeTaskModel>(ueTask.m_taskId, ueTask));
+        NS_ASSERT(it->second.find(ueTask.m_taskId) ==
+                  it->second.end()); // Ensure the uniqueness of the task id
+        it->second.insert(std::pair<uint64_t, UeTaskModel>(ueTask.m_taskId, ueTask));
     }
     else
     {
         NS_LOG_DEBUG("Create new task map for UE " << id << std::endl);
-        std::map<uint16_t, UeTaskModel> ueTaskMap;
+        std::map<uint64_t, UeTaskModel> ueTaskMap;
 
         NS_LOG_DEBUG("Add new task " << ueTask.m_taskId << " for the task vector of UE " << id);
-        ueTaskMap.insert(std::pair<uint16_t, UeTaskModel>(ueTask.m_taskId, ueTask));
+        ueTaskMap.insert(std::pair<uint64_t, UeTaskModel>(ueTask.m_taskId, ueTask));
 
-        m_ueTask.insert(std::pair<uint16_t, std::map<uint16_t, UeTaskModel>>(id, ueTaskMap));
+        m_ueTask.insert(std::pair<uint64_t, std::map<uint64_t, UeTaskModel>>(id, ueTaskMap));
     }
 
     if (!m_enableAutoSchedule)
@@ -107,7 +111,7 @@ CfUnit::AddNewUeTaskForSchedule(uint16_t id, UeTaskModel ueTask)
 }
 
 void
-CfUnit::DeleteUeTask(uint16_t id, UeTaskModel ueTask)
+CfUnit::DeleteUeTask(uint64_t id, UeTaskModel ueTask)
 {
     NS_LOG_FUNCTION(this << id << ueTask.m_taskId);
 
@@ -118,11 +122,10 @@ CfUnit::DeleteUeTask(uint16_t id, UeTaskModel ueTask)
     NS_ASSERT(itTask != itUe->second.end());
 
     itUe->second.erase(itTask);
-
 }
 
 void
-CfUnit::AllocateCf(uint16_t id, UeTaskModel ueTask, CfModel cfModel)
+CfUnit::AllocateCf(uint64_t id, UeTaskModel ueTask, CfModel cfModel)
 {
     NS_LOG_FUNCTION(this << id << ueTask.m_taskId << cfModel.m_cfCapacity);
 
@@ -147,7 +150,7 @@ CfUnit::AllocateCf(uint16_t id, UeTaskModel ueTask, CfModel cfModel)
 }
 
 void
-CfUnit::ScheduleNewTaskWithCommand(uint16_t id, UeTaskModel ueTask)
+CfUnit::ScheduleNewTaskWithCommand(uint64_t id, UeTaskModel ueTask)
 {
     NS_LOG_FUNCTION(this << id << ueTask.m_taskId);
     NS_ASSERT(m_freeCf >= ueTask.m_cfRequired);
@@ -156,12 +159,11 @@ CfUnit::ScheduleNewTaskWithCommand(uint16_t id, UeTaskModel ueTask)
 
     ExecuteTask(id, ueTask);
 
-
     OutputCfAllocationInfo();
 }
 
 void
-CfUnit::ExecuteTask(uint16_t id, UeTaskModel ueTask)
+CfUnit::ExecuteTask(uint64_t id, UeTaskModel ueTask)
 {
     NS_LOG_FUNCTION(this << id << ueTask.m_taskId);
 
@@ -177,7 +179,7 @@ CfUnit::ExecuteTask(uint16_t id, UeTaskModel ueTask)
 }
 
 void
-CfUnit::FreeCf(uint16_t id, UeTaskModel ueTask)
+CfUnit::FreeCf(uint64_t id, UeTaskModel ueTask)
 {
     NS_LOG_FUNCTION(this << id << ueTask.m_taskId);
 
@@ -197,9 +199,10 @@ CfUnit::FreeCf(uint16_t id, UeTaskModel ueTask)
 }
 
 void
-CfUnit::EndTask(uint16_t id, UeTaskModel ueTask)
+CfUnit::EndTask(uint64_t id, UeTaskModel ueTask)
 {
     NS_LOG_FUNCTION(this << id << ueTask.m_taskId);
+    DynamicCast<CfApplication>(ueTask.m_application)->RecvTaskResult(id, ueTask);
     // NS_LOG_DEBUG("UE " << id << " Task " << ueTask.m_taskId << " end");
     FreeCf(id, ueTask);
     DeleteUeTask(id, ueTask);
@@ -227,7 +230,6 @@ CfUnit::OutputCfAllocationInfo()
             oss << std::setw(tab) << ueId << std::setw(tab) << taskId << std::setw(tab) << cfLoad
                 << std::setw(tab) << cfAllocated << std::endl;
         }
-
     }
     NS_LOG_DEBUG(oss.str());
 }

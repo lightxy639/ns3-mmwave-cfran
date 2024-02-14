@@ -14,6 +14,7 @@
 #include "ns3/core-module.h"
 // #include "ns3/config-store.h"
 #include "ns3/log.h"
+#include "ns3/node-container.h"
 
 /**
  * \file
@@ -31,7 +32,8 @@ main(int argc, char* argv[])
     LogComponentEnable("CfExample", LOG_DEBUG);
     LogComponentEnable("CfUnit", LOG_DEBUG);
     LogComponentEnable("CfUnit", LOG_FUNCTION);
-    
+    LogComponentEnable("VrServer", LOG_DEBUG);
+
     bool verbose = true;
 
     CommandLine cmd(__FILE__);
@@ -39,16 +41,24 @@ main(int argc, char* argv[])
 
     cmd.Parse(argc, argv);
 
+    NodeContainer testNodes;
+    testNodes.Create(1);
+
+    ObjectFactory cfUnitObj;
+    cfUnitObj.SetTypeId("ns3::CfUnit");
+    CfModel cfModel("GPU", 82.6);
+    // cfUnitObj.Set("")
+
+
     /* ... */
     // CfUnit cfUnitExample();
     // Config::SetDefault("ns3::CfUnit::EnableAutoSchedule", BooleanValue(false));
     Ptr<CfUnit> cfUnitExample = CreateObject<CfUnit>();
-    
+
     cfUnitExample->SetAttribute("EnableAutoSchedule", BooleanValue(false));
-    
+
     CfModel cfRequired("GPU", 10);
     UeTaskModel ueTask(1, cfRequired, 20, 10);
-
 
     Simulator::Stop(Seconds(10));
     cfUnitExample->AddNewUeTaskForSchedule(1, ueTask);

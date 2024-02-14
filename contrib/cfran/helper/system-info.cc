@@ -47,7 +47,7 @@ CfranSystemInfo::GetCellInfo(uint64_t imsi)
 {
     auto it = m_cellInfo.find(imsi);
     NS_ASSERT(it != m_cellInfo.end());
-    
+
     return it->second;
 }
 } // namespace ns3

@@ -1,8 +1,8 @@
 #ifndef SYSTEM_INFO_H
 #define SYSTEM_INFO_H
 
-#include <ns3/cf-model.h>
 #include <ns3/address.h>
+#include <ns3/cf-model.h>
 #include <ns3/mc-ue-net-device.h>
 #include <ns3/mmwave-enb-net-device.h>
 
@@ -19,7 +19,7 @@ class CfranSystemInfo : public Object
 {
     struct UeInfo
     {
-        uint64_t m_imsi; // imsi
+        uint64_t m_imsi;       // imsi
         float m_taskPeriodity; // ms
         Ptr<mmwave::McUeNetDevice> m_mcUeNetDevice;
         UeTaskModel m_taskModel;
@@ -49,8 +49,8 @@ class CfranSystemInfo : public Object
     virtual void DoInitialize(void);
 
   private:
-    std::map<uint16_t, UeInfo> m_ueInfo;
-    std::map<uint16_t, CellInfo> m_cellInfo;
+    std::map<uint64_t, UeInfo> m_ueInfo;
+    std::map<uint64_t, CellInfo> m_cellInfo;
 };
 } // namespace ns3
 
