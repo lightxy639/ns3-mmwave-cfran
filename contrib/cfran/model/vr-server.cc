@@ -1,5 +1,6 @@
 #include "vr-server.h"
 
+#include <ns3/epc-x2.h>
 #include <ns3/log.h>
 
 namespace ns3
@@ -65,7 +66,7 @@ VrServer::StartServiceForImsi(uint64_t imsi)
     uint32_t startOffset = startRng->GetInteger(1, 10);
 
     auto eventId =
-        Simulator::Schedule(MilliSeconds(startOffset), &VrServer::Handle4Imsi, this, imsi);
+        Simulator::Schedule(Seconds(1) + MilliSeconds(startOffset), &VrServer::Handle4Imsi, this, imsi);
 
     UeApplicationInfo info;
     info.m_eventId = eventId;
@@ -150,6 +151,45 @@ void
 VrServer::RecvTaskResult(uint64_t id, UeTaskModel ueTask)
 {
     NS_LOG_FUNCTION(this << "UE " << id << " TASK " << ueTask.m_taskId);
+
+    CfranSystemInfo::UeInfo ueInfo = m_cfranSystemInfo->GetUeInfo(id);
+    Ptr<ns3::mmwave::McUeNetDevice> mcUeNetDev = ueInfo.m_mcUeNetDevice;
+
+    Ptr<ns3::mmwave::MmWaveEnbNetDevice> ueMmWaveEnbNetDev = mcUeNetDev->GetMmWaveTargetEnb();
+    NS_ASSERT(ueMmWaveEnbNetDev != nullptr);
+
+    Ptr<ns3::mmwave::MmWaveEnbNetDevice> serverMmWaveEnbNetDev = nullptr;
+    for (uint8_t n = 0; n < m_node->GetNDevices(); ++n)
+    {
+        serverMmWaveEnbNetDev = DynamicCast<ns3::mmwave::MmWaveEnbNetDevice>(m_node->GetDevice(n));
+        if (serverMmWaveEnbNetDev != nullptr)
+        {
+            break;
+        }
+    }
+
+    NS_ASSERT(serverMmWaveEnbNetDev != nullptr);
+    if (serverMmWaveEnbNetDev != nullptr)
+    {
+        uint16_t lteRnti = mcUeNetDev->GetLteRrc()->GetRnti();
+        Ptr<LteEnbNetDevice> lteEnbNetDev = mcUeNetDev->GetLteTargetEnb();
+        auto drbMap = lteEnbNetDev->GetRrc()->GetUeManager(lteRnti)->GetDrbMap();
+        uint32_t gtpTeid = (drbMap.begin()->second->m_gtpTeid);
+
+        if (ueMmWaveEnbNetDev->GetCellId() == serverMmWaveEnbNetDev->GetCellId())
+        {
+            EpcX2RlcUser* epcX2RlcUser = ueMmWaveEnbNetDev->GetNode()
+                                             ->GetObject<EpcX2>()
+                                             ->GetX2RlcUserMap()
+                                             .find(gtpTeid)
+                                             ->second;
+            NS_ASSERT(epcX2RlcUser != nullptr);
+            if (epcX2RlcUser != nullptr)
+            {
+                NS_LOG_DEBUG("Start Sending.");
+            }
+        }
+    }
 }
 
 } // namespace ns3

@@ -161,6 +161,12 @@ EpcX2::GetEpcX2RlcProvider()
     return m_x2RlcProvider;
 }
 
+std::map<uint32_t, EpcX2RlcUser*> 
+EpcX2::GetX2RlcUserMap()
+{
+    return m_x2RlcUserMap;
+}
+
 void
 EpcX2::SetMcEpcX2RlcUser(uint32_t teid, EpcX2RlcUser* rlcUser)
 {

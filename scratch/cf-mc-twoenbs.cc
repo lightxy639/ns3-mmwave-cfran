@@ -19,6 +19,8 @@
 #include "ns3/applications-module.h"
 #include "ns3/buildings-helper.h"
 #include "ns3/buildings-module.h"
+#include "ns3/cf-unit.h"
+#include "ns3/cfran-helper.h"
 #include "ns3/command-line.h"
 #include "ns3/config-store-module.h"
 #include "ns3/epc-helper.h"
@@ -32,6 +34,9 @@
 #include "ns3/point-to-point-helper.h"
 #include <ns3/lte-ue-net-device.h>
 #include <ns3/random-variable-stream.h>
+#include "ns3/system-info.h"
+#include "ns3/vr-server-helper.h"
+#include "ns3/vr-server.h"
 
 #include <ctime>
 #include <iostream>
@@ -50,7 +55,7 @@ using namespace mmwave;
  * between the UE and the eNBs.
  */
 
-NS_LOG_COMPONENT_DEFINE("McTwoEnbs");
+NS_LOG_COMPONENT_DEFINE("CfMcTwoEnbs");
 
 void
 PrintGnuplottableBuildingListToFile(std::string filename)
@@ -374,7 +379,12 @@ static ns3::GlobalValue g_lteUplink("lteUplink",
 int
 main(int argc, char* argv[])
 {
-    LogComponentEnable("McTwoEnbs", LOG_DEBUG)  ;
+    // LogComponentEnable("McTwoEnbs", LOG_DEBUG);
+    // LogComponentEnable("CfExample", LOG_DEBUG);
+    LogComponentEnable("CfUnit", LOG_DEBUG);
+    LogComponentEnable("CfUnit", LOG_FUNCTION);
+    LogComponentEnable("VrServer", LOG_DEBUG);
+    LogComponentEnable("VrServer", LOG_FUNCTION);
 
     bool harqEnabled = true;
     bool fixedTti = false;
@@ -709,6 +719,43 @@ main(int argc, char* argv[])
 
     // Manual attachment
     mmwaveHelper->AttachToClosestEnb(mcUeDevs, mmWaveEnbDevs, lteEnbDevs);
+
+    ObjectFactory cfUnitObj;
+    cfUnitObj.SetTypeId("ns3::CfUnit");
+    CfModel cfModel("GPU", 82.6);
+    cfUnitObj.Set("EnableAutoSchedule", BooleanValue(false));
+    cfUnitObj.Set("CfModel", CfModelValue(cfModel));
+
+    Ptr<CfRanHelper> cfRanHelper = CreateObject<CfRanHelper>();
+    cfRanHelper->InstallCfUnit(mmWaveEnbNodes, cfUnitObj);
+
+    Ptr<CfranSystemInfo> cfranSystemInfo = CreateObject<CfranSystemInfo>();
+
+    for (uint32_t u = 0; u < mcUeDevs.GetN(); ++u)
+    {
+        Ptr<McUeNetDevice> mcUeDev = DynamicCast<McUeNetDevice>(mcUeDevs.Get(u));
+        uint64_t imsi = mcUeDev->GetImsi();
+
+        CfranSystemInfo::UeInfo ueInfo;
+        UeTaskModel ueTaskModel;
+        // ueTaskModel.m_cfRequired = CfModel("GPU", 10);
+        ueTaskModel.m_cfLoad = 0.2;
+        ueTaskModel.m_deadline = 10;
+
+        ueInfo.m_imsi = imsi;
+        ueInfo.m_taskModel = ueTaskModel;
+        ueInfo.m_taskPeriodity = 16;
+        ueInfo.m_mcUeNetDevice = mcUeDev;
+
+        cfranSystemInfo->AddUeInfo(imsi, ueInfo);
+    }
+
+    Config::SetDefault("ns3::VrServer::CfranSystemInfo", PointerValue(cfranSystemInfo));
+
+    Ptr<VrServerHelper> vrServerHelper = Create<VrServerHelper>();
+    ApplicationContainer apps = vrServerHelper->Install(mmWaveEnbNodes);
+    Ptr<CfApplication> vrApp = DynamicCast<CfApplication>(apps.Get(1));
+    DynamicCast<VrServer>(vrApp)->StartServiceForImsi(1);
 
     // Install and start applications on UEs and remote host
     uint16_t dlPort = 1234;

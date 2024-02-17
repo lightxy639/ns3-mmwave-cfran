@@ -384,6 +384,11 @@ class UeManager : public Object
      * \return the current state
      */
     State GetState() const;
+    
+    /**
+     * Get the LTE DRB map info of UeManager
+     */
+    std::map<uint8_t, Ptr<LteDataRadioBearerInfo>> GetDrbMap();
 
     /**
      * Configure PdschConfigDedicated (i.e. P_A value) for UE and start RrcConnectionReconfiguration

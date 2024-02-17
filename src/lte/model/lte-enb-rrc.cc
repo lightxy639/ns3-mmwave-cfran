@@ -2935,6 +2935,12 @@ UeManager::BuildNonCriticalExtentionConfigurationCa()
     return ncec;
 }
 
+std::map<uint8_t, Ptr<LteDataRadioBearerInfo>>
+UeManager::GetDrbMap()
+{
+    return m_drbMap;
+}
+
 ///////////////////////////////////////////
 // eNB RRC methods
 ///////////////////////////////////////////

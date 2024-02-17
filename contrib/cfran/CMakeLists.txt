@@ -26,6 +26,7 @@ set(header_files
 
 set(examples_as_tests_sources
     examples/cf-example.cc
+    # examples/cf-mc-twoenbs.cc
 )
 
 if(${ENABLE_EXAMPLES})

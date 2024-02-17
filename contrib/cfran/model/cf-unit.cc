@@ -210,7 +210,6 @@ CfUnit::EndTask(uint64_t id, UeTaskModel ueTask)
     DeleteUeTask(id, ueTask);
 
     OutputCfAllocationInfo();
-    // TODO interact with app
 }
 
 void

@@ -146,6 +146,8 @@ class EpcX2 : public Object
      */
     EpcX2RlcProvider* GetEpcX2RlcProvider();
 
+    std::map<uint32_t, EpcX2RlcUser*> GetX2RlcUserMap();
+
     /**
      * \param the teid of the MC device
      * \param the X2 Rlc User interface associated to the teid
