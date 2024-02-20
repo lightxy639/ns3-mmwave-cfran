@@ -2,6 +2,7 @@
 
 #include <ns3/epc-x2.h>
 #include <ns3/log.h>
+#include <ns3/lte-pdcp-tag.h>
 
 namespace ns3
 {
@@ -65,8 +66,10 @@ VrServer::StartServiceForImsi(uint64_t imsi)
     Ptr<UniformRandomVariable> startRng = CreateObject<UniformRandomVariable>();
     uint32_t startOffset = startRng->GetInteger(1, 10);
 
-    auto eventId =
-        Simulator::Schedule(Seconds(1) + MilliSeconds(startOffset), &VrServer::Handle4Imsi, this, imsi);
+    auto eventId = Simulator::Schedule(Seconds(1) + MilliSeconds(startOffset),
+                                       &VrServer::Handle4Imsi,
+                                       this,
+                                       imsi);
 
     UeApplicationInfo info;
     info.m_eventId = eventId;
@@ -151,8 +154,52 @@ void
 VrServer::RecvTaskResult(uint64_t id, UeTaskModel ueTask)
 {
     NS_LOG_FUNCTION(this << "UE " << id << " TASK " << ueTask.m_taskId);
+    this->Send2ImsiFromGnb(id);
+    /*     CfranSystemInfo::UeInfo ueInfo = m_cfranSystemInfo->GetUeInfo(id);
+        Ptr<ns3::mmwave::McUeNetDevice> mcUeNetDev = ueInfo.m_mcUeNetDevice;
 
-    CfranSystemInfo::UeInfo ueInfo = m_cfranSystemInfo->GetUeInfo(id);
+        Ptr<ns3::mmwave::MmWaveEnbNetDevice> ueMmWaveEnbNetDev = mcUeNetDev->GetMmWaveTargetEnb();
+        NS_ASSERT(ueMmWaveEnbNetDev != nullptr);
+
+        Ptr<ns3::mmwave::MmWaveEnbNetDevice> serverMmWaveEnbNetDev = nullptr;
+        for (uint8_t n = 0; n < m_node->GetNDevices(); ++n)
+        {
+            serverMmWaveEnbNetDev =
+       DynamicCast<ns3::mmwave::MmWaveEnbNetDevice>(m_node->GetDevice(n)); if (serverMmWaveEnbNetDev
+       != nullptr)
+            {
+                break;
+            }
+        }
+
+        NS_ASSERT(serverMmWaveEnbNetDev != nullptr);
+        if (serverMmWaveEnbNetDev != nullptr)
+        {
+            uint16_t lteRnti = mcUeNetDev->GetLteRrc()->GetRnti();
+            Ptr<LteEnbNetDevice> lteEnbNetDev = mcUeNetDev->GetLteTargetEnb();
+            auto drbMap = lteEnbNetDev->GetRrc()->GetUeManager(lteRnti)->GetDrbMap();
+            uint32_t gtpTeid = (drbMap.begin()->second->m_gtpTeid);
+
+            if (ueMmWaveEnbNetDev->GetCellId() == serverMmWaveEnbNetDev->GetCellId())
+            {
+                EpcX2RlcUser* epcX2RlcUser = ueMmWaveEnbNetDev->GetNode()
+                                                 ->GetObject<EpcX2>()
+                                                 ->GetX2RlcUserMap()
+                                                 .find(gtpTeid)
+                                                 ->second;
+                NS_ASSERT(epcX2RlcUser != nullptr);
+                if (epcX2RlcUser != nullptr)
+                {
+                    NS_LOG_DEBUG("Start Sending.");
+                }
+            }
+        } */
+}
+
+void
+VrServer::Send2ImsiFromGnb(uint64_t imsi)
+{
+    CfranSystemInfo::UeInfo ueInfo = m_cfranSystemInfo->GetUeInfo(imsi);
     Ptr<ns3::mmwave::McUeNetDevice> mcUeNetDev = ueInfo.m_mcUeNetDevice;
 
     Ptr<ns3::mmwave::MmWaveEnbNetDevice> ueMmWaveEnbNetDev = mcUeNetDev->GetMmWaveTargetEnb();
@@ -186,8 +233,46 @@ VrServer::RecvTaskResult(uint64_t id, UeTaskModel ueTask)
             NS_ASSERT(epcX2RlcUser != nullptr);
             if (epcX2RlcUser != nullptr)
             {
-                NS_LOG_DEBUG("Start Sending.");
+                NS_LOG_DEBUG(" Send Frame "
+                             << " to imsi " << mcUeNetDev->GetImsi() << " directly.");
+                // TODO UE datarate info
+
+                uint16_t packetNum = 10;
+                for (uint16_t packetIndex = 0; packetIndex < packetNum; packetIndex++)
+                {
+                    Ptr<Packet> packet = Create<Packet>(1200);
+                    EpcX2SapUser::UeDataParams params;
+
+                    params.gtpTeid = gtpTeid;
+                    params.ueData = packet;
+                    PdcpTag pdcpTag(Simulator::Now());
+
+                    params.ueData->AddByteTag(pdcpTag);
+                    epcX2RlcUser->SendMcPdcpSdu(params);
+                }
             }
+        }
+        else
+        {
+            EpcX2SapUser::UeDataParams params;
+            params.sourceCellId = serverMmWaveEnbNetDev->GetCellId();
+            params.targetCellId = ueMmWaveEnbNetDev->GetCellId();
+            params.gtpTeid = gtpTeid;
+
+            // uint64_t frameSendTime = Simulator::Now().GetTimeStep();
+            uint16_t packetNum = 10;
+            for (uint16_t packetIndex = 0; packetIndex < packetNum; packetIndex++)
+            {
+                Ptr<Packet> packet = Create<Packet>(1200);
+                params.ueData = packet;
+
+                serverMmWaveEnbNetDev->GetNode()
+                    ->GetObject<EpcX2>()
+                    ->GetEpcX2SapProvider()
+                    ->ForwardRlcPdu(params);
+            }
+            NS_LOG_DEBUG(" Send Frame "
+                         << " to imsi " << mcUeNetDev->GetImsi() << " via X2.");
         }
     }
 }

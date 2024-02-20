@@ -75,8 +75,9 @@ class VrServer : public CfApplication
 
     void Handle4Imsi(uint64_t imsi);
 
-    void Send2Imsi(uint64_t imsi);
+    void Send2ImsiFromGnb(uint64_t imsi);
 
+    void Send2ImsiFromRemoteHost(uint64_t imsi);
     // Ptr<CfUnit> m_cfUnit;
 
     Ptr<CfranSystemInfo> m_cfranSystemInfo;

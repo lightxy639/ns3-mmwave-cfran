@@ -7,20 +7,24 @@ set(source_files
     helper/cfran-helper.cc
     helper/system-info.cc
     helper/vr-server-helper.cc
+    helper/vr-client-helper.cc
     model/cf-unit.cc
     model/cf-model.cc
     model/vr-server.cc
     model/cf-application.cc
+    model/vr-client.cc
 )
 
 set(header_files
     helper/cfran-helper.h
     helper/system-info.h
     helper/vr-server-helper.h
+    helper/vr-client-helper.h
     model/cf-unit.h
     model/cf-model.h
     model/vr-server.h
     model/cf-application.h
+    model/vr-client.h
 )
 
 

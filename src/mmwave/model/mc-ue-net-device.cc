@@ -251,6 +251,13 @@ McUeNetDevice::SetReceiveCallback(ReceiveCallback cb)
     m_rxCallback = cb;
 }
 
+void
+McUeNetDevice::SetNonIpReceiveCallback(Callback< void, Ptr<NetDevice>, Ptr<Packet>> cb)
+{
+  NS_LOG_FUNCTION(this);
+  m_nonIpRxCallback = cb;
+}
+
 bool
 McUeNetDevice::SendFrom(Ptr<Packet> packet,
                         const Address& source,
@@ -406,7 +413,9 @@ McUeNetDevice::Receive(Ptr<Packet> p)
     }
     else
     {
-        NS_ABORT_MSG("McUeNetDevice::Receive - Unknown IP type...");
+        // NS_ABORT_MSG("McUeNetDevice::Receive - Unknown IP type...");
+        NS_LOG_LOGIC("Custom stack...");
+        m_nonIpRxCallback(this, p);
     }
 }
 

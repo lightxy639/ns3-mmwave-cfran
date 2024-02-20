@@ -37,10 +37,10 @@
 #include <ns3/nstime.h>
 #include <ns3/traced-callback.h>
 
-//#include "ns3/mmwave-enb-net-device.h"
-//#include "ns3/lte-enb-net-device.h"
-//#include "ns3/lte-ue-net-device.h"
-//#include "ns3/mmwave-ue-net-device.h"
+// #include "ns3/mmwave-enb-net-device.h"
+// #include "ns3/lte-enb-net-device.h"
+// #include "ns3/lte-ue-net-device.h"
+// #include "ns3/mmwave-ue-net-device.h"
 
 namespace ns3
 {
@@ -100,6 +100,7 @@ class McUeNetDevice : public NetDevice
     virtual bool NeedsArp(void) const override;
     virtual Address GetMulticast(Ipv6Address addr) const override;
     virtual void SetReceiveCallback(ReceiveCallback cb) override;
+    void SetNonIpReceiveCallback(Callback<void, Ptr<NetDevice>, Ptr<Packet>> cb);
     virtual void SetPromiscReceiveCallback(PromiscReceiveCallback cb) override;
     virtual bool SupportsSendFrom(void) const override;
     virtual bool Send(Ptr<Packet> packet, const Address& dest, uint16_t protocolNumber) override;
@@ -221,6 +222,7 @@ class McUeNetDevice : public NetDevice
 
   protected:
     NetDevice::ReceiveCallback m_rxCallback;
+    Callback<void, Ptr<NetDevice>, Ptr<Packet>> m_nonIpRxCallback;
     virtual void DoInitialize(void) override;
 
   private:

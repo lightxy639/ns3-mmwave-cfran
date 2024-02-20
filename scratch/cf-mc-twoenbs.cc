@@ -37,6 +37,7 @@
 #include "ns3/system-info.h"
 #include "ns3/vr-server-helper.h"
 #include "ns3/vr-server.h"
+#include "ns3/vr-client-helper.h"
 
 #include <ctime>
 #include <iostream>
@@ -379,12 +380,12 @@ static ns3::GlobalValue g_lteUplink("lteUplink",
 int
 main(int argc, char* argv[])
 {
-    // LogComponentEnable("McTwoEnbs", LOG_DEBUG);
-    // LogComponentEnable("CfExample", LOG_DEBUG);
+    LogComponentEnable("CfMcTwoEnbs", LOG_DEBUG);
     LogComponentEnable("CfUnit", LOG_DEBUG);
     LogComponentEnable("CfUnit", LOG_FUNCTION);
     LogComponentEnable("VrServer", LOG_DEBUG);
     LogComponentEnable("VrServer", LOG_FUNCTION);
+    LogComponentEnable("VrClient", LOG_DEBUG);
 
     bool harqEnabled = true;
     bool fixedTti = false;
@@ -752,12 +753,17 @@ main(int argc, char* argv[])
 
     Config::SetDefault("ns3::VrServer::CfranSystemInfo", PointerValue(cfranSystemInfo));
 
+    Ptr<VrClientHelper> vrClientHelper = CreateObject<VrClientHelper>();
+    ApplicationContainer vrClientApps = vrClientHelper->Install(ueNodes);
+
     Ptr<VrServerHelper> vrServerHelper = Create<VrServerHelper>();
     ApplicationContainer apps = vrServerHelper->Install(mmWaveEnbNodes);
-    Ptr<CfApplication> vrApp = DynamicCast<CfApplication>(apps.Get(1));
+    Ptr<CfApplication> vrApp = DynamicCast<CfApplication>(apps.Get(0));
     DynamicCast<VrServer>(vrApp)->StartServiceForImsi(1);
 
-    // Install and start applications on UEs and remote host
+    
+
+/*     // Install and start applications on UEs and remote host
     uint16_t dlPort = 1234;
     uint16_t ulPort = 2000;
     ApplicationContainer clientApps;
@@ -799,7 +805,7 @@ main(int argc, char* argv[])
     NS_LOG_UNCOND("transientDuration " << transientDuration << " simTime " << simTime);
     serverApps.Start(Seconds(transientDuration));
     clientApps.Start(Seconds(transientDuration));
-    clientApps.Stop(Seconds(simTime - 1));
+    clientApps.Stop(Seconds(simTime - 1)); */
 
     Simulator::Schedule(Seconds(transientDuration),
                         &ChangeSpeed,
