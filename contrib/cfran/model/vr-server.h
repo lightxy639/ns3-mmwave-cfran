@@ -48,20 +48,49 @@ class VrServer : public CfApplication
 
     ~VrServer();
 
+    /**
+     * \brief Start VR service for single user
+     * \param imsi the imsi of user
+     */
     void StartServiceForImsi(uint64_t imsi);
 
+    /**
+     * \brief Stop VR service for single user
+     * \param imsi the imsi of user
+     */
     void StopServiceForImsi(uint64_t imsi);
 
+    /**
+     * \brief Build and send the RIC Indication Message about VR server
+     * // TODO
+     */
     void BuildAndSendReportVrApplicationMsg();
 
-    void RecvRenderResult();
-
+    /**
+     * \brief Record information of single new user.
+     * \param imsi the imsi of user
+     * \param info UeApplicationInfo struct
+     */
     void AddApplicationInfoForImsi(uint64_t imsi, UeApplicationInfo info);
 
+    /**
+     * \brief Delete information of single user who has already left
+     * \param imsi the imsi of user
+     */
     void DeleteApplicationInfoForImsi(uint64_t imsi);
 
+    /**
+     * \brief Load a specific task to a computing unit
+     * \param id the id of user
+     * \param ueTask the structure that stores task information
+     */
     void LoadTaskToCfUnit(uint64_t id, UeTaskModel ueTask) override;
 
+    /**
+     * \brief Receive the result of specific task from the computing uint
+     * \param id the id of user
+     * \param ueTask the structure that stores task information
+     */
     void RecvTaskResult(uint64_t id, UeTaskModel ueTask) override;
 
   protected:
@@ -73,12 +102,25 @@ class VrServer : public CfApplication
 
     void StopApplication() override; // Called at time specified by Stop
 
+    /**
+     * \brief Handle the rendering task of a single user
+     * \param imsi the imsi of user
+     */
     void Handle4Imsi(uint64_t imsi);
 
+    /**
+     * \brief Send a frame to user using mmwaveEnbNetDevice if this app is
+     *        installed on a gNB node
+     * \param imsi the imsi of user
+     */
     void Send2ImsiFromGnb(uint64_t imsi);
 
+    /**
+     * \brief Send a frame to user using socket if this app is
+     *        installed on a remote host
+     * \param imsi the imsi of user
+     */
     void Send2ImsiFromRemoteHost(uint64_t imsi);
-    // Ptr<CfUnit> m_cfUnit;
 
     Ptr<CfranSystemInfo> m_cfranSystemInfo;
 

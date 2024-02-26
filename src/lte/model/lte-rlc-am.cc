@@ -37,6 +37,10 @@
 #include "ns3/simulator.h"
 #include "ns3/string.h"
 
+#include "ns3/lte-pdcp-header.h"
+#include "ns3/ipv4-header.h"
+#include "ns3/ipv6-header.h"
+
 namespace ns3
 {
 
@@ -2775,12 +2779,47 @@ LteRlcAm::ReassembleAndDeliver(Ptr<Packet> packet)
 void
 LteRlcAm::TriggerReceivePdcpPdu(Ptr<Packet> p)
 {
+    NS_LOG_FUNCTION(this);
     if (!isMc)
     {
         m_rlcSapUser->ReceivePdcpPdu(p);
     }
     else
     {
+        LtePdcpHeader pdcpHeader;
+        p->RemoveHeader(pdcpHeader);
+        p->RemoveAllByteTags();
+
+        Ipv4Header ipv4Header;
+        p->PeekHeader(ipv4Header);
+
+        Ipv6Header ipv6Header;
+        
+        if(p->PeekHeader(ipv4Header) != 0 || p->PeekHeader(ipv6Header) != 0)
+        {
+            m_forwardUpCallback(p);
+        }
+
+        // p->PeekHeader(ipv6Header);
+
+        NS_LOG_DEBUG("ipv4Header " << p->PeekHeader(ipv4Header) << " " << "ipv6Header " << p->PeekHeader(ipv6Header));
+
+        
+        // // p->PeekHeader(pdcpHeader);
+        // uint8_t ipType;
+
+        // p->CopyData(&ipType, 1);
+        // ipType = (ipType >> 4) & 0x0f;
+
+        // if (ipType == 0x04)
+        //     NS_LOG_DEBUG("IPv4 received");
+        // // m_rxCallback(this, p, Ipv4L3Protocol::PROT_NUMBER, Address());
+        // else if (ipType == 0x06)
+        //     NS_LOG_DEBUG("IPv6 received");
+        // // m_rxCallback(this, p, Ipv6L3Protocol::PROT_NUMBER, Address());
+        // else
+        //     NS_ABORT_MSG("LteNetDevice::Receive - Unknown IP type...");
+
         m_ueDataParams.ueData = p;
         m_epcX2RlcProvider->ReceiveMcPdcpSdu(m_ueDataParams);
     }

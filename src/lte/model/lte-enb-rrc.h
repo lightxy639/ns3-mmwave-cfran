@@ -51,6 +51,7 @@
 #include <ns3/lte-rlc-am.h>
 #include <ns3/lte-rlc.h>
 #include <ns3/lte-rrc-sap.h>
+#include <ns3/mmwave-net-device.h>
 #include <ns3/nstime.h>
 #include <ns3/object.h>
 #include <ns3/traced-callback.h>
@@ -384,7 +385,7 @@ class UeManager : public Object
      * \return the current state
      */
     State GetState() const;
-    
+
     /**
      * Get the LTE DRB map info of UeManager
      */
@@ -777,6 +778,16 @@ class LteEnbRrc : public Object
      * \return the object TypeId
      */
     static TypeId GetTypeId(void);
+
+    /**
+     * \brief Set corresponding mmwave enb net device  for the convenience of...
+     */
+    void SetMmWaveEnbNetDevice(Ptr<mmwave::MmWaveNetDevice> mmWaveEnbNetDev);
+
+    /**
+     * \brief Get corresponding mmwave enb net device  for the convenience of...
+     */
+    Ptr<mmwave::MmWaveNetDevice> GetMmWaveEnbNetDevice();
 
     /**
      * Set the X2 SAP this RRC should interact with
@@ -1928,6 +1939,7 @@ class LteEnbRrc : public Object
     TracedCallback<uint64_t, uint16_t, long double> m_notifyMmWaveSinrTrace;
 
     // mc
+    Ptr<NetDevice> m_mmWaveEnbNetDevice;
     bool m_ismmWave;
     bool m_interRatHoMode;
     bool m_firstReport;

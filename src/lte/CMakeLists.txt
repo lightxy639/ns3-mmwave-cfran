@@ -150,6 +150,7 @@ set(source_files
     model/epc-s1ap-header.cc
     model/mc-enb-pdcp.cc
     model/mc-ue-pdcp.cc
+    model/enb-server-tag.cc
     helper/retx-stats-calculator.cc
     helper/mac-tx-stats-calculator.cc
 )
@@ -349,6 +350,7 @@ set(header_files
     model/component-carrier.h
     model/component-carrier-ue.h
     model/component-carrier-enb.h
+    model/enb-server-tag.h
 )
 
 build_lib(

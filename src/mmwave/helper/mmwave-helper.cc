@@ -50,6 +50,7 @@
 #include <ns3/lte-spectrum-phy.h>
 #include <ns3/lte-ue-component-carrier-manager.h>
 #include <ns3/mmwave-beamforming-model.h>
+#include <ns3/mmwave-net-device.h>
 #include <ns3/mmwave-lte-rrc-protocol-real.h>
 #include <ns3/mmwave-propagation-loss-model.h>
 #include <ns3/mmwave-rrc-protocol-ideal.h>
@@ -1938,6 +1939,7 @@ MmWaveHelper::InstallSingleEnbDevice(Ptr<Node> n)
     }
 
     Ptr<LteEnbRrc> rrc = CreateObject<LteEnbRrc>();
+    rrc->SetMmWaveEnbNetDevice(DynamicCast<MmWaveNetDevice>(device));
     Ptr<LteEnbComponentCarrierManager> ccmEnbManager =
         m_enbComponentCarrierManagerFactory.Create<LteEnbComponentCarrierManager>();
 

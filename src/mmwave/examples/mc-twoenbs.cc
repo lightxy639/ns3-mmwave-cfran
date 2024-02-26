@@ -374,7 +374,18 @@ static ns3::GlobalValue g_lteUplink("lteUplink",
 int
 main(int argc, char* argv[])
 {
-    LogComponentEnable("McTwoEnbs", LOG_DEBUG)  ;
+    // LogComponentEnable("McTwoEnbs", LOG_DEBUG);
+    // LogComponentEnable("PacketSink", LOG_INFO);
+    // LogComponentEnable("LteUeRrc", LOG_FUNCTION);
+    // LogComponentEnable("LteUeRrc", LOG_INFO);
+    // LogComponentEnable("LteEnbRrc", LOG_INFO);
+    // LogComponentEnable("LteEnbRrc", LOG_FUNCTION);
+    // LogComponentEnable("LteRlcAm", LOG_FUNCTION);
+    // LogComponentEnable("LteNetDevice", LOG_FUNCTION);
+    // LogComponentEnable("LteNetDevice", LOG_DEBUG);
+    LogComponentEnable("LteRlcAm", LOG_DEBUG);
+    LogComponentEnable("MmWaveNetDevice", LOG_LOGIC);
+    // LogComponentEnable("LteRlcAm", LOG_INFO);
 
     bool harqEnabled = true;
     bool fixedTti = false;
@@ -715,8 +726,8 @@ main(int argc, char* argv[])
     uint16_t ulPort = 2000;
     ApplicationContainer clientApps;
     ApplicationContainer serverApps;
-    bool dl = 1;
-    bool ul = 0;
+    bool dl = 0;
+    bool ul = 1;
 
     for (uint32_t u = 0; u < ueNodes.GetN(); ++u)
     {
@@ -739,7 +750,7 @@ main(int argc, char* argv[])
             ++ulPort;
             PacketSinkHelper ulPacketSinkHelper("ns3::UdpSocketFactory",
                                                 InetSocketAddress(Ipv4Address::GetAny(), ulPort));
-            ulPacketSinkHelper.SetAttribute("PacketWindowSize", UintegerValue(256));
+            // ulPacketSinkHelper.SetAttribute("PacketWindowSize", UintegerValue(256));
             serverApps.Add(ulPacketSinkHelper.Install(remoteHost));
             UdpClientHelper ulClient(remoteHostAddr, ulPort);
             ulClient.SetAttribute("Interval", TimeValue(MicroSeconds(interPacketInterval)));

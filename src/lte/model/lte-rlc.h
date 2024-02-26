@@ -143,6 +143,14 @@ class LteRlc : public Object
     LteMacSapUser* GetLteMacSapUser();
 
     /**
+     * set the callback used to forward data packets up the stack
+     *
+     * \param cb
+     */
+    void SetForwardUpCallback(Callback<void, Ptr<Packet>> cb);
+    
+
+    /**
      * TracedCallback signature for NotifyTxOpportunity events.
      *
      * \param [in] rnti C-RNTI scheduled.
@@ -191,6 +199,9 @@ class LteRlc : public Object
      * \param p packet
      */
     virtual void DoTransmitPdcpPdu(Ptr<Packet> p) = 0;
+
+    // m_forwardUpCallback is used for "Rlc -> NetDevice"
+    Callback<void, Ptr<Packet>> m_forwardUpCallback; ///< forward up callback function
 
     LteRlcSapUser* m_rlcSapUser;         ///< RLC SAP user
     LteRlcSapProvider* m_rlcSapProvider; ///< RLC SAP provider

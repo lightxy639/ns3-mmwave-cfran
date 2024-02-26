@@ -1479,14 +1479,14 @@ UeManager::RecvRlcSetupRequest(EpcX2SapUser::RlcSetupRequest params) // TODO onl
 
         EpsBearer bearer;
         TypeId rlcTypeId = m_rrc->GetRlcType(bearer); // actually, this doesn't depend on bearer
-
         ObjectFactory rlcObjectFactory;
         rlcObjectFactory.SetTypeId(rlcTypeId);
         Ptr<LteRlc> rlc = rlcObjectFactory.Create()->GetObject<LteRlc>();
         NS_LOG_INFO("Created rlc " << rlc);
         rlc->SetLteMacSapProvider(m_rrc->m_macSapProvider);
         rlc->SetRnti(m_rnti);
-
+        rlc->SetForwardUpCallback(MakeCallback(&ns3::mmwave::MmWaveNetDevice::Receive, m_rrc->GetMmWaveEnbNetDevice()));
+        
         rlcInfo->m_rlc = rlc;
 
         rlc->SetLcId(lcid);
@@ -5921,4 +5921,15 @@ LteEnbRrc::SendSystemInformation()
     Simulator::Schedule(m_systemInformationPeriodicity, &LteEnbRrc::SendSystemInformation, this);
 }
 
+void
+LteEnbRrc::SetMmWaveEnbNetDevice(Ptr<ns3::mmwave::MmWaveNetDevice> mmWaveEnbNetDev)
+{
+    m_mmWaveEnbNetDevice = mmWaveEnbNetDev;
+}
+
+Ptr<ns3::mmwave::MmWaveNetDevice>
+LteEnbRrc::GetMmWaveEnbNetDevice()
+{
+    return m_mmWaveEnbNetDevice;
+}
 } // namespace ns3

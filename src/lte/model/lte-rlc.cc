@@ -209,6 +209,12 @@ LteRlc::SetEpcX2RlcProvider(EpcX2RlcProvider* s)
     m_epcX2RlcProvider = s;
 }
 
+void
+LteRlc::SetForwardUpCallback(Callback<void, Ptr<Packet>> cb)
+{
+    m_forwardUpCallback = cb;
+}
+
 EpcX2RlcUser*
 LteRlc::GetEpcX2RlcUser()
 {
