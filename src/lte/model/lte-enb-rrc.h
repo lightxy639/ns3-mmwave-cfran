@@ -1939,7 +1939,7 @@ class LteEnbRrc : public Object
     TracedCallback<uint64_t, uint16_t, long double> m_notifyMmWaveSinrTrace;
 
     // mc
-    Ptr<NetDevice> m_mmWaveEnbNetDevice;
+    Ptr<mmwave::MmWaveNetDevice> m_mmWaveEnbNetDevice;
     bool m_ismmWave;
     bool m_interRatHoMode;
     bool m_firstReport;

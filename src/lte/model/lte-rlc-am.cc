@@ -2820,8 +2820,8 @@ LteRlcAm::TriggerReceivePdcpPdu(Ptr<Packet> p)
         // else
         //     NS_ABORT_MSG("LteNetDevice::Receive - Unknown IP type...");
 
-        m_ueDataParams.ueData = p;
-        m_epcX2RlcProvider->ReceiveMcPdcpSdu(m_ueDataParams);
+        // m_ueDataParams.ueData = p;
+        // m_epcX2RlcProvider->ReceiveMcPdcpSdu(m_ueDataParams);
     }
 }
 

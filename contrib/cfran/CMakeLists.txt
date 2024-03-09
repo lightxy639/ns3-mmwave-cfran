@@ -13,6 +13,9 @@ set(source_files
     model/vr-server.cc
     model/cf-application.cc
     model/vr-client.cc
+    model/ue-cf-application.cc
+    model/task-request-header.cc
+    model/ue-simple-client.cc
 )
 
 set(header_files
@@ -25,6 +28,9 @@ set(header_files
     model/vr-server.h
     model/cf-application.h
     model/vr-client.h
+    model/ue-cf-application.h
+    model/task-request-header.h
+    model/ue-simple-client.h
 )
 
 

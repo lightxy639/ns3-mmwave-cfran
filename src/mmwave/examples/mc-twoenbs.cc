@@ -384,7 +384,8 @@ main(int argc, char* argv[])
     // LogComponentEnable("LteNetDevice", LOG_FUNCTION);
     // LogComponentEnable("LteNetDevice", LOG_DEBUG);
     LogComponentEnable("LteRlcAm", LOG_DEBUG);
-    LogComponentEnable("MmWaveNetDevice", LOG_LOGIC);
+    // LogComponentEnable("MmWaveNetDevice", LOG_LOGIC);
+    LogComponentEnable("MmWaveNetDevice", LOG_FUNCTION);
     // LogComponentEnable("LteRlcAm", LOG_INFO);
 
     bool harqEnabled = true;

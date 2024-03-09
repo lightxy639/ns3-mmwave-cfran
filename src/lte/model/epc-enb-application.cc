@@ -288,6 +288,10 @@ EpcEnbApplication::RecvFromLteSocket(Ptr<Socket> socket)
 
     EpsBearerTag tag;
     bool found = packet->RemovePacketTag(tag);
+    if(!found)
+    {
+        return;
+    }
     NS_ASSERT(found);
     uint16_t rnti = tag.GetRnti();
     uint8_t bid = tag.GetBid();
