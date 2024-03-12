@@ -202,6 +202,8 @@ class EpcX2 : public Object
                                           uint64_t delay,
                                           bool data);
 
+    std::map<uint16_t, Ptr<X2IfaceInfo>> GetX2IfaceInfoMap();
+    
   protected:
     // Interface provided by EpcX2SapProvider
     /**

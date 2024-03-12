@@ -17,38 +17,38 @@ struct UeTaskModel;
 class CfUnit;
 
 /**
+ * CfX2IfaceInfo
+ */
+class CfX2IfaceInfo : public SimpleRefCount<CfX2IfaceInfo>
+{
+  public:
+    /**
+     * Constructor
+     *
+     * \param remoteIpAddr remote IP address
+     * \param localCtrlPlaneSocket control plane socket
+     * \param localUserPlaneSocket user plane socket
+     */
+    CfX2IfaceInfo(Ipv4Address remoteIpAddr, Ptr<Socket> localSocket);
+    virtual ~CfX2IfaceInfo(void);
+
+    /**
+     * Assignment operator
+     *
+     * \returns CfX2IfaceInfo&
+     */
+    CfX2IfaceInfo& operator=(const CfX2IfaceInfo&);
+
+  public:
+    Ipv4Address m_remoteIpAddr; ///< remote IP address
+    Ptr<Socket> m_localSocket;  ///< local control plane socket
+};
+
+/**
  * \brief The implement of applications that require computing force
  */
 class CfApplication : public Application
 {
-    /**
-     * CfX2IfaceInfo
-     */
-    class CfX2IfaceInfo : public SimpleRefCount<CfX2IfaceInfo>
-    {
-      public:
-        /**
-         * Constructor
-         *
-         * \param remoteIpAddr remote IP address
-         * \param localCtrlPlaneSocket control plane socket
-         * \param localUserPlaneSocket user plane socket
-         */
-        CfX2IfaceInfo(Ipv4Address remoteIpAddr, Ptr<Socket> localSocket);
-        virtual ~CfX2IfaceInfo(void);
-
-        /**
-         * Assignment operator
-         *
-         * \returns CfX2IfaceInfo&
-         */
-        CfX2IfaceInfo& operator=(const CfX2IfaceInfo&);
-
-      public:
-        Ipv4Address m_remoteIpAddr;         ///< remote IP address
-        Ptr<Socket> m_localSocket; ///< local control plane socket
-    };
-
   public:
     /**
      * \brief Get the type ID.
@@ -62,7 +62,9 @@ class CfApplication : public Application
 
     void SetCfUnit(Ptr<CfUnit> cfUnit);
 
-    void SetMmWaveEnbNetDevice(Ptr<mmwave::MmWaveEnbNetDevice> mmwaveEnbNetDev);
+    // void SetMmWaveEnbNetDevice(Ptr<mmwave::MmWaveEnbNetDevice> mmwaveEnbNetDev);
+
+    void InitX2Info();
 
     void RecvTaskRequest();
 

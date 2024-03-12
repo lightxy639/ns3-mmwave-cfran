@@ -477,7 +477,7 @@ UeManager::SetupDataRadioBearer(EpsBearer bearer,
     Ptr<LteRlc> rlc = rlcObjectFactory.Create()->GetObject<LteRlc>();
     rlc->SetLteMacSapProvider(m_rrc->m_macSapProvider);
     rlc->SetRnti(m_rnti);
-    // Ensure that the magic modified RLC ->Netdevice can function properly
+    // Ensure that the process RLC ->Netdevice can function properly
     rlc->SetForwardUpCallback(MakeCallback(&ns3::mmwave::MmWaveNetDevice::Receive, m_rrc->GetMmWaveEnbNetDevice()));
 
     drbInfo->m_rlc = rlc;

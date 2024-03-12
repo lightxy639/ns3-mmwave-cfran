@@ -82,11 +82,11 @@ CfApplication::SetCfUnit(Ptr<CfUnit> cfUnit)
     m_cfUnit = cfUnit;
 }
 
-void
-CfApplication::SetMmWaveEnbNetDevice(Ptr<mmwave::MmWaveEnbNetDevice> mmwaveEnbNetDev)
-{
-    m_mmWaveEnbNetDevice = mmwaveEnbNetDev;
-}
+// void
+// CfApplication::SetMmWaveEnbNetDevice(Ptr<mmwave::MmWaveEnbNetDevice> mmwaveEnbNetDev)
+// {
+//     m_mmWaveEnbNetDevice = mmwaveEnbNetDev;
+// }
 
 void
 CfApplication::RecvTaskRequest()
@@ -173,6 +173,8 @@ CfApplication::StartApplication()
         }
     }
     m_socket->SetRecvCallback(MakeCallback(&CfApplication::HandleRead, this));
+
+    InitX2Info();
 }
 
 void
@@ -253,6 +255,34 @@ CfApplication::HandleRead(Ptr<Socket> socket)
         //                            << Inet6SocketAddress::ConvertFrom(from).GetPort());
         // }
     }
+}
+
+void
+CfApplication::InitX2Info()
+{
+    NS_LOG_FUNCTION(this);
+
+    Ptr<EpcX2> epcX2 = m_node->GetObject<EpcX2>();
+    NS_ASSERT(epcX2 != nullptr);
+
+    auto x2IfaceInfoMap = epcX2->GetX2IfaceInfoMap();
+    for(auto it = x2IfaceInfoMap.begin(); it != x2IfaceInfoMap.end(); it++)
+    {
+        uint16_t remoteCellId = it->first;
+        Ptr<X2IfaceInfo> x2IfaceInfo= it->second;
+
+        Ipv4Address remoteIpAddr = x2IfaceInfo->m_remoteIpAddr;
+        Ptr<Socket> localUSocket = x2IfaceInfo->m_localUserPlaneSocket;
+
+        Address tempAddr;
+        localUSocket->GetSockName(tempAddr);
+        Ipv4Address localAddr = InetSocketAddress::ConvertFrom(tempAddr).GetIpv4();
+
+        NS_LOG_DEBUG("Get IP adderess of cell " << remoteCellId << ": " << remoteIpAddr);
+
+
+    }
+
 }
 
 } // namespace ns3

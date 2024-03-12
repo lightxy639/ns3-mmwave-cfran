@@ -2786,24 +2786,26 @@ LteRlcAm::TriggerReceivePdcpPdu(Ptr<Packet> p)
     }
     else
     {
-        LtePdcpHeader pdcpHeader;
-        p->RemoveHeader(pdcpHeader);
-        p->RemoveAllByteTags();
-
-        Ipv4Header ipv4Header;
-        p->PeekHeader(ipv4Header);
-
-        Ipv6Header ipv6Header;
+        m_rlcSapUser->ReceivePdcpPdu(p);
         
-        if(p->PeekHeader(ipv4Header) != 0 || p->PeekHeader(ipv6Header) != 0)
-        {
-            NS_LOG_UNCOND("Recv ip packet");
-            m_forwardUpCallback(p);
-        }
+        // LtePdcpHeader pdcpHeader;
+        // p->RemoveHeader(pdcpHeader);
+        // p->RemoveAllByteTags();
 
-        // p->PeekHeader(ipv6Header);
+        // Ipv4Header ipv4Header;
+        // p->PeekHeader(ipv4Header);
 
-        NS_LOG_DEBUG("ipv4Header " << p->PeekHeader(ipv4Header) << " " << "ipv6Header " << p->PeekHeader(ipv6Header));
+        // Ipv6Header ipv6Header;
+        
+        // if(p->PeekHeader(ipv4Header) != 0 || p->PeekHeader(ipv6Header) != 0)
+        // {
+        //     NS_LOG_UNCOND("Recv ip packet");
+        //     m_forwardUpCallback(p);
+        // }
+
+        // // p->PeekHeader(ipv6Header);
+
+        // NS_LOG_DEBUG("ipv4Header " << p->PeekHeader(ipv4Header) << " " << "ipv6Header " << p->PeekHeader(ipv6Header));
 
         
         // // p->PeekHeader(pdcpHeader);

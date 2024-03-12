@@ -161,7 +161,7 @@ EpcX2::GetEpcX2RlcProvider()
     return m_x2RlcProvider;
 }
 
-std::map<uint32_t, EpcX2RlcUser*> 
+std::map<uint32_t, EpcX2RlcUser*>
 EpcX2::GetX2RlcUserMap()
 {
     return m_x2RlcUserMap;
@@ -1538,6 +1538,12 @@ EpcX2::DoSendSecondaryCellHandoverCompleted(
 
     // Send the X2 message through the socket
     sourceSocket->SendTo(packet, 0, InetSocketAddress(targetIpAddr, m_x2cUdpPort));
+}
+
+std::map<uint16_t, Ptr<X2IfaceInfo>>
+EpcX2::GetX2IfaceInfoMap()
+{
+    return m_x2InterfaceSockets;
 }
 
 } // namespace ns3
