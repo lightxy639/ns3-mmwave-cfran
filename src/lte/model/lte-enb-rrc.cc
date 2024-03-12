@@ -477,6 +477,8 @@ UeManager::SetupDataRadioBearer(EpsBearer bearer,
     Ptr<LteRlc> rlc = rlcObjectFactory.Create()->GetObject<LteRlc>();
     rlc->SetLteMacSapProvider(m_rrc->m_macSapProvider);
     rlc->SetRnti(m_rnti);
+    // Ensure that the magic modified RLC ->Netdevice can function properly
+    rlc->SetForwardUpCallback(MakeCallback(&ns3::mmwave::MmWaveNetDevice::Receive, m_rrc->GetMmWaveEnbNetDevice()));
 
     drbInfo->m_rlc = rlc;
 
@@ -1485,6 +1487,7 @@ UeManager::RecvRlcSetupRequest(EpcX2SapUser::RlcSetupRequest params) // TODO onl
         NS_LOG_INFO("Created rlc " << rlc);
         rlc->SetLteMacSapProvider(m_rrc->m_macSapProvider);
         rlc->SetRnti(m_rnti);
+        // Ensure that the magic modified RLC ->Netdevice can function properly
         rlc->SetForwardUpCallback(MakeCallback(&ns3::mmwave::MmWaveNetDevice::Receive, m_rrc->GetMmWaveEnbNetDevice()));
         
         rlcInfo->m_rlc = rlc;
@@ -2187,6 +2190,8 @@ UeManager::SendRrcConnectionSwitch(bool useMmWaveConnection)
                     Ptr<LteRlc> rlc = rlcObjectFactory.Create()->GetObject<LteRlc>();
                     rlc->SetLteMacSapProvider(m_rrc->m_macSapProvider);
                     rlc->SetRnti(m_rnti);
+                    // Ensure that the magic modified RLC ->Netdevice can function properly
+                    rlc->SetForwardUpCallback(MakeCallback(&ns3::mmwave::MmWaveNetDevice::Receive, m_rrc->GetMmWaveEnbNetDevice()));
 
                     it->second->m_rlc = rlc;
 
@@ -2317,6 +2322,8 @@ UeManager::RecvConnectionSwitchToMmWave(bool useMmWaveConnection, uint8_t drbid)
         NS_LOG_INFO("Reset rlc in mmWave after switch to LTE " << rlc);
         rlc->SetLteMacSapProvider(m_rrc->m_macSapProvider);
         rlc->SetRnti(m_rnti);
+        // Ensure that the magic modified RLC ->Netdevice can function properly
+        rlc->SetForwardUpCallback(MakeCallback(&ns3::mmwave::MmWaveNetDevice::Receive, m_rrc->GetMmWaveEnbNetDevice()));
 
         m_rlcMap.find(drbid)->second->m_rlc = rlc;
         rlc->SetLcId(lcid);

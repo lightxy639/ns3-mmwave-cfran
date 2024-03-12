@@ -1,7 +1,9 @@
 #include "ue-cf-application.h"
+
 #include "task-request-header.h"
 
 #include <ns3/log.h>
+#include <ns3/simulator.h>
 
 namespace ns3
 {
@@ -21,7 +23,8 @@ UeCfApplication::UeCfApplication()
     : m_ueId(0),
       m_taskId(0),
       m_socket(0),
-      m_minSize(23)
+      m_minSize(600),
+      m_period(40)
 {
     NS_LOG_FUNCTION(this);
 }
@@ -105,6 +108,25 @@ UeCfApplication::StartApplication()
     NS_LOG_FUNCTION(this);
 
     InitSocket();
+
+    Simulator::Schedule(MilliSeconds(m_period), &UeCfApplication::SendTaskRequest, this);
+}
+
+void
+UeCfApplication::StopApplication()
+{
+    NS_LOG_FUNCTION(this);
+}
+
+void
+UeCfApplication::DoDispose()
+{
+    NS_LOG_FUNCTION(this);
+
+    if (!m_socket)
+    {
+        m_socket->Close();
+    }
 }
 
 void
@@ -115,13 +137,15 @@ UeCfApplication::SendTaskRequest()
     taskReq.SetUeId(m_ueId);
     taskReq.SetTaskId(m_taskId);
 
-    Ptr<Packet> p = Create<Packet>(m_minSize);
+    Ptr<Packet> p = Create<Packet>(1200);
     p->AddHeader(taskReq);
 
-    if(m_socket->Send(p) >= 0)
+    if (m_socket->Send(p) >= 0)
     {
         m_taskId++;
+        NS_LOG_DEBUG("Send by UE " << m_ueId << " taskId " << m_taskId);
     }
+    Simulator::Schedule(MilliSeconds(m_period), &UeCfApplication::SendTaskRequest, this);
 }
 
 void
@@ -129,22 +153,40 @@ UeCfApplication::RecvTaskResult(Ptr<Packet> p)
 {
     NS_LOG_FUNCTION(this);
 }
+
 void
-UeCfApplication::HandleRead (Ptr<Socket> socket)
+UeCfApplication::HandleRead(Ptr<Socket> socket)
 {
-  NS_LOG_FUNCTION (this << socket);
-  Ptr<Packet> packet;
-  Address from;
-  Address localAddress;
-  while ((packet = socket->RecvFrom (from)))
+    NS_LOG_FUNCTION(this << socket);
+    Ptr<Packet> packet;
+    Address from;
+    Address localAddress;
+    while ((packet = socket->RecvFrom(from)))
     {
-      socket->GetSockName (localAddress);
-    //   m_rxTrace (packet);
-    //   m_rxTraceWithAddresses (packet, from, localAddress);
-      if (packet->GetSize () > 0)
+        socket->GetSockName(localAddress);
+        //   m_rxTrace (packet);
+        //   m_rxTraceWithAddresses (packet, from, localAddress);
+        if (packet->GetSize() > 0)
         {
-          RecvTaskResult (packet);
+            RecvTaskResult(packet);
         }
     }
 }
+
+void
+UeCfApplication::SetUeId(uint64_t id)
+{
+    m_ueId = id;
+}
+
+void
+UeCfApplication::HandlePacket(Ptr<Packet> p)
+{
+    NS_LOG_FUNCTION(this);
+
+    NS_LOG_DEBUG("VR packet arrived.");
+}
+
+
+
 } // namespace ns3

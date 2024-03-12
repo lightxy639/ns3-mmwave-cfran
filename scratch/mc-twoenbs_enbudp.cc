@@ -33,6 +33,9 @@
 #include <ns3/lte-ue-net-device.h>
 #include <ns3/random-variable-stream.h>
 
+#include <ns3/ue-cf-application-helper.h>
+#include <ns3/cf-application-helper.h>
+
 #include <ctime>
 #include <iostream>
 #include <list>
@@ -384,6 +387,11 @@ main(int argc, char* argv[])
 {
     // LogComponentEnable("McTwoEnbs", LOG_DEBUG);
     LogComponentEnable("PacketSink", LOG_INFO);
+    LogComponentEnable("CfApplication", LOG_INFO);
+    LogComponentEnable("CfApplication", LOG_DEBUG);
+    LogComponentEnable("UeCfApplication", LOG_DEBUG);
+    // LogComponentEnable("McUeNetDevice", LOG_LOGIC);
+    // LogComponentEnable("MmWaveNetDevice", LOG_LOGIC);
     // LogComponentEnable("LteUeRrc", LOG_FUNCTION);
     // LogComponentEnable("LteUeRrc", LOG_INFO);
     // LogComponentEnable("LteEnbRrc", LOG_INFO);
@@ -754,8 +762,30 @@ main(int argc, char* argv[])
     mmwaveHelper->AddX2Interface(lteEnbNodes, mmWaveEnbNodes);
 
     // Manual attachment
-    mmwaveHelper->AttachToClosestEnb(mcUeDevs, mmWaveEnbDevs, lteEnbDevs);
 
+    mmwaveHelper->AttachToClosestEnb(mcUeDevs, mmWaveEnbDevs, lteEnbDevs);
+    Ptr<CfranSystemInfo> cfranSystemInfo = CreateObject<CfranSystemInfo>();
+
+    for (uint32_t u = 0; u < mcUeDevs.GetN(); ++u)
+    {
+        Ptr<McUeNetDevice> mcUeDev = DynamicCast<McUeNetDevice>(mcUeDevs.Get(u));
+        uint64_t imsi = mcUeDev->GetImsi();
+
+        CfranSystemInfo::UeInfo ueInfo;
+        UeTaskModel ueTaskModel;
+        // ueTaskModel.m_cfRequired = CfModel("GPU", 10);
+        ueTaskModel.m_cfLoad = 0.2;
+        ueTaskModel.m_deadline = 10;
+
+        ueInfo.m_imsi = imsi;
+        ueInfo.m_taskModel = ueTaskModel;
+        ueInfo.m_taskPeriodity = 16;
+        ueInfo.m_mcUeNetDevice = mcUeDev;
+
+        cfranSystemInfo->AddUeInfo(imsi, ueInfo);
+    }
+    Config::SetDefault("ns3::CfApplication::CfranSystemInfomation", PointerValue(cfranSystemInfo));
+    
     // Install and start applications on UEs and remote host
     uint16_t dlPort = 1234;
     uint16_t ulPort = 2000;
@@ -768,21 +798,46 @@ main(int argc, char* argv[])
 
     for (uint32_t u = 0; u < ueNodes.GetN(); ++u)
     {
-        ++ulPort;
-        PacketSinkHelper ulPacketSinkHelper("ns3::UdpSocketFactory",
-                                            InetSocketAddress(Ipv4Address::GetAny(), ulPort));
-        // ulPacketSinkHelper.SetAttribute("PacketWindowSize", UintegerValue(256));
-        serverApps.Add(ulPacketSinkHelper.Install(mmWaveEnbNodes.Get(0)));
+        // ++ulPort;
+        // PacketSinkHelper ulPacketSinkHelper("ns3::UdpSocketFactory",
+        //                                     InetSocketAddress(Ipv4Address::GetAny(), ulPort));
+        // // ulPacketSinkHelper.SetAttribute("PacketWindowSize", UintegerValue(256));
+        // serverApps.Add(ulPacketSinkHelper.Install(mmWaveEnbNodes.Get(0)));
 
+        Config::SetDefault("ns3::CfApplication::Port", UintegerValue(ulPort));
+        CfApplicationHelper cfAppHelper;
+        serverApps.Add(cfAppHelper.Install(mmWaveEnbNodes.Get(0)));
         Ipv4Address enbAddr = enbIpIfaces.GetAddress(0);
 
-        UdpClientHelper ulClient(enbAddr, ulPort);
-        ulClient.SetAttribute("Interval", TimeValue(MicroSeconds(interPacketInterval)));
-        ulClient.SetAttribute("MaxPackets", UintegerValue(0xFFFFFFFF));
-        clientApps.Add(ulClient.Install(ueNodes.Get(u)));
+        UeCfApplicationHelper ueCfAppHelper;
 
-        Config::ConnectWithoutContext("/NodeList/*/ApplicationList/*/$ns3::PacketSink/RxWithAddresses",
-                                      MakeCallback(&PacketSinkLog));
+        clientApps.Add(ueCfAppHelper.Install(ueNodes.Get(u)));
+
+        DynamicCast<UeCfApplication>(clientApps.Get(u))->SetOffloadAddress(enbAddr.ConvertTo(), ulPort);
+        // DynamicCast<UeCfApplication>(clientApps.Get(u))->SetOffloadAddress(remoteHostAddr.ConvertTo(), ulPort);
+
+        
+
+        // Config::ConnectWithoutContext("/NodeList/*/ApplicationList/*/$ns3::PacketSink/RxWithAddresses",
+        //                               MakeCallback(&PacketSinkLog));
+
+
+        // 在 gNB 和 UE 处安装应用
+        // ++ulPort;
+        // PacketSinkHelper ulPacketSinkHelper("ns3::UdpSocketFactory",
+        //                                     InetSocketAddress(Ipv4Address::GetAny(), ulPort));
+        // // ulPacketSinkHelper.SetAttribute("PacketWindowSize", UintegerValue(256));
+        // serverApps.Add(ulPacketSinkHelper.Install(mmWaveEnbNodes.Get(0)));
+
+        // Ipv4Address enbAddr = enbIpIfaces.GetAddress(0);
+
+        // UdpClientHelper ulClient(enbAddr, ulPort);
+        // ulClient.SetAttribute("Interval", TimeValue(MicroSeconds(interPacketInterval)));
+        // ulClient.SetAttribute("MaxPackets", UintegerValue(0xFFFFFFFF));
+        // clientApps.Add(ulClient.Install(ueNodes.Get(u)));
+
+        // Config::ConnectWithoutContext("/NodeList/*/ApplicationList/*/$ns3::PacketSink/RxWithAddresses",
+        //                               MakeCallback(&PacketSinkLog));
     }
     // for (uint32_t u = 0; u < ueNodes.GetN(); ++u)
     // {

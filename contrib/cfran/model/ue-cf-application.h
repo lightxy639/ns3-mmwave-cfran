@@ -22,6 +22,8 @@ class UeCfApplication : public Application
 
     ~UeCfApplication() override;
 
+    void SetUeId(uint64_t ueId);
+
     virtual void SendTaskRequest();
 
     virtual void RecvTaskResult(Ptr<Packet> p);
@@ -34,9 +36,10 @@ class UeCfApplication : public Application
 
     void HandleRead(Ptr<Socket> socket);
 
+    void HandlePacket(Ptr<Packet> p);
 
   protected:
-    void DoDispose() override = 0;
+    void DoDispose();
 
     Address m_offloadAddress;
 
@@ -48,12 +51,14 @@ class UeCfApplication : public Application
 
     Ptr<Socket> m_socket;
 
-    uint8_t m_minSize;
+    uint16_t m_minSize;
+
+    double m_period; // ms
 
   private:
-    virtual void StartApplication() = 0; // Called at time specified by Start
+    virtual void StartApplication(); // Called at time specified by Start
 
-    virtual void StopApplication() = 0; // Called at time specified by Stop
+    virtual void StopApplication(); // Called at time specified by Stop
 };
 
 } // namespace ns3

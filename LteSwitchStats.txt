@@ -1,1 +1,4 @@
-SwitchToLte 1.6042 1 1 1 
+SwitchToLte 1.6058 1 1 1 
+SwitchToLte 2.4362 1 1 1 
+SwitchToLte 2.6058 1 1 1 
+SwitchToLte 3.2378 1 1 1 

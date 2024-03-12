@@ -78,4 +78,17 @@ TaskRequestHeader::Deserialize(Buffer::Iterator start)
 
     return GetSerializedSize();
 }
+
+uint64_t
+TaskRequestHeader::GetUeId()
+{
+    return m_ueId;
+}
+
+uint64_t
+TaskRequestHeader::GetTaskIfd()
+{
+    return m_taskId;
+}
+
 } // namespace ns3

@@ -383,9 +383,11 @@ main(int argc, char* argv[])
     // LogComponentEnable("LteRlcAm", LOG_FUNCTION);
     // LogComponentEnable("LteNetDevice", LOG_FUNCTION);
     // LogComponentEnable("LteNetDevice", LOG_DEBUG);
-    LogComponentEnable("LteRlcAm", LOG_DEBUG);
+    // LogComponentEnable("LteRlcAm", LOG_DEBUG);
     // LogComponentEnable("MmWaveNetDevice", LOG_LOGIC);
-    LogComponentEnable("MmWaveNetDevice", LOG_FUNCTION);
+    // LogComponentEnable("MmWaveNetDevice", LOG_FUNCTION);
+    LogComponentEnable("EpcEnbApplication", LOG_FUNCTION);
+    LogComponentEnable("EpcEnbApplication", LOG_LOGIC);
     // LogComponentEnable("LteRlcAm", LOG_INFO);
 
     bool harqEnabled = true;
@@ -727,8 +729,8 @@ main(int argc, char* argv[])
     uint16_t ulPort = 2000;
     ApplicationContainer clientApps;
     ApplicationContainer serverApps;
-    bool dl = 0;
-    bool ul = 1;
+    bool dl = 1;
+    bool ul = 0;
 
     for (uint32_t u = 0; u < ueNodes.GetN(); ++u)
     {

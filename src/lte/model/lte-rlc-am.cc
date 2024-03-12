@@ -2797,6 +2797,7 @@ LteRlcAm::TriggerReceivePdcpPdu(Ptr<Packet> p)
         
         if(p->PeekHeader(ipv4Header) != 0 || p->PeekHeader(ipv6Header) != 0)
         {
+            NS_LOG_UNCOND("Recv ip packet");
             m_forwardUpCallback(p);
         }
 

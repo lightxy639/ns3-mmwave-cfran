@@ -286,6 +286,7 @@ EpcEnbApplication::RecvFromLteSocket(Ptr<Socket> socket)
     // SocketAddressTag satag;
     // packet->RemovePacketTag (satag);
 
+    // Ensure the process of exchanging application information between UE and mmwaveEnb
     EpsBearerTag tag;
     bool found = packet->RemovePacketTag(tag);
     if(!found)

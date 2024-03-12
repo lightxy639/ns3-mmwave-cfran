@@ -43,6 +43,8 @@ using namespace mmwave;
 int
 main(int argc, char* argv[])
 {
+    LogComponentEnable("MmWaveEnbNetDevice", LOG_FUNCTION);
+    // LogComponentEnable("EpcEnbApplication", LOG_LOGIC);
     CommandLine cmd;
     cmd.Parse(argc, argv);
 
