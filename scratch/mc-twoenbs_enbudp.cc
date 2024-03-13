@@ -30,11 +30,10 @@
 #include "ns3/mobility-module.h"
 #include "ns3/node-list.h"
 #include "ns3/point-to-point-helper.h"
+#include <ns3/cf-application-helper.h>
 #include <ns3/lte-ue-net-device.h>
 #include <ns3/random-variable-stream.h>
-
 #include <ns3/ue-cf-application-helper.h>
-#include <ns3/cf-application-helper.h>
 
 #include <ctime>
 #include <iostream>
@@ -652,7 +651,7 @@ main(int argc, char* argv[])
     NodeContainer mmWaveEnbNodes;
     NodeContainer lteEnbNodes;
     NodeContainer allEnbNodes;
-    mmWaveEnbNodes.Create(1);
+    mmWaveEnbNodes.Create(2);
     lteEnbNodes.Create(1);
     ueNodes.Create(1);
     allEnbNodes.Add(lteEnbNodes);
@@ -726,6 +725,24 @@ main(int argc, char* argv[])
     Ipv4AddressHelper enbIpv4h;
     enbIpv4h.SetBase("2.0.0.0", "255.0.0.0");
     Ipv4InterfaceContainer enbIpIfaces = enbIpv4h.Assign(mmWaveEnbDevs);
+
+    Ptr<CfranSystemInfo> cfranSystemInfo = CreateObject<CfranSystemInfo>();
+
+    for (uint32_t n = 0; n < mmWaveEnbDevs.GetN(); n++)
+    {
+        Ptr<NetDevice> tempMmNetDev = mmWaveEnbDevs.Get(n);
+        Ptr<MmWaveEnbNetDevice> mmNetDev = DynamicCast<MmWaveEnbNetDevice>(tempMmNetDev);
+        Ipv4Address gnbAddr = enbIpIfaces.GetAddress(n);
+
+        CfranSystemInfo::CellInfo cellInfo;
+        cellInfo.m_id = mmNetDev->GetCellId();
+        cellInfo.m_mmwaveEnbNetDevice = mmNetDev;
+        cellInfo.m_ipAddrToUe = gnbAddr;
+
+        cfranSystemInfo->AddCellInfo(cellInfo.m_id, cellInfo);
+        NS_LOG_DEBUG("Add CellInfo " << mmNetDev->GetCellId());
+    }
+
     // interface 0 is localhost, 1 is the p2p device
     // Ipv4Address remoteHostAddr = internetIpIfaces.GetAddress(1);
     for (uint32_t n = 0; n < mmWaveEnbNodes.GetN(); ++n)
@@ -764,7 +781,6 @@ main(int argc, char* argv[])
     // Manual attachment
 
     mmwaveHelper->AttachToClosestEnb(mcUeDevs, mmWaveEnbDevs, lteEnbDevs);
-    Ptr<CfranSystemInfo> cfranSystemInfo = CreateObject<CfranSystemInfo>();
 
     for (uint32_t u = 0; u < mcUeDevs.GetN(); ++u)
     {
@@ -785,7 +801,9 @@ main(int argc, char* argv[])
         cfranSystemInfo->AddUeInfo(imsi, ueInfo);
     }
     Config::SetDefault("ns3::CfApplication::CfranSystemInfomation", PointerValue(cfranSystemInfo));
-    
+    Config::SetDefault("ns3::UeCfApplication::CfranSystemInfomation",
+                       PointerValue(cfranSystemInfo));
+
     // Install and start applications on UEs and remote host
     uint16_t dlPort = 1234;
     uint16_t ulPort = 2000;
@@ -795,32 +813,21 @@ main(int argc, char* argv[])
     ApplicationContainer gnbApps;
     bool dl = 0;
     bool ul = 1;
+    Config::SetDefault("ns3::CfApplication::Port", UintegerValue(ulPort));
+    Config::SetDefault("ns3::UeCfApplication::OffloadPort", UintegerValue(ulPort));
 
     for (uint32_t u = 0; u < ueNodes.GetN(); ++u)
     {
-        // ++ulPort;
-        // PacketSinkHelper ulPacketSinkHelper("ns3::UdpSocketFactory",
-        //                                     InetSocketAddress(Ipv4Address::GetAny(), ulPort));
-        // // ulPacketSinkHelper.SetAttribute("PacketWindowSize", UintegerValue(256));
-        // serverApps.Add(ulPacketSinkHelper.Install(mmWaveEnbNodes.Get(0)));
-
-        Config::SetDefault("ns3::CfApplication::Port", UintegerValue(ulPort));
         CfApplicationHelper cfAppHelper;
-        serverApps.Add(cfAppHelper.Install(mmWaveEnbNodes.Get(0)));
+        serverApps.Add(cfAppHelper.Install(mmWaveEnbNodes));
         Ipv4Address enbAddr = enbIpIfaces.GetAddress(0);
 
         UeCfApplicationHelper ueCfAppHelper;
 
         clientApps.Add(ueCfAppHelper.Install(ueNodes.Get(u)));
 
-        DynamicCast<UeCfApplication>(clientApps.Get(u))->SetOffloadAddress(enbAddr.ConvertTo(), ulPort);
-        // DynamicCast<UeCfApplication>(clientApps.Get(u))->SetOffloadAddress(remoteHostAddr.ConvertTo(), ulPort);
-
-        
-
-        // Config::ConnectWithoutContext("/NodeList/*/ApplicationList/*/$ns3::PacketSink/RxWithAddresses",
-        //                               MakeCallback(&PacketSinkLog));
-
+        // DynamicCast<UeCfApplication>(clientApps.Get(u))->SetOffloadAddress(enbAddr.ConvertTo(),
+        // ulPort);
 
         // 在 gNB 和 UE 处安装应用
         // ++ulPort;
@@ -839,36 +846,6 @@ main(int argc, char* argv[])
         // Config::ConnectWithoutContext("/NodeList/*/ApplicationList/*/$ns3::PacketSink/RxWithAddresses",
         //                               MakeCallback(&PacketSinkLog));
     }
-    // for (uint32_t u = 0; u < ueNodes.GetN(); ++u)
-    // {
-    //     if (dl)
-    //     {
-    //         UdpServerHelper dlPacketSinkHelper(dlPort);
-    //         dlPacketSinkHelper.SetAttribute("PacketWindowSize", UintegerValue(256));
-    //         serverApps.Add(dlPacketSinkHelper.Install(ueNodes.Get(u)));
-
-    //         // Simulator::Schedule(MilliSeconds(20), &PrintLostUdpPackets,
-    //         // DynamicCast<UdpServer>(serverApps.Get(serverApps.GetN()-1)), lostFilename);
-
-    //         UdpClientHelper dlClient(ueIpIface.GetAddress(u), dlPort);
-    //         dlClient.SetAttribute("Interval", TimeValue(MicroSeconds(interPacketInterval)));
-    //         dlClient.SetAttribute("MaxPackets", UintegerValue(0xFFFFFFFF));
-    //         clientApps.Add(dlClient.Install(remoteHost));
-    //     }
-    //     if (ul)
-    //     {
-    //         ++ulPort;
-    //         PacketSinkHelper ulPacketSinkHelper("ns3::UdpSocketFactory",
-    //                                             InetSocketAddress(Ipv4Address::GetAny(),
-    //                                             ulPort));
-    //         // ulPacketSinkHelper.SetAttribute("PacketWindowSize", UintegerValue(256));
-    //         serverApps.Add(ulPacketSinkHelper.Install(remoteHost));
-    //         UdpClientHelper ulClient(remoteHostAddr, ulPort);
-    //         ulClient.SetAttribute("Interval", TimeValue(MicroSeconds(interPacketInterval)));
-    //         ulClient.SetAttribute("MaxPackets", UintegerValue(0xFFFFFFFF));
-    //         clientApps.Add(ulClient.Install(ueNodes.Get(u)));
-    //     }
-    // }
 
     // Start applications
     NS_LOG_UNCOND("transientDuration " << transientDuration << " simTime " << simTime);

@@ -2786,22 +2786,22 @@ LteRlcAm::TriggerReceivePdcpPdu(Ptr<Packet> p)
     }
     else
     {
-        m_rlcSapUser->ReceivePdcpPdu(p);
         
-        // LtePdcpHeader pdcpHeader;
-        // p->RemoveHeader(pdcpHeader);
-        // p->RemoveAllByteTags();
+        LtePdcpHeader pdcpHeader;
+        p->RemoveHeader(pdcpHeader);
+        p->RemoveAllByteTags();
 
-        // Ipv4Header ipv4Header;
+        Ipv4Header ipv4Header;
         // p->PeekHeader(ipv4Header);
+            // m_forwardUpCallback(p);
 
-        // Ipv6Header ipv6Header;
-        
-        // if(p->PeekHeader(ipv4Header) != 0 || p->PeekHeader(ipv6Header) != 0)
-        // {
-        //     NS_LOG_UNCOND("Recv ip packet");
-        //     m_forwardUpCallback(p);
-        // }
+        Ipv6Header ipv6Header;
+        NS_ASSERT(p->PeekHeader(ipv4Header) != 0 || p->PeekHeader(ipv6Header) != 0);
+        if(p->PeekHeader(ipv4Header) != 0 || p->PeekHeader(ipv6Header) != 0)
+        {
+            NS_LOG_UNCOND("Recv ip packet");
+            m_forwardUpCallback(p);
+        }
 
         // // p->PeekHeader(ipv6Header);
 

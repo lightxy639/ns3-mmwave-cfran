@@ -15,6 +15,7 @@ set(source_files
     model/vr-client.cc
     model/ue-cf-application.cc
     model/task-request-header.cc
+    model/cf-radio-header.cc
     model/ue-simple-client.cc
     helper/ue-cf-application-helper.cc
     helper/cf-application-helper.cc
@@ -32,6 +33,7 @@ set(header_files
     model/vr-client.h
     model/ue-cf-application.h
     model/task-request-header.h
+    model/cf-radio-header.h
     model/ue-simple-client.h
     helper/ue-cf-application-helper.h
     helper/cf-application-helper.h

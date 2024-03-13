@@ -31,6 +31,7 @@ class CfranSystemInfo : public Object
     {
         uint64_t m_id;
         Ptr<mmwave::MmWaveEnbNetDevice> m_mmwaveEnbNetDevice;
+        Ipv4Address m_ipAddrToUe;
     };
     
     CfranSystemInfo();
@@ -46,7 +47,7 @@ class CfranSystemInfo : public Object
     CellInfo GetCellInfo(uint64_t cellId);
 
     void AddUeInfo(uint64_t imsi, UeInfo ueInfo);
-    void AddCellInfo(uint64_t imsi, CellInfo cellInfo);
+    void AddCellInfo(uint64_t cellId, CellInfo cellInfo);
 
   protected:
     // inherited from Object

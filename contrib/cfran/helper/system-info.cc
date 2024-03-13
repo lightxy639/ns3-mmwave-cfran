@@ -43,9 +43,9 @@ CfranSystemInfo::GetUeInfo(uint64_t imsi)
 }
 
 CfranSystemInfo::CellInfo
-CfranSystemInfo::GetCellInfo(uint64_t imsi)
+CfranSystemInfo::GetCellInfo(uint64_t cellId)
 {
-    auto it = m_cellInfo.find(imsi);
+    auto it = m_cellInfo.find(cellId);
     NS_ASSERT(it != m_cellInfo.end());
 
     return it->second;

@@ -1939,7 +1939,7 @@ MmWaveHelper::InstallSingleEnbDevice(Ptr<Node> n)
     }
 
     Ptr<LteEnbRrc> rrc = CreateObject<LteEnbRrc>();
-    rrc->SetMmWaveEnbNetDevice(DynamicCast<MmWaveNetDevice>(device));
+    // rrc->SetMmWaveEnbNetDevice(DynamicCast<MmWaveNetDevice>(device));
     Ptr<LteEnbComponentCarrierManager> ccmEnbManager =
         m_enbComponentCarrierManagerFactory.Create<LteEnbComponentCarrierManager>();
 

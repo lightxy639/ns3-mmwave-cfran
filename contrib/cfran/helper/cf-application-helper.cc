@@ -43,17 +43,17 @@ CfApplicationHelper::Install(NodeContainer c)
 
         apps.Add(app);
 
-        // for (uint32_t n = 0; n < node->GetNDevices(); n++)
-        // {
-        //     Ptr<NetDevice> netDev = node->GetDevice(n);
+        for (uint32_t n = 0; n < node->GetNDevices(); n++)
+        {
+            Ptr<NetDevice> netDev = node->GetDevice(n);
 
-        //     Ptr<mmwave::MmWaveEnbNetDevice> mmWaveEnbNetDev = DynamicCast<mmwave::MmWaveEnbNetDevice>(netDev);
+            Ptr<mmwave::MmWaveEnbNetDevice> mmWaveEnbNetDev = DynamicCast<mmwave::MmWaveEnbNetDevice>(netDev);
 
-        //     if(mmWaveEnbNetDev)
-        //     {
-        //         DynamicCast<CfApplication>(app)->SetMmWaveEnbNetDevice(mmWaveEnbNetDev);
-        //     }
-        // }
+            if(mmWaveEnbNetDev)
+            {
+                DynamicCast<CfApplication>(app)->SetMmWaveEnbNetDevice(mmWaveEnbNetDev);
+            }
+        }
     }
     
     return apps;

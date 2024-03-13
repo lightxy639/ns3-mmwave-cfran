@@ -2,7 +2,6 @@
 
 #include <ns3/cf-application.h>
 #include <ns3/log.h>
-#include <ns3/mc-ue-net-device.h>
 
 namespace ns3
 {
@@ -66,7 +65,17 @@ UeCfApplicationHelper::Install(NodeContainer c)
         Ptr<mmwave::McUeNetDevice> netDev = DynamicCast<mmwave::McUeNetDevice>(node->GetDevice(0));
         NS_ASSERT(netDev != nullptr);
         netDev->SetNonIpReceiveCallback(MakeCallback(&CfNonIpPacketRx));
+        for (uint32_t n = 0; n < node->GetNDevices(); n++)
+        {
+            Ptr<NetDevice> netDev = node->GetDevice(n);
 
+            Ptr<mmwave::McUeNetDevice> mcUeNetDev = DynamicCast<mmwave::McUeNetDevice>(netDev);
+
+            if(mcUeNetDev)
+            {
+                DynamicCast<UeCfApplication>(app)->SetMcUeNetDevice(mcUeNetDev);
+            }
+        }
         node->AddApplication(app);
 
         apps.Add(app);

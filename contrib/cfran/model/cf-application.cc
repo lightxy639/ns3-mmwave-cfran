@@ -11,8 +11,8 @@
 namespace ns3
 {
 NS_LOG_COMPONENT_DEFINE("CfApplication");
-CfX2IfaceInfo::CfX2IfaceInfo(Ipv4Address remoteIpAddr,
-                         Ptr<Socket> localSocket)
+
+CfX2IfaceInfo::CfX2IfaceInfo(Ipv4Address remoteIpAddr, Ptr<Socket> localSocket)
 {
     m_remoteIpAddr = remoteIpAddr;
     m_localSocket = localSocket;
@@ -66,7 +66,8 @@ CfApplication::GetTypeId()
 }
 
 CfApplication::CfApplication()
-    : m_socket(nullptr)
+    : m_socket(nullptr),
+      m_cfX2Port(4275)
 {
     NS_LOG_FUNCTION(this);
 }
@@ -82,11 +83,11 @@ CfApplication::SetCfUnit(Ptr<CfUnit> cfUnit)
     m_cfUnit = cfUnit;
 }
 
-// void
-// CfApplication::SetMmWaveEnbNetDevice(Ptr<mmwave::MmWaveEnbNetDevice> mmwaveEnbNetDev)
-// {
-//     m_mmWaveEnbNetDevice = mmwaveEnbNetDev;
-// }
+void
+CfApplication::SetMmWaveEnbNetDevice(Ptr<mmwave::MmWaveEnbNetDevice> mmwaveEnbNetDev)
+{
+    m_mmWaveEnbNetDevice = mmwaveEnbNetDev;
+}
 
 void
 CfApplication::RecvTaskRequest()
@@ -149,21 +150,6 @@ CfApplication::StartApplication()
 
     if (!m_socket)
     {
-        // Using this method will cause confusion in the header of the data packet, which remains to be investigated
-        // m_socket =
-        //     Socket::CreateSocket(m_node, TypeId::LookupByName("ns3::PacketSocketFactory"));
-        // PacketSocketAddress pckSocketBindAddress;
-        // pckSocketBindAddress.SetSingleDevice(m_mmWaveEnbNetDevice->GetIfIndex());
-        // pckSocketBindAddress.SetProtocol(Ipv4L3Protocol::PROT_NUMBER);
-        // int retval = m_socket->Bind(pckSocketBindAddress);
-        // NS_ASSERT(retval == 0);
-        // PacketSocketAddress pckSocketConnectAddress;
-        // pckSocketConnectAddress.SetPhysicalAddress(Mac48Address::GetBroadcast());
-        // pckSocketConnectAddress.SetSingleDevice(m_mmWaveEnbNetDevice->GetIfIndex());
-        // pckSocketConnectAddress.SetProtocol(Ipv4L3Protocol::PROT_NUMBER);
-        // retval = m_socket->Connect(pckSocketConnectAddress);
-        // NS_ASSERT(retval == 0);
-
         TypeId tid = TypeId::LookupByName("ns3::UdpSocketFactory");
         m_socket = Socket::CreateSocket(GetNode(), tid);
         InetSocketAddress local = InetSocketAddress(Ipv4Address::GetAny(), m_port);
@@ -204,6 +190,7 @@ CfApplication::RecvTaskResult(uint64_t id, UeTaskModel ueTask)
 void
 CfApplication::HandleRead(Ptr<Socket> socket)
 {
+    NS_LOG_UNCOND("CfApplication Receive IPv4 packet");
     Ptr<Packet> packet;
     Address from;
     Address localAddress;
@@ -266,10 +253,10 @@ CfApplication::InitX2Info()
     NS_ASSERT(epcX2 != nullptr);
 
     auto x2IfaceInfoMap = epcX2->GetX2IfaceInfoMap();
-    for(auto it = x2IfaceInfoMap.begin(); it != x2IfaceInfoMap.end(); it++)
+    for (auto it = x2IfaceInfoMap.begin(); it != x2IfaceInfoMap.end(); it++)
     {
         uint16_t remoteCellId = it->first;
-        Ptr<X2IfaceInfo> x2IfaceInfo= it->second;
+        Ptr<X2IfaceInfo> x2IfaceInfo = it->second;
 
         Ipv4Address remoteIpAddr = x2IfaceInfo->m_remoteIpAddr;
         Ptr<Socket> localUSocket = x2IfaceInfo->m_localUserPlaneSocket;
@@ -277,12 +264,18 @@ CfApplication::InitX2Info()
         Address tempAddr;
         localUSocket->GetSockName(tempAddr);
         Ipv4Address localAddr = InetSocketAddress::ConvertFrom(tempAddr).GetIpv4();
+        NS_LOG_DEBUG("IP of the cell: " << localAddr);
 
         NS_LOG_DEBUG("Get IP adderess of cell " << remoteCellId << ": " << remoteIpAddr);
 
-
+        Ptr<Socket> localCfSocket =
+            Socket::CreateSocket(m_node, TypeId::LookupByName("ns3::UdpSocketFactory"));
+        localCfSocket->Bind(InetSocketAddress(localAddr, m_cfX2Port));
+        NS_ASSERT_MSG(m_cfX2InterfaceSockets.find(remoteCellId) == m_cfX2InterfaceSockets.end(),
+                      "Mapping for remoteCellId = " << remoteCellId << " is already known");
+        m_cfX2InterfaceSockets[remoteCellId] =
+            Create<CfX2IfaceInfo>(remoteIpAddr, localCfSocket);
     }
-
 }
 
 } // namespace ns3

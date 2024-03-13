@@ -51,7 +51,7 @@
 #include <ns3/lte-rlc-am.h>
 #include <ns3/lte-rlc.h>
 #include <ns3/lte-rrc-sap.h>
-#include <ns3/mmwave-net-device.h>
+// #include <ns3/mmwave-net-device.h>
 #include <ns3/nstime.h>
 #include <ns3/object.h>
 #include <ns3/traced-callback.h>
@@ -782,12 +782,12 @@ class LteEnbRrc : public Object
     /**
      * \brief Set corresponding mmwave enb net device  for the convenience of...
      */
-    void SetMmWaveEnbNetDevice(Ptr<mmwave::MmWaveNetDevice> mmWaveEnbNetDev);
+    // void SetMmWaveEnbNetDevice(Ptr<mmwave::MmWaveNetDevice> mmWaveEnbNetDev);
 
     /**
      * \brief Get corresponding mmwave enb net device  for the convenience of...
      */
-    Ptr<mmwave::MmWaveNetDevice> GetMmWaveEnbNetDevice();
+    // Ptr<mmwave::MmWaveNetDevice> GetMmWaveEnbNetDevice();
 
     /**
      * Set the X2 SAP this RRC should interact with
@@ -1137,6 +1137,8 @@ class LteEnbRrc : public Object
      * \param cb
      */
     void SetForwardUpCallback(Callback<void, Ptr<Packet>> cb);
+
+    Callback<void, Ptr<Packet>> GerForwardUpCallback();
 
     /**
      * Method triggered when a UE is expected to request for connection but does
@@ -1939,7 +1941,7 @@ class LteEnbRrc : public Object
     TracedCallback<uint64_t, uint16_t, long double> m_notifyMmWaveSinrTrace;
 
     // mc
-    Ptr<mmwave::MmWaveNetDevice> m_mmWaveEnbNetDevice;
+    // Ptr<mmwave::MmWaveNetDevice> m_mmWaveEnbNetDevice;
     bool m_ismmWave;
     bool m_interRatHoMode;
     bool m_firstReport;

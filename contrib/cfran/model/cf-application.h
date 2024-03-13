@@ -62,11 +62,13 @@ class CfApplication : public Application
 
     void SetCfUnit(Ptr<CfUnit> cfUnit);
 
-    // void SetMmWaveEnbNetDevice(Ptr<mmwave::MmWaveEnbNetDevice> mmwaveEnbNetDev);
+    void SetMmWaveEnbNetDevice(Ptr<mmwave::MmWaveEnbNetDevice> mmwaveEnbNetDev);
 
     void InitX2Info();
 
     void RecvTaskRequest();
+
+    // virtual 
 
     virtual void LoadTaskToCfUnit(uint64_t id, UeTaskModel ueTask);
 
@@ -92,6 +94,9 @@ class CfApplication : public Application
 
     uint16_t m_port;
 
+    uint16_t m_cfX2Port;
+
+    std::map<uint16_t, Ptr<CfX2IfaceInfo>> m_cfX2InterfaceSockets;
     /// Callbacks for tracing the packet Rx events
     TracedCallback<Ptr<const Packet>> m_rxTrace;
 

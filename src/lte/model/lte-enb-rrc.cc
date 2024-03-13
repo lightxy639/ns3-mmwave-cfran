@@ -478,7 +478,9 @@ UeManager::SetupDataRadioBearer(EpsBearer bearer,
     rlc->SetLteMacSapProvider(m_rrc->m_macSapProvider);
     rlc->SetRnti(m_rnti);
     // Ensure that the process RLC ->Netdevice can function properly
-    rlc->SetForwardUpCallback(MakeCallback(&ns3::mmwave::MmWaveNetDevice::Receive, m_rrc->GetMmWaveEnbNetDevice()));
+    // rlc->SetForwardUpCallback(MakeCallback(&ns3::mmwave::MmWaveNetDevice::Receive,
+    // m_rrc->GetMmWaveEnbNetDevice()));
+    rlc->SetForwardUpCallback(m_rrc->GerForwardUpCallback());
 
     drbInfo->m_rlc = rlc;
 
@@ -1488,8 +1490,10 @@ UeManager::RecvRlcSetupRequest(EpcX2SapUser::RlcSetupRequest params) // TODO onl
         rlc->SetLteMacSapProvider(m_rrc->m_macSapProvider);
         rlc->SetRnti(m_rnti);
         // Ensure that the magic modified RLC ->Netdevice can function properly
-        rlc->SetForwardUpCallback(MakeCallback(&ns3::mmwave::MmWaveNetDevice::Receive, m_rrc->GetMmWaveEnbNetDevice()));
-        
+        rlc->SetForwardUpCallback(m_rrc->GerForwardUpCallback());
+        // rlc->SetForwardUpCallback(MakeCallback(&ns3::mmwave::MmWaveNetDevice::Receive,
+        // m_rrc->GetMmWaveEnbNetDevice()));
+
         rlcInfo->m_rlc = rlc;
 
         rlc->SetLcId(lcid);
@@ -2191,7 +2195,9 @@ UeManager::SendRrcConnectionSwitch(bool useMmWaveConnection)
                     rlc->SetLteMacSapProvider(m_rrc->m_macSapProvider);
                     rlc->SetRnti(m_rnti);
                     // Ensure that the magic modified RLC ->Netdevice can function properly
-                    rlc->SetForwardUpCallback(MakeCallback(&ns3::mmwave::MmWaveNetDevice::Receive, m_rrc->GetMmWaveEnbNetDevice()));
+                    rlc->SetForwardUpCallback(m_rrc->GerForwardUpCallback());
+                    // rlc->SetForwardUpCallback(MakeCallback(&ns3::mmwave::MmWaveNetDevice::Receive,
+                    // m_rrc->GetMmWaveEnbNetDevice()));
 
                     it->second->m_rlc = rlc;
 
@@ -2323,7 +2329,9 @@ UeManager::RecvConnectionSwitchToMmWave(bool useMmWaveConnection, uint8_t drbid)
         rlc->SetLteMacSapProvider(m_rrc->m_macSapProvider);
         rlc->SetRnti(m_rnti);
         // Ensure that the magic modified RLC ->Netdevice can function properly
-        rlc->SetForwardUpCallback(MakeCallback(&ns3::mmwave::MmWaveNetDevice::Receive, m_rrc->GetMmWaveEnbNetDevice()));
+        rlc->SetForwardUpCallback(m_rrc->GerForwardUpCallback());
+        // rlc->SetForwardUpCallback(MakeCallback(&ns3::mmwave::MmWaveNetDevice::Receive,
+        // m_rrc->GetMmWaveEnbNetDevice()));
 
         m_rlcMap.find(drbid)->second->m_rlc = rlc;
         rlc->SetLcId(lcid);
@@ -4978,6 +4986,12 @@ LteEnbRrc::SetForwardUpCallback(Callback<void, Ptr<Packet>> cb)
     m_forwardUpCallback = cb;
 }
 
+Callback<void, Ptr<Packet>>
+LteEnbRrc::GerForwardUpCallback()
+{
+    return m_forwardUpCallback;
+}
+
 void
 LteEnbRrc::ConnectionRequestTimeout(uint16_t rnti)
 {
@@ -5928,15 +5942,15 @@ LteEnbRrc::SendSystemInformation()
     Simulator::Schedule(m_systemInformationPeriodicity, &LteEnbRrc::SendSystemInformation, this);
 }
 
-void
-LteEnbRrc::SetMmWaveEnbNetDevice(Ptr<ns3::mmwave::MmWaveNetDevice> mmWaveEnbNetDev)
-{
-    m_mmWaveEnbNetDevice = mmWaveEnbNetDev;
-}
+// void
+// LteEnbRrc::SetMmWaveEnbNetDevice(Ptr<ns3::mmwave::MmWaveNetDevice> mmWaveEnbNetDev)
+// {
+//     m_mmWaveEnbNetDevice = mmWaveEnbNetDev;
+// }
 
-Ptr<ns3::mmwave::MmWaveNetDevice>
-LteEnbRrc::GetMmWaveEnbNetDevice()
-{
-    return m_mmWaveEnbNetDevice;
-}
+// Ptr<ns3::mmwave::MmWaveNetDevice>
+// LteEnbRrc::GetMmWaveEnbNetDevice()
+// {
+//     return m_mmWaveEnbNetDevice;
+// }
 } // namespace ns3

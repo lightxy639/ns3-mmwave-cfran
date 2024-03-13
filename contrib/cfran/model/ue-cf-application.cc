@@ -14,7 +14,18 @@ NS_OBJECT_ENSURE_REGISTERED(UeCfApplication);
 TypeId
 UeCfApplication::GetTypeId()
 {
-    static TypeId tid = TypeId("ns3::UeCfApplication").SetParent<Application>();
+    static TypeId tid = TypeId("ns3::UeCfApplication")
+                            .SetParent<Application>()
+                            .AddAttribute("CfranSystemInfomation",
+                                          "Global user information in cfran scenario",
+                                          PointerValue(),
+                                          MakePointerAccessor(&UeCfApplication::m_cfranSystemInfo),
+                                          MakePointerChecker<CfranSystemInfo>())
+                            .AddAttribute("OffloadPort",
+                                          "Port on which we listen for incoming packets.",
+                                          UintegerValue(100),
+                                          MakeUintegerAccessor(&UeCfApplication::m_offloadPort),
+                                          MakeUintegerChecker<uint16_t>());
 
     return tid;
 }
@@ -35,14 +46,14 @@ UeCfApplication::~UeCfApplication()
 }
 
 void
-UeCfApplication::SetOffloadAddress(Address address, uint32_t port)
+UeCfApplication::SetOffloadAddress(Ipv4Address address, uint32_t port)
 {
     m_offloadAddress = address;
     m_offloadPort = port;
 }
 
 void
-UeCfApplication::SwitchOffloadAddress(Address newAddress, uint32_t newPort)
+UeCfApplication::SwitchOffloadAddress(Ipv4Address newAddress, uint32_t newPort)
 {
     if (newAddress != m_offloadAddress)
     {
@@ -60,46 +71,56 @@ UeCfApplication::InitSocket()
 {
     NS_ASSERT(!m_socket);
 
+    uint16_t gnbId = m_mcUeNetDev->GetMmWaveTargetEnb()->GetCellId();
+    Ipv4Address gnbIp = m_cfranSystemInfo->GetCellInfo(gnbId).m_ipAddrToUe;
+    m_offloadAddress = gnbIp;
+
     TypeId tid = TypeId::LookupByName("ns3::UdpSocketFactory");
     m_socket = Socket::CreateSocket(GetNode(), tid);
-    if (Ipv4Address::IsMatchingType(m_offloadAddress) == true)
+    if (m_socket->Bind() == -1)
     {
-        if (m_socket->Bind() == -1)
-        {
-            NS_FATAL_ERROR("Failed to bind socket");
-        }
-        m_socket->Connect(
-            InetSocketAddress(Ipv4Address::ConvertFrom(m_offloadAddress), m_offloadPort));
+        NS_FATAL_ERROR("Failed to bind socket");
     }
-    else if (Ipv6Address::IsMatchingType(m_offloadAddress) == true)
-    {
-        if (m_socket->Bind6() == -1)
-        {
-            NS_FATAL_ERROR("Failed to bind socket");
-        }
-        m_socket->Connect(
-            Inet6SocketAddress(Ipv6Address::ConvertFrom(m_offloadAddress), m_offloadPort));
-    }
-    else if (InetSocketAddress::IsMatchingType(m_offloadAddress) == true)
-    {
-        if (m_socket->Bind() == -1)
-        {
-            NS_FATAL_ERROR("Failed to bind socket");
-        }
-        m_socket->Connect(m_offloadAddress);
-    }
-    else if (Inet6SocketAddress::IsMatchingType(m_offloadAddress) == true)
-    {
-        if (m_socket->Bind6() == -1)
-        {
-            NS_FATAL_ERROR("Failed to bind socket");
-        }
-        m_socket->Connect(m_offloadAddress);
-    }
-    else
-    {
-        NS_ASSERT_MSG(false, "Incompatible address type: " << m_offloadAddress);
-    }
+
+    m_socket->Connect(InetSocketAddress(gnbIp, m_offloadPort));
+    // if (Ipv4Address::IsMatchingType(m_offloadAddress) == true)
+    // {
+    //     if (m_socket->Bind() == -1)
+    //     {
+    //         NS_FATAL_ERROR("Failed to bind socket");
+    //     }
+    //     m_socket->Connect(
+    //         InetSocketAddress(Ipv4Address::ConvertFrom(m_offloadAddress), m_offloadPort));
+    // }
+    // else if (Ipv6Address::IsMatchingType(m_offloadAddress) == true)
+    // {
+    //     if (m_socket->Bind6() == -1)
+    //     {
+    //         NS_FATAL_ERROR("Failed to bind socket");
+    //     }
+    //     m_socket->Connect(
+    //         Inet6SocketAddress(Ipv6Address::ConvertFrom(m_offloadAddress), m_offloadPort));
+    // }
+    // else if (InetSocketAddress::IsMatchingType(m_offloadAddress) == true)
+    // {
+    //     if (m_socket->Bind() == -1)
+    //     {
+    //         NS_FATAL_ERROR("Failed to bind socket");
+    //     }
+    //     m_socket->Connect(m_offloadAddress);
+    // }
+    // else if (Inet6SocketAddress::IsMatchingType(m_offloadAddress) == true)
+    // {
+    //     if (m_socket->Bind6() == -1)
+    //     {
+    //         NS_FATAL_ERROR("Failed to bind socket");
+    //     }
+    //     m_socket->Connect(m_offloadAddress);
+    // }
+    // else
+    // {
+    //     NS_ASSERT_MSG(false, "Incompatible address type: " << m_offloadAddress);
+    // }
 }
 
 void
@@ -133,17 +154,26 @@ void
 UeCfApplication::SendTaskRequest()
 {
     NS_LOG_FUNCTION(this);
+
+    uint16_t gnbId = m_mcUeNetDev->GetMmWaveTargetEnb()->GetCellId();
+    Ipv4Address gnbIp = m_cfranSystemInfo->GetCellInfo(gnbId).m_ipAddrToUe;
+
+    if (gnbIp != m_offloadAddress)
+    {
+        SwitchOffloadAddress(gnbIp, m_offloadPort);
+    }
     TaskRequestHeader taskReq;
     taskReq.SetUeId(m_ueId);
     taskReq.SetTaskId(m_taskId);
 
-    Ptr<Packet> p = Create<Packet>(1200);
+    Ptr<Packet> p = Create<Packet>(m_minSize);
     p->AddHeader(taskReq);
 
     if (m_socket->Send(p) >= 0)
     {
         m_taskId++;
-        NS_LOG_DEBUG("Send by UE " << m_ueId << " taskId " << m_taskId);
+        NS_LOG_DEBUG("Send by UE " << m_ueId << " taskId " << m_taskId << " to cell " << gnbId);
+        NS_LOG_DEBUG("Address of gNB is " << m_offloadAddress);
     }
     Simulator::Schedule(MilliSeconds(m_period), &UeCfApplication::SendTaskRequest, this);
 }
@@ -187,6 +217,10 @@ UeCfApplication::HandlePacket(Ptr<Packet> p)
     NS_LOG_DEBUG("VR packet arrived.");
 }
 
-
+void
+UeCfApplication::SetMcUeNetDevice(Ptr<mmwave::McUeNetDevice> mcUeNetDev)
+{
+    m_mcUeNetDev = mcUeNetDev;
+}
 
 } // namespace ns3
