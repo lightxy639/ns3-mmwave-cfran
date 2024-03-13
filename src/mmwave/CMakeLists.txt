@@ -58,6 +58,7 @@ set(source_files
     model/error-model/mmwave-eesm-ir.cc
     model/error-model/mmwave-eesm-t1.cc
     model/error-model/mmwave-eesm-t2.cc
+    model/cheat-tag.cc
 )
 
 # GCC Variable Tracking Assignment (VTA) severely slows down compilation with the NR error model
@@ -138,6 +139,7 @@ set(header_files
     model/error-model/mmwave-eesm-ir.h
     model/error-model/mmwave-eesm-t1.h
     model/error-model/mmwave-eesm-t2.h
+    model/cheat-tag.h
 )
 
 build_lib(

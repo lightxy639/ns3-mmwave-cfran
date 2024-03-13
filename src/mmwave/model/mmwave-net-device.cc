@@ -243,7 +243,6 @@ MmWaveNetDevice::Receive(Ptr<Packet> p)
     if (p->PeekHeader(ipv4Header) != 0)
     {
         NS_LOG_LOGIC("IPv4 stack...");
-        NS_LOG_UNCOND("MmWaveNetDevice Receive IPv4 packet");
         m_rxCallback(this, p, Ipv4L3Protocol::PROT_NUMBER, Address());
     }
     else if (p->PeekHeader(ipv6Header) != 0)

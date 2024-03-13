@@ -1,6 +1,7 @@
 #include "ue-cf-application.h"
 
 #include "task-request-header.h"
+#include "cf-radio-header.h"
 
 #include <ns3/log.h>
 #include <ns3/simulator.h>
@@ -162,13 +163,14 @@ UeCfApplication::SendTaskRequest()
     {
         SwitchOffloadAddress(gnbIp, m_offloadPort);
     }
-    TaskRequestHeader taskReq;
-    taskReq.SetUeId(m_ueId);
-    taskReq.SetTaskId(m_taskId);
+
+    CfRadioHeader cfRadioHeader;
+    cfRadioHeader.SetMessageType(CfRadioHeader::InitRequest);
+    cfRadioHeader.SetUeId(m_ueId);
+    cfRadioHeader.SetTaskId(m_taskId);
 
     Ptr<Packet> p = Create<Packet>(m_minSize);
-    p->AddHeader(taskReq);
-
+    p->AddHeader(cfRadioHeader);
     if (m_socket->Send(p) >= 0)
     {
         m_taskId++;
@@ -201,6 +203,31 @@ UeCfApplication::HandleRead(Ptr<Socket> socket)
             RecvTaskResult(packet);
         }
     }
+}
+
+void
+UeCfApplication::RecvFromGnb(Ptr<Packet> p)
+{
+    NS_LOG_FUNCTION(this);
+    NS_LOG_DEBUG("p->GetSize(): "<< p->GetSize());
+    CfRadioHeader cfRadioHeader;
+    p->RemoveHeader(cfRadioHeader);
+    TaskRequestHeader taskReq;
+    NS_LOG_DEBUG("cfRadioHeader.GetMessageType(): "<< +cfRadioHeader.GetMessageType());
+    NS_LOG_DEBUG("cfRadioHeader.GetGnbId(): "<< +cfRadioHeader.GetGnbId());
+    if (cfRadioHeader.GetMessageType() == CfRadioHeader::InitSuccess)
+    {
+        NS_LOG_DEBUG("Init Success in gNB " << cfRadioHeader.GetGnbId());
+    }
+    else if (cfRadioHeader.GetMessageType() == CfRadioHeader::TaskResult)
+    {
+        NS_LOG_DEBUG("Recv task result from gnb " << cfRadioHeader.GetGnbId());
+    }
+    else
+    {
+        NS_FATAL_ERROR("Unexecpted message type");
+    }
+
 }
 
 void

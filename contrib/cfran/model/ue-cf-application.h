@@ -42,6 +42,8 @@ class UeCfApplication : public Application
 
     void HandlePacket(Ptr<Packet> p);
 
+    void RecvFromGnb(Ptr<Packet> p);
+
   protected:
     void DoDispose();
 

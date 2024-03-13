@@ -1,5 +1,6 @@
 #include "cf-application.h"
 
+#include <ns3/cf-radio-header.h>
 #include <ns3/epc-x2.h>
 #include <ns3/ipv4-header.h>
 #include <ns3/ipv4-l3-protocol.h>
@@ -122,8 +123,8 @@ CfApplication::SendTaskResultToUserFromGnb(uint64_t id, Ptr<Packet> packet)
     NS_ASSERT(epcX2RlcUser != nullptr);
     if (epcX2RlcUser != nullptr)
     {
-        NS_LOG_DEBUG(" Send Frame "
-                     << " to imsi " << mcUeNetDev->GetImsi() << " directly.");
+        // NS_LOG_DEBUG(" Send Frame "
+        //              << " to imsi " << mcUeNetDev->GetImsi() << " directly.");
         // TODO UE datarate info
 
         EpcX2SapUser::UeDataParams params;
@@ -158,7 +159,8 @@ CfApplication::StartApplication()
             NS_FATAL_ERROR("Failed to bind socket");
         }
     }
-    m_socket->SetRecvCallback(MakeCallback(&CfApplication::HandleRead, this));
+    // m_socket->SetRecvCallback(MakeCallback(&CfApplication::HandleRead, this));
+    m_socket->SetRecvCallback(MakeCallback(&CfApplication::RecvFromUe, this));
 
     InitX2Info();
 }
@@ -245,6 +247,50 @@ CfApplication::HandleRead(Ptr<Socket> socket)
 }
 
 void
+CfApplication::RecvFromUe(Ptr<Socket> socket)
+{
+    Ptr<Packet> packet;
+    Address from;
+    Address localAddress;
+    while ((packet = socket->RecvFrom(from)))
+    {
+        socket->GetSockName(localAddress);
+        m_rxTrace(packet);
+        m_rxTraceWithAddresses(packet, from, localAddress);
+
+        CfRadioHeader cfRadioHeader;
+        packet->RemoveHeader(cfRadioHeader);
+
+        if (cfRadioHeader.GetMessageType() == CfRadioHeader::InitRequest)
+        {
+            NS_LOG_DEBUG("Recv init request of UE " << cfRadioHeader.GetUeId());
+            
+
+            Ptr<Packet> resultPacket = Create<Packet>(500);
+
+            CfRadioHeader echoHeader;
+            echoHeader.SetMessageType(CfRadioHeader::InitSuccess);
+            echoHeader.SetGnbId(m_mmWaveEnbNetDevice->GetCellId());
+            NS_LOG_DEBUG("echoHeader.GetMessageType(): " << +echoHeader.GetMessageType());
+            NS_LOG_DEBUG("echoHeader.GetGnbId(): " << echoHeader.GetGnbId());
+            resultPacket->AddHeader(echoHeader);
+            NS_LOG_DEBUG("resultPacket->GetSize(): "<< resultPacket->GetSize());
+            SendTaskResultToUserFromGnb(cfRadioHeader.GetUeId(), resultPacket);
+        }
+        else if (cfRadioHeader.GetMessageType() == CfRadioHeader::TaskRequest)
+        {
+            NS_LOG_DEBUG("Recv task request or UE" << cfRadioHeader.GetUeId());
+        }
+        else
+        {
+            NS_FATAL_ERROR("Something wrong");
+        }
+
+        // NS_LOG_LOGIC("Echoing packet");
+    }
+}
+
+void
 CfApplication::InitX2Info()
 {
     NS_LOG_FUNCTION(this);
@@ -273,8 +319,7 @@ CfApplication::InitX2Info()
         localCfSocket->Bind(InetSocketAddress(localAddr, m_cfX2Port));
         NS_ASSERT_MSG(m_cfX2InterfaceSockets.find(remoteCellId) == m_cfX2InterfaceSockets.end(),
                       "Mapping for remoteCellId = " << remoteCellId << " is already known");
-        m_cfX2InterfaceSockets[remoteCellId] =
-            Create<CfX2IfaceInfo>(remoteIpAddr, localCfSocket);
+        m_cfX2InterfaceSockets[remoteCellId] = Create<CfX2IfaceInfo>(remoteIpAddr, localCfSocket);
     }
 }
 

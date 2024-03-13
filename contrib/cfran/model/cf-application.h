@@ -113,6 +113,8 @@ class CfApplication : public Application
      */
     void HandleRead(Ptr<Socket> socket);
 
+    void RecvFromUe(Ptr<Socket> socket);
+
     virtual void StartApplication(); // Called at time specified by Start
 
     virtual void StopApplication(); // Called at time specified by Stop
