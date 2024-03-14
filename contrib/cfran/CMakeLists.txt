@@ -6,13 +6,15 @@ endif()
 set(source_files
     helper/cfran-helper.cc
     helper/system-info.cc
-    helper/vr-server-helper.cc
-    helper/vr-client-helper.cc
     model/cf-unit.cc
+    model/cf-unit-ue-iso.cc
     model/cf-model.cc
-    model/vr-server.cc
     model/cf-application.cc
-    model/vr-client.cc
+    # helper/vr-server-helper.cc
+    # helper/vr-client-helper.cc
+    # model/cf-unit-simple.cc
+    # model/vr-server.cc
+    # model/vr-client.cc
     model/ue-cf-application.cc
     model/task-request-header.cc
     model/cf-radio-header.cc
@@ -24,13 +26,15 @@ set(source_files
 set(header_files
     helper/cfran-helper.h
     helper/system-info.h
-    helper/vr-server-helper.h
-    helper/vr-client-helper.h
     model/cf-unit.h
+    model/cf-unit-ue-iso.h
+    # helper/vr-server-helper.h
+    # helper/vr-client-helper.h
+    # model/cf-unit-simple.h
+    # model/vr-server.h
+    # model/vr-client.h
     model/cf-model.h
-    model/vr-server.h
     model/cf-application.h
-    model/vr-client.h
     model/ue-cf-application.h
     model/task-request-header.h
     model/cf-radio-header.h
@@ -41,7 +45,7 @@ set(header_files
 
 
 set(examples_as_tests_sources
-    examples/cf-example.cc
+    # examples/cf-example.cc
     # examples/cf-mc-twoenbs.cc
 )
 

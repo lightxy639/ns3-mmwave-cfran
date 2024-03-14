@@ -28,6 +28,8 @@ class UeCfApplication : public Application
 
     void SetMcUeNetDevice(Ptr<mmwave::McUeNetDevice> mcUeNetDev);
 
+    virtual void SendInitRequest();
+    
     virtual void SendTaskRequest();
 
     virtual void RecvTaskResult(Ptr<Packet> p);

@@ -9,6 +9,9 @@
 #include <ns3/packet-socket-address.h>
 #include <ns3/task-request-header.h>
 
+#include <ns3/lte-pdcp-header.h>
+#include <ns3/lte-pdcp-tag.h>
+
 namespace ns3
 {
 NS_LOG_COMPONENT_DEFINE("CfApplication");
@@ -111,6 +114,8 @@ CfApplication::SendTaskResultToUserFromGnb(uint64_t id, Ptr<Packet> packet)
     Ptr<LteEnbNetDevice> lteEnbNetDev = mcUeNetDev->GetLteTargetEnb();
     auto drbMap = lteEnbNetDev->GetRrc()->GetUeManager(lteRnti)->GetDrbMap();
     uint32_t gtpTeid = (drbMap.begin()->second->m_gtpTeid);
+
+    NS_LOG_DEBUG("The gtpTeid is " << gtpTeid);
 
     EpcX2RlcUser* epcX2RlcUser =
         ueMmWaveEnbNetDev->GetNode()->GetObject<EpcX2>()->GetX2RlcUserMap().find(gtpTeid)->second;
@@ -225,7 +230,7 @@ CfApplication::HandleRead(Ptr<Socket> socket)
         NS_LOG_DEBUG("Recv task req header of ue " << taskReqHeader.GetUeId());
         NS_LOG_LOGIC("Echoing packet");
         Ptr<Packet> resultPacket = Create<Packet>(1200);
-        SendTaskResultToUserFromGnb(taskReqHeader.GetUeId(), resultPacket);
+        // SendTaskResultToUserFromGnb(taskReqHeader.GetUeId(), resultPacket);
         // socket->SendTo(packet, 0, from);
         // socket->SendTo(packet, 0, from);
         // SendTaskResultToUserFromGnb();
@@ -264,7 +269,6 @@ CfApplication::RecvFromUe(Ptr<Socket> socket)
         if (cfRadioHeader.GetMessageType() == CfRadioHeader::InitRequest)
         {
             NS_LOG_DEBUG("Recv init request of UE " << cfRadioHeader.GetUeId());
-            
 
             Ptr<Packet> resultPacket = Create<Packet>(500);
 
@@ -273,13 +277,36 @@ CfApplication::RecvFromUe(Ptr<Socket> socket)
             echoHeader.SetGnbId(m_mmWaveEnbNetDevice->GetCellId());
             NS_LOG_DEBUG("echoHeader.GetMessageType(): " << +echoHeader.GetMessageType());
             NS_LOG_DEBUG("echoHeader.GetGnbId(): " << echoHeader.GetGnbId());
+            NS_LOG_DEBUG("resultPacket->GetSize(): " << resultPacket->GetSize());
             resultPacket->AddHeader(echoHeader);
-            NS_LOG_DEBUG("resultPacket->GetSize(): "<< resultPacket->GetSize());
+            // socket->SendTo(resultPacket, 0, from);
+            PdcpTag pdcpTag(Simulator::Now());
+            resultPacket->AddByteTag(pdcpTag);
+
+            // Adding pdcptag is necessary since mc-ue-pdcp will remove 2-bit pdcptag
+            LtePdcpHeader pdcpHeader;
+            resultPacket->AddHeader(pdcpHeader);
+
             SendTaskResultToUserFromGnb(cfRadioHeader.GetUeId(), resultPacket);
         }
         else if (cfRadioHeader.GetMessageType() == CfRadioHeader::TaskRequest)
         {
+            Ptr<Packet> resultPacket = Create<Packet>(500);
+
             NS_LOG_DEBUG("Recv task request or UE" << cfRadioHeader.GetUeId());
+            CfRadioHeader echoHeader;
+            echoHeader.SetMessageType(CfRadioHeader::TaskResult);
+            echoHeader.SetGnbId(m_mmWaveEnbNetDevice->GetCellId());
+            resultPacket->AddHeader(echoHeader);
+            // socket->SendTo(resultPacket, 0, from);
+
+            PdcpTag pdcpTag(Simulator::Now());
+            resultPacket->AddByteTag(pdcpTag);
+
+            // Adding pdcptag is necessary since mc-ue-pdcp will remove 2-bit pdcptag
+            LtePdcpHeader pdcpHeader;
+            resultPacket->AddHeader(pdcpHeader);
+            SendTaskResultToUserFromGnb(cfRadioHeader.GetUeId(), resultPacket);
         }
         else
         {

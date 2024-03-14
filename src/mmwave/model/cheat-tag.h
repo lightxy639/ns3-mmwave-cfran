@@ -7,7 +7,14 @@ namespace ns3
 {
 namespace mmwave
 {
-class CheatTag : public
-}
-}
+class CheatTag : public Tag
+{
+  public:
+    static TypeId GetTypeId(void);
+    virtual TypeId GetInstanceTypeId(void) const;
+
+    CheatTag(uint32_t gtpTeid);
+};
+} // namespace mmwave
+} // namespace ns3
 #endif

@@ -131,7 +131,7 @@ UeCfApplication::StartApplication()
 
     InitSocket();
 
-    Simulator::Schedule(MilliSeconds(m_period), &UeCfApplication::SendTaskRequest, this);
+    Simulator::Schedule(MilliSeconds(100), &UeCfApplication::SendInitRequest, this);
 }
 
 void
@@ -152,7 +152,7 @@ UeCfApplication::DoDispose()
 }
 
 void
-UeCfApplication::SendTaskRequest()
+UeCfApplication::SendInitRequest()
 {
     NS_LOG_FUNCTION(this);
 
@@ -166,6 +166,34 @@ UeCfApplication::SendTaskRequest()
 
     CfRadioHeader cfRadioHeader;
     cfRadioHeader.SetMessageType(CfRadioHeader::InitRequest);
+    cfRadioHeader.SetUeId(m_ueId);
+    cfRadioHeader.SetTaskId(m_taskId);
+
+    Ptr<Packet> p = Create<Packet>(m_minSize);
+    p->AddHeader(cfRadioHeader);
+    if (m_socket->Send(p) >= 0)
+    {
+        m_taskId++;
+        NS_LOG_DEBUG("Send by UE " << m_ueId << " taskId " << m_taskId << " to cell " << gnbId);
+        NS_LOG_DEBUG("Address of gNB is " << m_offloadAddress);
+    }
+}
+
+void
+UeCfApplication::SendTaskRequest()
+{
+    NS_LOG_FUNCTION(this);
+
+    uint16_t gnbId = m_mcUeNetDev->GetMmWaveTargetEnb()->GetCellId();
+    Ipv4Address gnbIp = m_cfranSystemInfo->GetCellInfo(gnbId).m_ipAddrToUe;
+
+    if (gnbIp != m_offloadAddress)
+    {
+        SwitchOffloadAddress(gnbIp, m_offloadPort);
+    }
+
+    CfRadioHeader cfRadioHeader;
+    cfRadioHeader.SetMessageType(CfRadioHeader::TaskRequest);
     cfRadioHeader.SetUeId(m_ueId);
     cfRadioHeader.SetTaskId(m_taskId);
 
@@ -218,6 +246,7 @@ UeCfApplication::RecvFromGnb(Ptr<Packet> p)
     if (cfRadioHeader.GetMessageType() == CfRadioHeader::InitSuccess)
     {
         NS_LOG_DEBUG("Init Success in gNB " << cfRadioHeader.GetGnbId());
+        Simulator::Schedule(Seconds(0), &UeCfApplication::SendTaskRequest, this);
     }
     else if (cfRadioHeader.GetMessageType() == CfRadioHeader::TaskResult)
     {

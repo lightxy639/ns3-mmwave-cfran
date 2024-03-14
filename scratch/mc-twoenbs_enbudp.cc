@@ -389,7 +389,7 @@ main(int argc, char* argv[])
     LogComponentEnable("CfApplication", LOG_INFO);
     LogComponentEnable("CfApplication", LOG_DEBUG);
     LogComponentEnable("UeCfApplication", LOG_DEBUG);
-    // LogComponentEnable("McUeNetDevice", LOG_LOGIC);
+    LogComponentEnable("McUeNetDevice", LOG_LOGIC);
     // LogComponentEnable("MmWaveNetDevice", LOG_LOGIC);
     // LogComponentEnable("LteUeRrc", LOG_FUNCTION);
     // LogComponentEnable("LteUeRrc", LOG_INFO);

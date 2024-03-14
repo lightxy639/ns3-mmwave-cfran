@@ -52,6 +52,9 @@
 #include <ns3/trace-source-accessor.h>
 #include <ns3/uinteger.h>
 
+#include <ns3/epc-x2.h>
+#include <ns3/lte-pdcp-tag.h>
+
 namespace ns3
 {
 
@@ -216,6 +219,15 @@ MmWaveEnbNetDevice::DoSend(Ptr<Packet> packet, const Address& dest, uint16_t pro
                         protocolNumber != Ipv6L3Protocol::PROT_NUMBER,
                     "unsupported protocol " << protocolNumber << ", only IPv4/IPv6 is supported");
     return m_rrc->SendData(packet);
+        // EpcX2SapUser::UeDataParams params;
+
+        // params.gtpTeid = 1;
+        // params.ueData = packet;
+        // PdcpTag pdcpTag(Simulator::Now());
+
+        // params.ueData->AddByteTag(pdcpTag);
+        // this->GetNode()->GetObject<EpcX2>()->GetX2RlcUserMap().find(1)->second->SendMcPdcpSdu(params);
+    
 }
 
 void
