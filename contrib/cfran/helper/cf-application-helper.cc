@@ -52,6 +52,21 @@ CfApplicationHelper::Install(NodeContainer c)
             if(mmWaveEnbNetDev)
             {
                 DynamicCast<CfApplication>(app)->SetMmWaveEnbNetDevice(mmWaveEnbNetDev);
+
+                NS_LOG_DEBUG("Enroll mmwaveEnbNetDevice " << mmWaveEnbNetDev->GetCellId() << " to app.");
+
+                Ptr<CfUnit> cfUnit = node->GetObject<CfUnit>();
+                cfUnit->SetCfUnitId(mmWaveEnbNetDev->GetCellId());
+                if(cfUnit)
+                {
+                    DynamicCast<CfApplication>(app)->SetCfUnit(cfUnit);
+                    cfUnit->SetCfApplication(DynamicCast<CfApplication>(app));
+                }
+                else
+                {
+                    NS_FATAL_ERROR("No available cfunit on node.");
+                }
+                break;
             }
         }
     }

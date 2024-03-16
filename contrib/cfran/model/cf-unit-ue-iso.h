@@ -42,6 +42,8 @@ class CfUnitUeIso : public CfUnit
     std::map<uint64_t, std::queue<UeTaskModel>> m_ueTask;
 
     std::map<uint64_t, CfModel> m_cfAllocation;
+
+    bool m_busy;
 };
 
 } // namespace ns3

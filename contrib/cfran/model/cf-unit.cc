@@ -9,7 +9,13 @@ NS_OBJECT_ENSURE_REGISTERED(CfUnit);
 TypeId
 CfUnit::GetTypeId()
 {
-    static TypeId tid = TypeId("ns3::CfUnit").SetParent<Object>();
+    static TypeId tid = TypeId("ns3::CfUnit")
+                            .SetParent<Object>()
+                            .AddAttribute("CfModel",
+                                          "The Computing force of the CfUnitSimple",
+                                          CfModelValue(CfModel()),
+                                          MakeCfModelAccessor(&CfUnit::m_cf),
+                                          MakeCfModelChecker());
 
     return tid;
 }
@@ -46,6 +52,11 @@ CfUnit::SetNode(Ptr<Node> node)
     m_node = node;
 }
 
+void
+CfUnit::SetCfUnitId(uint64_t id)
+{
+    m_id = id;
+}
 void
 CfUnit::SetCfApplication(Ptr<CfApplication> cfApp)
 {

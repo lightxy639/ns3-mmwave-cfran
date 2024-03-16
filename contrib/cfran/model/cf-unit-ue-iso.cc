@@ -9,12 +9,13 @@ NS_OBJECT_ENSURE_REGISTERED(CfUnitUeIso);
 TypeId
 CfUnitUeIso::GetTypeId()
 {
-    static TypeId tid = TypeId("ns3::CfUnitUeIso").SetParent<CfUnit>().AddConstructor<CfUnitUeIso>();
+    static TypeId tid =
+        TypeId("ns3::CfUnitUeIso").SetParent<CfUnit>().AddConstructor<CfUnitUeIso>();
 
     return tid;
 }
 
-CfUnitUeIso::CfUnitUeIso()
+CfUnitUeIso::CfUnitUeIso() : m_busy(false)
 {
     NS_LOG_FUNCTION(this);
 }
@@ -37,15 +38,17 @@ CfUnitUeIso::LoadUeTask(uint64_t ueId, UeTaskModel ueTask)
     auto it = m_ueTask.find(ueId);
     if (it != m_ueTask.end())
     {
-        if (it->second.size() == 0)
+        if (it->second.size() == 0 && !m_busy)
         {
             ExecuteUeTask(ueId, ueTask);
-            NS_LOG_DEBUG("No other in queue, execute it directly.");
+            NS_LOG_DEBUG("CfUnit " << m_id << "execute (UE, task): " << ueId << " "
+                                   << ueTask.m_taskId << " directly");
         }
         else
         {
+            NS_LOG_DEBUG("CfUnit " << m_id << " Push the (UE, task): " << ueId << " "
+                                   << ueTask.m_taskId << " into queue");
             it->second.push(ueTask);
-            NS_LOG_DEBUG("Push the task into queue.");
         }
     }
     else
@@ -94,13 +97,19 @@ CfUnitUeIso::ExecuteUeTask(uint64_t ueId, UeTaskModel ueTask)
     {
         CfModel ueCf = it->second;
         double executeLatency = 1000 * ueTask.m_cfLoad / ueCf.m_cfCapacity; // ms
-        Simulator::Schedule(MilliSeconds(executeLatency), &CfUnitUeIso::EndUeTask, this, ueId, ueTask);
+        Simulator::Schedule(MilliSeconds(executeLatency),
+                            &CfUnitUeIso::EndUeTask,
+                            this,
+                            ueId,
+                            ueTask);
+        m_busy = true;
+        NS_LOG_DEBUG("The computing latency of (UE, Task) " << ueId << " " << ueTask.m_taskId << " is "
+                                                            << executeLatency << "ms");
     }
     else
     {
         NS_FATAL_ERROR("No UE info in this CfUnit");
     }
-
 }
 
 void
@@ -109,17 +118,21 @@ CfUnitUeIso::EndUeTask(uint64_t ueId, UeTaskModel ueTask)
     NS_LOG_FUNCTION(this);
 
     m_cfApplication->RecvTaskResult(ueId, ueTask);
-
+    m_busy = false;
     auto it = m_ueTask.find(ueId);
-    if(it != m_ueTask.end())
+    if (it != m_ueTask.end())
     {
         if (it->second.size() > 0)
         {
+            NS_LOG_DEBUG("Execute next task in queue.");
             ExecuteUeTask(ueId, it->second.front());
             it->second.pop();
         }
+        else
+        {
+            NS_LOG_DEBUG("No other task in queue.");
+        }
     }
-    
 }
 
 void
@@ -130,7 +143,8 @@ CfUnitUeIso::ReAllocateCf()
     for (auto it = m_cfAllocation.begin(); it != m_cfAllocation.end(); it++)
     {
         it->second = m_cf / ueNum;
+        NS_LOG_DEBUG("UE " << it->first << " get " << m_cf/ueNum << "TFLOPS");
     }
 }
 
-}
+} // namespace ns3

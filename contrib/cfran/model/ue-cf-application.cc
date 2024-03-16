@@ -84,44 +84,6 @@ UeCfApplication::InitSocket()
     }
 
     m_socket->Connect(InetSocketAddress(gnbIp, m_offloadPort));
-    // if (Ipv4Address::IsMatchingType(m_offloadAddress) == true)
-    // {
-    //     if (m_socket->Bind() == -1)
-    //     {
-    //         NS_FATAL_ERROR("Failed to bind socket");
-    //     }
-    //     m_socket->Connect(
-    //         InetSocketAddress(Ipv4Address::ConvertFrom(m_offloadAddress), m_offloadPort));
-    // }
-    // else if (Ipv6Address::IsMatchingType(m_offloadAddress) == true)
-    // {
-    //     if (m_socket->Bind6() == -1)
-    //     {
-    //         NS_FATAL_ERROR("Failed to bind socket");
-    //     }
-    //     m_socket->Connect(
-    //         Inet6SocketAddress(Ipv6Address::ConvertFrom(m_offloadAddress), m_offloadPort));
-    // }
-    // else if (InetSocketAddress::IsMatchingType(m_offloadAddress) == true)
-    // {
-    //     if (m_socket->Bind() == -1)
-    //     {
-    //         NS_FATAL_ERROR("Failed to bind socket");
-    //     }
-    //     m_socket->Connect(m_offloadAddress);
-    // }
-    // else if (Inet6SocketAddress::IsMatchingType(m_offloadAddress) == true)
-    // {
-    //     if (m_socket->Bind6() == -1)
-    //     {
-    //         NS_FATAL_ERROR("Failed to bind socket");
-    //     }
-    //     m_socket->Connect(m_offloadAddress);
-    // }
-    // else
-    // {
-    //     NS_ASSERT_MSG(false, "Incompatible address type: " << m_offloadAddress);
-    // }
 }
 
 void
@@ -173,9 +135,7 @@ UeCfApplication::SendInitRequest()
     p->AddHeader(cfRadioHeader);
     if (m_socket->Send(p) >= 0)
     {
-        m_taskId++;
-        NS_LOG_DEBUG("Send by UE " << m_ueId << " taskId " << m_taskId << " to cell " << gnbId);
-        NS_LOG_DEBUG("Address of gNB is " << m_offloadAddress);
+        NS_LOG_DEBUG("UE " << m_ueId << " send init request to cell " << gnbId);
     }
 }
 
@@ -202,8 +162,8 @@ UeCfApplication::SendTaskRequest()
     if (m_socket->Send(p) >= 0)
     {
         m_taskId++;
-        NS_LOG_DEBUG("Send by UE " << m_ueId << " taskId " << m_taskId << " to cell " << gnbId);
-        NS_LOG_DEBUG("Address of gNB is " << m_offloadAddress);
+        NS_LOG_DEBUG("UE " << m_ueId << " send task request to cell " << gnbId);
+
     }
     Simulator::Schedule(MilliSeconds(m_period), &UeCfApplication::SendTaskRequest, this);
 }
@@ -237,12 +197,10 @@ void
 UeCfApplication::RecvFromGnb(Ptr<Packet> p)
 {
     NS_LOG_FUNCTION(this);
-    NS_LOG_DEBUG("p->GetSize(): "<< p->GetSize());
+    // NS_LOG_DEBUG("p->GetSize(): "<< p->GetSize());
     CfRadioHeader cfRadioHeader;
     p->RemoveHeader(cfRadioHeader);
     TaskRequestHeader taskReq;
-    NS_LOG_DEBUG("cfRadioHeader.GetMessageType(): "<< +cfRadioHeader.GetMessageType());
-    NS_LOG_DEBUG("cfRadioHeader.GetGnbId(): "<< +cfRadioHeader.GetGnbId());
     if (cfRadioHeader.GetMessageType() == CfRadioHeader::InitSuccess)
     {
         NS_LOG_DEBUG("Init Success in gNB " << cfRadioHeader.GetGnbId());
@@ -250,7 +208,7 @@ UeCfApplication::RecvFromGnb(Ptr<Packet> p)
     }
     else if (cfRadioHeader.GetMessageType() == CfRadioHeader::TaskResult)
     {
-        NS_LOG_DEBUG("Recv task result from gnb " << cfRadioHeader.GetGnbId());
+        NS_LOG_DEBUG("UE " << m_ueId << "Recv task result from gnb " << cfRadioHeader.GetGnbId());
     }
     else
     {

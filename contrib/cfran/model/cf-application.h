@@ -76,8 +76,10 @@ class CfApplication : public Application
 
     // If the application is installed on a gNB, the results will be sent directly through
     // the gNB
-    virtual void SendTaskResultToUserFromGnb(uint64_t id, Ptr<Packet> packet);
+    virtual void SendTaskResultToUserFromGnb(uint64_t id);
 
+    virtual void SendInitSuccessToUserFromGnb(uint64_t id);
+    
     // If the application is installed on a cloud server, the traditional process is completed
     virtual void SendTaskResultToUserFromRemote(uint64_t id, Ptr<Packet> packet);
 

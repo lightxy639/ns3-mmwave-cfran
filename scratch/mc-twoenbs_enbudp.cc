@@ -31,6 +31,7 @@
 #include "ns3/node-list.h"
 #include "ns3/point-to-point-helper.h"
 #include <ns3/cf-application-helper.h>
+#include <ns3/cfran-helper.h>
 #include <ns3/lte-ue-net-device.h>
 #include <ns3/random-variable-stream.h>
 #include <ns3/ue-cf-application-helper.h>
@@ -388,8 +389,11 @@ main(int argc, char* argv[])
     LogComponentEnable("PacketSink", LOG_INFO);
     LogComponentEnable("CfApplication", LOG_INFO);
     LogComponentEnable("CfApplication", LOG_DEBUG);
+    LogComponentEnable("CfApplicationHelper", LOG_DEBUG);
     LogComponentEnable("UeCfApplication", LOG_DEBUG);
-    LogComponentEnable("McUeNetDevice", LOG_LOGIC);
+    LogComponentEnable("CfUnit", LOG_DEBUG);
+    LogComponentEnable("CfUnitUeIso", LOG_DEBUG);
+    // LogComponentEnable("McUeNetDevice", LOG_LOGIC);
     // LogComponentEnable("MmWaveNetDevice", LOG_LOGIC);
     // LogComponentEnable("LteUeRrc", LOG_FUNCTION);
     // LogComponentEnable("LteUeRrc", LOG_INFO);
@@ -653,7 +657,7 @@ main(int argc, char* argv[])
     NodeContainer allEnbNodes;
     mmWaveEnbNodes.Create(2);
     lteEnbNodes.Create(1);
-    ueNodes.Create(1);
+    ueNodes.Create(2);
     allEnbNodes.Add(lteEnbNodes);
     allEnbNodes.Add(mmWaveEnbNodes);
 
@@ -715,6 +719,9 @@ main(int argc, char* argv[])
     ueNodes.Get(0)->GetObject<MobilityModel>()->SetPosition(Vector(ueInitialPosition, -5, 1.6));
     ueNodes.Get(0)->GetObject<ConstantVelocityMobilityModel>()->SetVelocity(Vector(0, 0, 0));
 
+    ueNodes.Get(1)->GetObject<MobilityModel>()->SetPosition(
+        Vector(ueInitialPosition + 10, -5, 1.6));
+    ueNodes.Get(1)->GetObject<ConstantVelocityMobilityModel>()->SetVelocity(Vector(0, 0, 0));
     // Install mmWave, lte, mc Devices to the nodes
     NetDeviceContainer lteEnbDevs = mmwaveHelper->InstallLteEnbDevice(lteEnbNodes);
     NetDeviceContainer mmWaveEnbDevs = mmwaveHelper->InstallEnbDevice(mmWaveEnbNodes);
@@ -763,6 +770,11 @@ main(int argc, char* argv[])
     internet.Install(ueNodes);
     Ipv4InterfaceContainer ueIpIface;
     ueIpIface = epcHelper->AssignUeIpv4Address(NetDeviceContainer(mcUeDevs));
+    for (uint32_t u = 0; u < ueNodes.GetN(); ++u)
+    {
+        Ipv4Address ueAddr = ueIpIface.GetAddress(u);
+        NS_LOG_DEBUG("The ip addr of ue " << u << " is " << ueAddr);
+    }
     // Assign IP address to UEs, and install applications
     for (uint32_t u = 0; u < ueNodes.GetN(); ++u)
     {
@@ -782,6 +794,15 @@ main(int argc, char* argv[])
 
     mmwaveHelper->AttachToClosestEnb(mcUeDevs, mmWaveEnbDevs, lteEnbDevs);
 
+    ObjectFactory cfUnitObj;
+    cfUnitObj.SetTypeId("ns3::CfUnitUeIso");
+    CfModel cfModel("GPU", 82.6);
+    // cfUnitObj.Set("EnableAutoSchedule", BooleanVaslue(false));
+    cfUnitObj.Set("CfModel", CfModelValue(cfModel));
+
+    Ptr<CfRanHelper> cfRanHelper = CreateObject<CfRanHelper>();
+    cfRanHelper->InstallCfUnit(mmWaveEnbNodes, cfUnitObj);
+
     for (uint32_t u = 0; u < mcUeDevs.GetN(); ++u)
     {
         Ptr<McUeNetDevice> mcUeDev = DynamicCast<McUeNetDevice>(mcUeDevs.Get(u));
@@ -790,7 +811,7 @@ main(int argc, char* argv[])
         CfranSystemInfo::UeInfo ueInfo;
         UeTaskModel ueTaskModel;
         // ueTaskModel.m_cfRequired = CfModel("GPU", 10);
-        ueTaskModel.m_cfLoad = 0.2;
+        ueTaskModel.m_cfLoad = 20;
         ueTaskModel.m_deadline = 10;
 
         ueInfo.m_imsi = imsi;
@@ -816,41 +837,17 @@ main(int argc, char* argv[])
     Config::SetDefault("ns3::CfApplication::Port", UintegerValue(ulPort));
     Config::SetDefault("ns3::UeCfApplication::OffloadPort", UintegerValue(ulPort));
 
-    for (uint32_t u = 0; u < ueNodes.GetN(); ++u)
-    {
-        CfApplicationHelper cfAppHelper;
-        serverApps.Add(cfAppHelper.Install(mmWaveEnbNodes));
-        Ipv4Address enbAddr = enbIpIfaces.GetAddress(0);
+    CfApplicationHelper cfAppHelper;
+    serverApps.Add(cfAppHelper.Install(mmWaveEnbNodes));
 
-        UeCfApplicationHelper ueCfAppHelper;
+    UeCfApplicationHelper ueCfAppHelper;
+    clientApps.Add(ueCfAppHelper.Install(ueNodes));
 
-        clientApps.Add(ueCfAppHelper.Install(ueNodes.Get(u)));
-
-        // DynamicCast<UeCfApplication>(clientApps.Get(u))->SetOffloadAddress(enbAddr.ConvertTo(),
-        // ulPort);
-
-        // 在 gNB 和 UE 处安装应用
-        // ++ulPort;
-        // PacketSinkHelper ulPacketSinkHelper("ns3::UdpSocketFactory",
-        //                                     InetSocketAddress(Ipv4Address::GetAny(), ulPort));
-        // // ulPacketSinkHelper.SetAttribute("PacketWindowSize", UintegerValue(256));
-        // serverApps.Add(ulPacketSinkHelper.Install(mmWaveEnbNodes.Get(0)));
-
-        // Ipv4Address enbAddr = enbIpIfaces.GetAddress(0);
-
-        // UdpClientHelper ulClient(enbAddr, ulPort);
-        // ulClient.SetAttribute("Interval", TimeValue(MicroSeconds(interPacketInterval)));
-        // ulClient.SetAttribute("MaxPackets", UintegerValue(0xFFFFFFFF));
-        // clientApps.Add(ulClient.Install(ueNodes.Get(u)));
-
-        // Config::ConnectWithoutContext("/NodeList/*/ApplicationList/*/$ns3::PacketSink/RxWithAddresses",
-        //                               MakeCallback(&PacketSinkLog));
-    }
 
     // Start applications
     NS_LOG_UNCOND("transientDuration " << transientDuration << " simTime " << simTime);
     serverApps.Start(Seconds(transientDuration));
-    clientApps.Start(Seconds(transientDuration));
+    clientApps.Start(Seconds(transientDuration + 1));
     clientApps.Stop(Seconds(simTime - 1));
 
     Simulator::Schedule(Seconds(transientDuration),

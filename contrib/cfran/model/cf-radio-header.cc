@@ -76,7 +76,7 @@ CfRadioHeader::GetGnbId()
 }
 
 uint64_t
-CfRadioHeader::GetTaskIfd()
+CfRadioHeader::GetTaskId()
 {
     return m_taskId;
 }

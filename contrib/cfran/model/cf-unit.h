@@ -31,6 +31,7 @@ class CfUnit : public Object
     static TypeId GetTypeId();
     virtual void DoDispose();
 
+    void SetCfUnitId(uint64_t id);
     // inherited from NetDevice
     virtual void SetNode(Ptr<Node> node);
 

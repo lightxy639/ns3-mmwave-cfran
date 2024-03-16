@@ -39,7 +39,7 @@ class CfRadioHeader : public Header
 
     uint8_t GetMessageType();
     uint64_t GetUeId();
-    uint64_t GetTaskIfd();
+    uint64_t GetTaskId();
     uint64_t GetGnbId();
     /**
      * \brief Get the type ID.
