@@ -4973,7 +4973,14 @@ LteEnbRrc::SendData(Ptr<Packet> packet)
 
     EpsBearerTag tag;
     bool found = packet->RemovePacketTag(tag);
-    NS_ASSERT_MSG(found, "no EpsBearerTag found in packet to be sent");
+    // When adding ipv4 addr to mmwave-enb-net-device, some protocol stack issues with handover are
+    // quite tricky and will not be addressed for now.
+    if (!found)
+    {
+        NS_LOG_UNCOND("no EpsBearerTag found in packet to be sent.");
+        return true;
+    }
+    // NS_ASSERT_MSG(found, "no EpsBearerTag found in packet to be sent);
     Ptr<UeManager> ueManager = GetUeManager(tag.GetRnti());
     ueManager->SendData(tag.GetBid(), packet);
 

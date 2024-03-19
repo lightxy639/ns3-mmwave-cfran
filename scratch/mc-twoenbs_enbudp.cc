@@ -386,13 +386,15 @@ int
 main(int argc, char* argv[])
 {
     // LogComponentEnable("McTwoEnbs", LOG_DEBUG);
-    LogComponentEnable("PacketSink", LOG_INFO);
+    // LogComponentEnable("CfApplication", LOG_FUNCTION);
     LogComponentEnable("CfApplication", LOG_INFO);
-    LogComponentEnable("CfApplication", LOG_DEBUG);
-    LogComponentEnable("CfApplicationHelper", LOG_DEBUG);
-    LogComponentEnable("UeCfApplication", LOG_DEBUG);
-    LogComponentEnable("CfUnit", LOG_DEBUG);
-    LogComponentEnable("CfUnitUeIso", LOG_DEBUG);
+    LogComponentEnable("CfApplication", LOG_PREFIX_ALL);
+    // LogComponentEnable("CfApplicationHelper", LOG_DEBUG);
+    LogComponentEnable("UeCfApplication", LOG_INFO);
+    // LogComponentEnable("UeCfApplication", LOG_FUNCTION);
+    LogComponentEnable("UeCfApplication", LOG_PREFIX_ALL);
+    // LogComponentEnable("CfUnit", LOG_DEBUG);
+    // LogComponentEnable("CfUnitUeIso", LOG_FUNCTION);
     // LogComponentEnable("McUeNetDevice", LOG_LOGIC);
     // LogComponentEnable("MmWaveNetDevice", LOG_LOGIC);
     // LogComponentEnable("LteUeRrc", LOG_FUNCTION);
@@ -720,7 +722,7 @@ main(int argc, char* argv[])
     ueNodes.Get(0)->GetObject<ConstantVelocityMobilityModel>()->SetVelocity(Vector(0, 0, 0));
 
     ueNodes.Get(1)->GetObject<MobilityModel>()->SetPosition(
-        Vector(ueInitialPosition + 10, -5, 1.6));
+        Vector(ueInitialPosition + 5, -5, 1.6));
     ueNodes.Get(1)->GetObject<ConstantVelocityMobilityModel>()->SetVelocity(Vector(0, 0, 0));
     // Install mmWave, lte, mc Devices to the nodes
     NetDeviceContainer lteEnbDevs = mmwaveHelper->InstallLteEnbDevice(lteEnbNodes);
@@ -811,7 +813,7 @@ main(int argc, char* argv[])
         CfranSystemInfo::UeInfo ueInfo;
         UeTaskModel ueTaskModel;
         // ueTaskModel.m_cfRequired = CfModel("GPU", 10);
-        ueTaskModel.m_cfLoad = 20;
+        ueTaskModel.m_cfLoad = 0.2;
         ueTaskModel.m_deadline = 10;
 
         ueInfo.m_imsi = imsi;

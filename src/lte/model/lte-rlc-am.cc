@@ -2786,7 +2786,7 @@ LteRlcAm::TriggerReceivePdcpPdu(Ptr<Packet> p)
     }
     else
     {
-        
+        // TODO The complete RLC layer functionality has not been implemented yet.
         LtePdcpHeader pdcpHeader;
         p->RemoveHeader(pdcpHeader);
         p->RemoveAllByteTags();

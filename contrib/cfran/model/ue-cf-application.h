@@ -55,6 +55,8 @@ class UeCfApplication : public Application
 
     uint64_t m_ueId;
 
+    uint64_t m_offloadGnbId;
+
     uint64_t m_taskId;
 
     Ptr<Socket> m_socket;

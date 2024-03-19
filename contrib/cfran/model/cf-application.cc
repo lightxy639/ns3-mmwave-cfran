@@ -1,6 +1,7 @@
 #include "cf-application.h"
 
 #include <ns3/cf-radio-header.h>
+#include <ns3/cf-x2-header.h>
 #include <ns3/epc-x2.h>
 #include <ns3/ipv4-header.h>
 #include <ns3/ipv4-l3-protocol.h>
@@ -98,26 +99,10 @@ CfApplication::RecvTaskRequest()
 }
 
 void
-CfApplication::SendTaskResultToUserFromGnb(uint64_t id)
+CfApplication::SendPakcetToUe(uint64_t ueId, Ptr<Packet> packet)
 {
     NS_LOG_FUNCTION(this);
-
-    Ptr<Packet> resultPacket = Create<Packet>(500);
-
-    CfRadioHeader echoHeader;
-    echoHeader.SetMessageType(CfRadioHeader::TaskResult);
-    echoHeader.SetGnbId(m_mmWaveEnbNetDevice->GetCellId());
-
-    resultPacket->AddHeader(echoHeader);
-    // socket->SendTo(resultPacket, 0, from);
-    PdcpTag pdcpTag(Simulator::Now());
-    resultPacket->AddByteTag(pdcpTag);
-
-    // Adding pdcptag is necessary since mc-ue-pdcp will remove 2-bit pdcptag
-    LtePdcpHeader pdcpHeader;
-    resultPacket->AddHeader(pdcpHeader);
-
-    CfranSystemInfo::UeInfo ueInfo = m_cfranSystemInfo->GetUeInfo(id);
+    CfranSystemInfo::UeInfo ueInfo = m_cfranSystemInfo->GetUeInfo(ueId);
     Ptr<ns3::mmwave::McUeNetDevice> mcUeNetDev = ueInfo.m_mcUeNetDevice;
 
     Ptr<ns3::mmwave::MmWaveEnbNetDevice> ueMmWaveEnbNetDev = mcUeNetDev->GetMmWaveTargetEnb();
@@ -128,9 +113,14 @@ CfApplication::SendTaskResultToUserFromGnb(uint64_t id)
     auto drbMap = lteEnbNetDev->GetRrc()->GetUeManager(lteRnti)->GetDrbMap();
     uint32_t gtpTeid = (drbMap.begin()->second->m_gtpTeid);
 
-
     EpcX2RlcUser* epcX2RlcUser =
         ueMmWaveEnbNetDev->GetNode()->GetObject<EpcX2>()->GetX2RlcUserMap().find(gtpTeid)->second;
+
+    PdcpTag pdcpTag(Simulator::Now());
+    packet->AddByteTag(pdcpTag);
+    // Adding pdcptag is necessary since mc-ue-pdcp will remove 2-bit pdcpheader
+    LtePdcpHeader pdcpHeader;
+    packet->AddHeader(pdcpHeader);
 
     NS_ASSERT(epcX2RlcUser != nullptr);
     if (epcX2RlcUser != nullptr)
@@ -138,13 +128,30 @@ CfApplication::SendTaskResultToUserFromGnb(uint64_t id)
         EpcX2SapUser::UeDataParams params;
 
         params.gtpTeid = gtpTeid;
-        params.ueData = resultPacket;
+        params.ueData = packet;
         PdcpTag pdcpTag(Simulator::Now());
 
         params.ueData->AddByteTag(pdcpTag);
         epcX2RlcUser->SendMcPdcpSdu(params);
     }
 }
+
+void
+CfApplication::SendPacketToOtherGnb(uint64_t gnbId, Ptr<Packet> packet)
+{
+    NS_LOG_FUNCTION(this);
+    if (m_cfX2InterfaceSockets[gnbId]->m_localSocket->Send(packet) >= 0)
+    {
+        // NS_LOG_DEBUG("Cell " << m_mmWaveEnbNetDevice->GetCellId() << " send paclet to gnb " <<
+        // gnbId
+        //                      << " ip " << m_cfX2InterfaceSockets[gnbId]->m_remoteIpAddr);
+    }
+    else
+    {
+        NS_FATAL_ERROR("Send error");
+    }
+}
+
 
 void
 CfApplication::SendInitSuccessToUserFromGnb(uint64_t id)
@@ -158,40 +165,29 @@ CfApplication::SendInitSuccessToUserFromGnb(uint64_t id)
     echoHeader.SetGnbId(m_mmWaveEnbNetDevice->GetCellId());
 
     resultPacket->AddHeader(echoHeader);
-    // socket->SendTo(resultPacket, 0, from);
-    PdcpTag pdcpTag(Simulator::Now());
-    resultPacket->AddByteTag(pdcpTag);
 
-    // Adding pdcptag is necessary since mc-ue-pdcp will remove 2-bit pdcptag
-    LtePdcpHeader pdcpHeader;
-    resultPacket->AddHeader(pdcpHeader);
+    SendPakcetToUe(id, resultPacket);
+}
 
-    CfranSystemInfo::UeInfo ueInfo = m_cfranSystemInfo->GetUeInfo(id);
-    Ptr<ns3::mmwave::McUeNetDevice> mcUeNetDev = ueInfo.m_mcUeNetDevice;
 
-    Ptr<ns3::mmwave::MmWaveEnbNetDevice> ueMmWaveEnbNetDev = mcUeNetDev->GetMmWaveTargetEnb();
-    NS_ASSERT(ueMmWaveEnbNetDev != nullptr);
+void
+CfApplication::SendInitSuccessToConnectedGnb(uint64_t ueId)
+{
+    NS_LOG_FUNCTION(this);
 
-    uint16_t lteRnti = mcUeNetDev->GetLteRrc()->GetRnti();
-    Ptr<LteEnbNetDevice> lteEnbNetDev = mcUeNetDev->GetLteTargetEnb();
-    auto drbMap = lteEnbNetDev->GetRrc()->GetUeManager(lteRnti)->GetDrbMap();
-    uint32_t gtpTeid = (drbMap.begin()->second->m_gtpTeid);
+    uint64_t ueConnectedGnbId =
+        m_cfranSystemInfo->GetUeInfo(ueId).m_mcUeNetDevice->GetMmWaveTargetEnb()->GetCellId();
+    Ptr<Packet> resultPacket = Create<Packet>(500);
 
-    EpcX2RlcUser* epcX2RlcUser =
-        ueMmWaveEnbNetDev->GetNode()->GetObject<EpcX2>()->GetX2RlcUserMap().find(gtpTeid)->second;
+    CfX2Header cfX2Header;
+    cfX2Header.SetMessageType(CfX2Header::InitSuccess);
+    cfX2Header.SetSourceGnbId(m_mmWaveEnbNetDevice->GetCellId());
+    cfX2Header.SetTargetGnbId(ueConnectedGnbId);
+    cfX2Header.SetUeId(ueId);
 
-    NS_ASSERT(epcX2RlcUser != nullptr);
-    if (epcX2RlcUser != nullptr)
-    {
-        EpcX2SapUser::UeDataParams params;
+    resultPacket->AddHeader(cfX2Header);
 
-        params.gtpTeid = gtpTeid;
-        params.ueData = resultPacket;
-        PdcpTag pdcpTag(Simulator::Now());
-
-        params.ueData->AddByteTag(pdcpTag);
-        epcX2RlcUser->SendMcPdcpSdu(params);
-    }
+    SendPacketToOtherGnb(ueConnectedGnbId, resultPacket);
 }
 
 void
@@ -245,7 +241,39 @@ CfApplication::RecvTaskResult(uint64_t ueId, UeTaskModel ueTask)
 {
     NS_LOG_FUNCTION(this);
 
-    SendTaskResultToUserFromGnb(ueId);
+    auto ueConnectedGnbId =
+        m_cfranSystemInfo->GetUeInfo(ueId).m_mcUeNetDevice->GetMmWaveTargetEnb()->GetCellId();
+    auto appGnbId = m_mmWaveEnbNetDevice->GetCellId();
+
+    if (ueConnectedGnbId == appGnbId)
+    {
+        // SendTaskResultToUserFromGnb(ueId);
+
+        Ptr<Packet> resultPacket = Create<Packet>(500);
+
+        CfRadioHeader echoHeader;
+        echoHeader.SetMessageType(CfRadioHeader::TaskResult);
+        echoHeader.SetGnbId(m_mmWaveEnbNetDevice->GetCellId());
+        echoHeader.SetTaskId(ueTask.m_taskId);
+        resultPacket->AddHeader(echoHeader);
+
+        SendPakcetToUe(ueId, resultPacket);
+    }
+    else
+    {
+        // SendTaskResultToConnectedGnb(ueId);
+        Ptr<Packet> resultPacket = Create<Packet>(500);
+
+        CfX2Header cfX2Header;
+        cfX2Header.SetMessageType(CfX2Header::TaskResult);
+        cfX2Header.SetSourceGnbId(m_mmWaveEnbNetDevice->GetCellId());
+        cfX2Header.SetTargetGnbId(ueConnectedGnbId);
+        cfX2Header.SetUeId(ueId);
+
+        resultPacket->AddHeader(cfX2Header);
+
+        SendPacketToOtherGnb(ueConnectedGnbId, resultPacket);
+    }
     NS_LOG_DEBUG("Gnb " << m_mmWaveEnbNetDevice->GetCellId() << " recv task result of (UE,Task) "
                         << ueId << " " << ueTask.m_taskId);
 }
@@ -253,6 +281,7 @@ CfApplication::RecvTaskResult(uint64_t ueId, UeTaskModel ueTask)
 void
 CfApplication::HandleRead(Ptr<Socket> socket)
 {
+    NS_LOG_FUNCTION(this);
     NS_LOG_UNCOND("CfApplication Receive IPv4 packet");
     Ptr<Packet> packet;
     Address from;
@@ -289,10 +318,11 @@ CfApplication::HandleRead(Ptr<Socket> socket)
 void
 CfApplication::RecvFromUe(Ptr<Socket> socket)
 {
+    NS_LOG_FUNCTION(this);
     Ptr<Packet> packet;
     Address from;
     Address localAddress;
-    while ((packet = socket->RecvFrom(from)))
+    while (packet = socket->RecvFrom(from))
     {
         socket->GetSockName(localAddress);
         m_rxTrace(packet);
@@ -303,28 +333,47 @@ CfApplication::RecvFromUe(Ptr<Socket> socket)
 
         if (cfRadioHeader.GetMessageType() == CfRadioHeader::InitRequest)
         {
-            NS_LOG_DEBUG("Gnb " << m_mmWaveEnbNetDevice->GetCellId() << "Recv init request of UE "
-                                << cfRadioHeader.GetUeId());
+            NS_LOG_INFO("Gnb " << m_mmWaveEnbNetDevice->GetCellId() << "Recv init request of UE "
+                               << cfRadioHeader.GetUeId());
 
             m_cfUnit->AddNewUe(cfRadioHeader.GetUeId());
             SendInitSuccessToUserFromGnb(cfRadioHeader.GetUeId());
         }
         else if (cfRadioHeader.GetMessageType() == CfRadioHeader::TaskRequest)
         {
-            NS_LOG_DEBUG("Gnb " << m_mmWaveEnbNetDevice->GetCellId() << "Recv task request of UE "
-                                << cfRadioHeader.GetUeId());
+            NS_LOG_INFO("Gnb " << m_mmWaveEnbNetDevice->GetCellId() << " Recv task request of UE "
+                               << cfRadioHeader.GetUeId());
             auto ueId = cfRadioHeader.GetUeId();
-            UeTaskModel ueTask = m_cfranSystemInfo->GetUeInfo(ueId).m_taskModel;
-            ueTask.m_taskId = cfRadioHeader.GetTaskId();
-            m_cfUnit->LoadUeTask(ueId, ueTask);
-            // SendTaskResultToUserFromGnb(cfRadioHeader.GetUeId());
+            auto hereGnbId = m_mmWaveEnbNetDevice->GetCellId();
+            auto offloadGnbId = cfRadioHeader.GetGnbId();
+
+            if (hereGnbId == offloadGnbId)
+            {
+                UeTaskModel ueTask = m_cfranSystemInfo->GetUeInfo(ueId).m_taskModel;
+                ueTask.m_taskId = cfRadioHeader.GetTaskId();
+                m_cfUnit->LoadUeTask(ueId, ueTask);
+            }
+            else
+            {
+                NS_LOG_INFO("Gnb " << hereGnbId << " Send the request of UE "
+                                   << cfRadioHeader.GetUeId() << " to other gNB.");
+                CfX2Header x2Hd;
+                x2Hd.SetMessageType(CfX2Header::TaskRequest);
+                x2Hd.SetSourceGnbId(hereGnbId);
+                x2Hd.SetTargetGnbId(offloadGnbId);
+                x2Hd.SetUeId(ueId);
+                x2Hd.SetTaskId(cfRadioHeader.GetTaskId());
+                Ptr<Packet> resultPacket = Create<Packet>(500);
+
+                resultPacket->AddHeader(x2Hd);
+
+                SendPacketToOtherGnb(offloadGnbId, resultPacket);
+            }
         }
         else
         {
             NS_FATAL_ERROR("Something wrong");
         }
-
-        // NS_LOG_LOGIC("Echoing packet");
     }
 }
 
@@ -355,10 +404,78 @@ CfApplication::InitX2Info()
         Ptr<Socket> localCfSocket =
             Socket::CreateSocket(m_node, TypeId::LookupByName("ns3::UdpSocketFactory"));
         localCfSocket->Bind(InetSocketAddress(localAddr, m_cfX2Port));
+        localCfSocket->Connect(InetSocketAddress(remoteIpAddr, m_cfX2Port));
         NS_ASSERT_MSG(m_cfX2InterfaceSockets.find(remoteCellId) == m_cfX2InterfaceSockets.end(),
                       "Mapping for remoteCellId = " << remoteCellId << " is already known");
+
+        localCfSocket->SetRecvCallback(MakeCallback(&CfApplication::RecvFromOtherGnb, this));
         m_cfX2InterfaceSockets[remoteCellId] = Create<CfX2IfaceInfo>(remoteIpAddr, localCfSocket);
     }
 }
 
+void
+CfApplication::RecvFromOtherGnb(Ptr<Socket> socket)
+{
+    NS_LOG_FUNCTION(this);
+    Ptr<Packet> packet;
+    Address from;
+    Address localAddress;
+
+    while (packet = socket->RecvFrom(from))
+    {
+        socket->GetSockName(localAddress);
+        m_rxTrace(packet);
+        m_rxTraceWithAddresses(packet, from, localAddress);
+
+        CfX2Header cfX2Header;
+        packet->RemoveHeader(cfX2Header);
+
+        if (cfX2Header.GetMessageType() == CfX2Header::InitRequest)
+        {
+            NS_LOG_INFO("Gnb " << m_mmWaveEnbNetDevice->GetCellId() << "Recv init request of UE "
+                               << cfX2Header.GetUeId() << " from gnb "
+                               << cfX2Header.GetSourceGnbId());
+            m_cfUnit->AddNewUe(cfX2Header.GetUeId());
+            SendInitSuccessToConnectedGnb(cfX2Header.GetUeId());
+        }
+        else if (cfX2Header.GetMessageType() == CfX2Header::TaskRequest)
+        {
+            NS_LOG_INFO("Gnb " << m_mmWaveEnbNetDevice->GetCellId() << " Recv task request of UE "
+                               << cfX2Header.GetUeId() << " from gnb "
+                               << cfX2Header.GetSourceGnbId());
+            auto ueId = cfX2Header.GetUeId();
+            UeTaskModel ueTask = m_cfranSystemInfo->GetUeInfo(ueId).m_taskModel;
+            ueTask.m_taskId = cfX2Header.GetTaskId();
+            m_cfUnit->LoadUeTask(ueId, ueTask);
+        }
+        else if (cfX2Header.GetMessageType() == CfX2Header::InitSuccess)
+        {
+            NS_LOG_INFO("Gnb " << m_mmWaveEnbNetDevice->GetCellId()
+                               << " Recv forwarded InitSuccess of UE " << cfX2Header.GetUeId()
+                               << " from gnb " << cfX2Header.GetSourceGnbId());
+        }
+        else if (cfX2Header.GetMessageType() == CfX2Header::TaskResult)
+        {
+            NS_LOG_INFO("Gnb " << m_mmWaveEnbNetDevice->GetCellId()
+                               << " Recv forwarded TaskResult of UE " << cfX2Header.GetUeId()
+                               << " from gnb " << cfX2Header.GetSourceGnbId());
+            NS_ASSERT(cfX2Header.GetTargetGnbId() == m_mmWaveEnbNetDevice->GetCellId());
+
+            CfRadioHeader cfRadioHeader;
+            cfRadioHeader.SetMessageType(CfRadioHeader::TaskResult);
+            cfRadioHeader.SetTaskId(cfX2Header.GetTaskId());
+            cfRadioHeader.SetUeId(cfX2Header.GetUeId());
+            cfRadioHeader.SetGnbId(cfX2Header.GetSourceGnbId());
+            Ptr<Packet> resultPacket = Create<Packet>(500);
+            resultPacket->AddHeader(cfRadioHeader);
+
+            SendPakcetToUe(cfX2Header.GetUeId(), resultPacket);
+        }
+        else
+        {
+            NS_FATAL_ERROR("Gnb " << m_mmWaveEnbNetDevice->GetCellId()
+                                  << " receive a packet without valid type.");
+        }
+    }
+}
 } // namespace ns3

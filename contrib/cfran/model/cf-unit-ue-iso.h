@@ -43,7 +43,8 @@ class CfUnitUeIso : public CfUnit
 
     std::map<uint64_t, CfModel> m_cfAllocation;
 
-    bool m_busy;
+    std::map<uint64_t, bool> m_busy;
+
 };
 
 } // namespace ns3

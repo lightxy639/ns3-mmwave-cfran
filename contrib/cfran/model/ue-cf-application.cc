@@ -35,7 +35,7 @@ UeCfApplication::UeCfApplication()
     : m_ueId(0),
       m_taskId(0),
       m_socket(0),
-      m_minSize(600),
+      m_minSize(1000),
       m_period(40)
 {
     NS_LOG_FUNCTION(this);
@@ -144,25 +144,26 @@ UeCfApplication::SendTaskRequest()
 {
     NS_LOG_FUNCTION(this);
 
-    uint16_t gnbId = m_mcUeNetDev->GetMmWaveTargetEnb()->GetCellId();
-    Ipv4Address gnbIp = m_cfranSystemInfo->GetCellInfo(gnbId).m_ipAddrToUe;
+    uint16_t connectingGnbId = m_mcUeNetDev->GetMmWaveTargetEnb()->GetCellId();
+    Ipv4Address connectingGnbIp = m_cfranSystemInfo->GetCellInfo(connectingGnbId).m_ipAddrToUe;
 
-    if (gnbIp != m_offloadAddress)
+    if (connectingGnbIp != m_offloadAddress)
     {
-        SwitchOffloadAddress(gnbIp, m_offloadPort);
+        SwitchOffloadAddress(connectingGnbIp, m_offloadPort);
     }
 
     CfRadioHeader cfRadioHeader;
     cfRadioHeader.SetMessageType(CfRadioHeader::TaskRequest);
     cfRadioHeader.SetUeId(m_ueId);
     cfRadioHeader.SetTaskId(m_taskId);
+    cfRadioHeader.SetGnbId(m_offloadGnbId);
 
     Ptr<Packet> p = Create<Packet>(m_minSize);
     p->AddHeader(cfRadioHeader);
     if (m_socket->Send(p) >= 0)
     {
         m_taskId++;
-        NS_LOG_DEBUG("UE " << m_ueId << " send task request to cell " << gnbId);
+        NS_LOG_INFO("UE " << m_ueId << " send task request to cell " << m_offloadGnbId);
 
     }
     Simulator::Schedule(MilliSeconds(m_period), &UeCfApplication::SendTaskRequest, this);
@@ -203,12 +204,13 @@ UeCfApplication::RecvFromGnb(Ptr<Packet> p)
     TaskRequestHeader taskReq;
     if (cfRadioHeader.GetMessageType() == CfRadioHeader::InitSuccess)
     {
-        NS_LOG_DEBUG("Init Success in gNB " << cfRadioHeader.GetGnbId());
+        NS_LOG_INFO("Init Success in gNB " << cfRadioHeader.GetGnbId());
+        m_offloadGnbId = cfRadioHeader.GetGnbId();
         Simulator::Schedule(Seconds(0), &UeCfApplication::SendTaskRequest, this);
     }
     else if (cfRadioHeader.GetMessageType() == CfRadioHeader::TaskResult)
     {
-        NS_LOG_DEBUG("UE " << m_ueId << "Recv task result from gnb " << cfRadioHeader.GetGnbId());
+        NS_LOG_INFO("UE " << m_ueId << " Recv task result from gnb " << cfRadioHeader.GetGnbId());
     }
     else
     {

@@ -74,11 +74,9 @@ class CfApplication : public Application
 
     virtual void RecvTaskResult(uint64_t id, UeTaskModel ueTask);
 
-    // If the application is installed on a gNB, the results will be sent directly through
-    // the gNB
-    virtual void SendTaskResultToUserFromGnb(uint64_t id);
-
     virtual void SendInitSuccessToUserFromGnb(uint64_t id);
+
+    virtual void SendInitSuccessToConnectedGnb(uint64_t ueId);
     
     // If the application is installed on a cloud server, the traditional process is completed
     virtual void SendTaskResultToUserFromRemote(uint64_t id, Ptr<Packet> packet);
@@ -113,9 +111,16 @@ class CfApplication : public Application
      *
      * \param socket the socket the packet was received to.
      */
+
+    void SendPakcetToUe(uint64_t ueId, Ptr<Packet> packet);
+
+    void SendPacketToOtherGnb(uint64_t gnbId, Ptr<Packet> packet);
+
     void HandleRead(Ptr<Socket> socket);
 
     void RecvFromUe(Ptr<Socket> socket);
+
+    void RecvFromOtherGnb(Ptr<Socket> socket);
 
     virtual void StartApplication(); // Called at time specified by Start
 

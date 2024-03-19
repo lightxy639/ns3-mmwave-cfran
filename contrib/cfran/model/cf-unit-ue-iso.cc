@@ -15,7 +15,7 @@ CfUnitUeIso::GetTypeId()
     return tid;
 }
 
-CfUnitUeIso::CfUnitUeIso() : m_busy(false)
+CfUnitUeIso::CfUnitUeIso()
 {
     NS_LOG_FUNCTION(this);
 }
@@ -38,10 +38,10 @@ CfUnitUeIso::LoadUeTask(uint64_t ueId, UeTaskModel ueTask)
     auto it = m_ueTask.find(ueId);
     if (it != m_ueTask.end())
     {
-        if (it->second.size() == 0 && !m_busy)
+        if (it->second.size() == 0 && !m_busy[ueId])
         {
             ExecuteUeTask(ueId, ueTask);
-            NS_LOG_DEBUG("CfUnit " << m_id << "execute (UE, task): " << ueId << " "
+            NS_LOG_DEBUG("CfUnit " << m_id << " execute (UE, task): " << ueId << " "
                                    << ueTask.m_taskId << " directly");
         }
         else
@@ -69,6 +69,7 @@ CfUnitUeIso::AddNewUe(uint64_t ueId)
     std::queue<UeTaskModel> ueTaskQueue;
     m_ueTask[ueId] = ueTaskQueue;
     m_cfAllocation[ueId] = CfModel(m_cf.m_cfType, 0);
+    m_busy[ueId] = false;
 
     ReAllocateCf();
 }
@@ -79,11 +80,13 @@ CfUnitUeIso::DeleteUe(uint64_t ueId)
     NS_LOG_FUNCTION(this << ueId);
     auto itTask = m_ueTask.find(ueId);
     auto itAllo = m_cfAllocation.find(ueId);
-    NS_ASSERT(itTask != m_ueTask.end() && itAllo != m_cfAllocation.end());
+    auto itBusy = m_busy.find(ueId);
+    NS_ASSERT(itTask != m_ueTask.end() && itAllo != m_cfAllocation.end() && itBusy != m_busy.end());
 
     m_ueTask.erase(itTask);
     m_cfAllocation.erase(itAllo);
-
+    m_busy.erase(itBusy);
+    
     ReAllocateCf();
 }
 
@@ -102,7 +105,7 @@ CfUnitUeIso::ExecuteUeTask(uint64_t ueId, UeTaskModel ueTask)
                             this,
                             ueId,
                             ueTask);
-        m_busy = true;
+        m_busy[ueId] = true;
         NS_LOG_DEBUG("The computing latency of (UE, Task) " << ueId << " " << ueTask.m_taskId << " is "
                                                             << executeLatency << "ms");
     }
@@ -118,7 +121,7 @@ CfUnitUeIso::EndUeTask(uint64_t ueId, UeTaskModel ueTask)
     NS_LOG_FUNCTION(this);
 
     m_cfApplication->RecvTaskResult(ueId, ueTask);
-    m_busy = false;
+    m_busy[ueId] = false;
     auto it = m_ueTask.find(ueId);
     if (it != m_ueTask.end())
     {
