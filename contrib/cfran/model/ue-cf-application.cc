@@ -1,7 +1,8 @@
 #include "ue-cf-application.h"
 
-#include "task-request-header.h"
 #include "cf-radio-header.h"
+#include "multi-packet-header.h"
+#include "task-request-header.h"
 
 #include <ns3/log.h>
 #include <ns3/simulator.h>
@@ -36,6 +37,8 @@ UeCfApplication::UeCfApplication()
       m_taskId(0),
       m_socket(0),
       m_minSize(1000),
+      m_requestDataSize(500000),
+      m_uploadPacketSize(1200),
       m_period(40)
 {
     NS_LOG_FUNCTION(this);
@@ -152,20 +155,30 @@ UeCfApplication::SendTaskRequest()
         SwitchOffloadAddress(connectingGnbIp, m_offloadPort);
     }
 
-    CfRadioHeader cfRadioHeader;
-    cfRadioHeader.SetMessageType(CfRadioHeader::TaskRequest);
-    cfRadioHeader.SetUeId(m_ueId);
-    cfRadioHeader.SetTaskId(m_taskId);
-    cfRadioHeader.SetGnbId(m_offloadGnbId);
-
-    Ptr<Packet> p = Create<Packet>(m_minSize);
-    p->AddHeader(cfRadioHeader);
-    if (m_socket->Send(p) >= 0)
+    uint32_t packetNum = std::ceil(m_requestDataSize / m_uploadPacketSize);
+    for (uint32_t n = 1; n <= packetNum; n++)
     {
-        m_taskId++;
-        NS_LOG_INFO("UE " << m_ueId << " send task request to cell " << m_offloadGnbId);
+        MultiPacketHeader mpHeader;
+        mpHeader.SetPacketId(n);
+        mpHeader.SetTotalpacketNum(packetNum);
 
+        CfRadioHeader cfRadioHeader;
+        cfRadioHeader.SetMessageType(CfRadioHeader::TaskRequest);
+        cfRadioHeader.SetUeId(m_ueId);
+        cfRadioHeader.SetTaskId(m_taskId);
+        cfRadioHeader.SetGnbId(m_offloadGnbId);
+
+        Ptr<Packet> p = Create<Packet>(m_minSize);
+        p->AddHeader(mpHeader);
+        p->AddHeader(cfRadioHeader);
+        if (m_socket->Send(p) < 0)
+        {
+            NS_FATAL_ERROR("Error in sending task request.");
+        }
     }
+    NS_LOG_INFO("UE " << m_ueId << " send task request " << m_taskId << " to cell " << m_offloadGnbId);
+
+    m_taskId++;
     Simulator::Schedule(MilliSeconds(m_period), &UeCfApplication::SendTaskRequest, this);
 }
 
@@ -210,13 +223,12 @@ UeCfApplication::RecvFromGnb(Ptr<Packet> p)
     }
     else if (cfRadioHeader.GetMessageType() == CfRadioHeader::TaskResult)
     {
-        NS_LOG_INFO("UE " << m_ueId << " Recv task result from gnb " << cfRadioHeader.GetGnbId());
+        NS_LOG_INFO("UE " << m_ueId << " Recv task result " << cfRadioHeader.GetTaskId() << " from gnb " << cfRadioHeader.GetGnbId());
     }
     else
     {
         NS_FATAL_ERROR("Unexecpted message type");
     }
-
 }
 
 void

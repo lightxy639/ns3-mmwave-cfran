@@ -63,6 +63,10 @@ class UeCfApplication : public Application
 
     uint16_t m_minSize;
 
+    uint32_t m_requestDataSize;  // bytes
+
+    uint32_t m_uploadPacketSize; // bytes
+
     double m_period; // ms
 
     Ptr<CfranSystemInfo> m_cfranSystemInfo;

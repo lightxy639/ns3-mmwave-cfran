@@ -20,8 +20,10 @@ set(source_files
     model/cf-radio-header.cc
     model/cf-x2-header.cc
     model/ue-simple-client.cc
+    model/multi-packet-header.cc
     helper/ue-cf-application-helper.cc
     helper/cf-application-helper.cc
+    helper/multi-packet-manager.cc
 )
 
 set(header_files
@@ -41,8 +43,10 @@ set(header_files
     model/cf-radio-header.h
     model/cf-x2-header.h
     model/ue-simple-client.h
+    model/multi-packet-header.h
     helper/ue-cf-application-helper.h
     helper/cf-application-helper.h
+    helper/multi-packet-manager.h
 )
 
 

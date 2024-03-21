@@ -393,6 +393,9 @@ main(int argc, char* argv[])
     LogComponentEnable("UeCfApplication", LOG_INFO);
     // LogComponentEnable("UeCfApplication", LOG_FUNCTION);
     LogComponentEnable("UeCfApplication", LOG_PREFIX_ALL);
+
+    LogComponentEnable("MultiPacketManager", LOG_LEVEL_DEBUG);
+    LogComponentEnable("MultiPacketManager", LOG_PREFIX_ALL);
     // LogComponentEnable("CfUnit", LOG_DEBUG);
     // LogComponentEnable("CfUnitUeIso", LOG_FUNCTION);
     // LogComponentEnable("McUeNetDevice", LOG_LOGIC);
@@ -657,9 +660,9 @@ main(int argc, char* argv[])
     NodeContainer mmWaveEnbNodes;
     NodeContainer lteEnbNodes;
     NodeContainer allEnbNodes;
-    mmWaveEnbNodes.Create(2);
+    mmWaveEnbNodes.Create(1);
     lteEnbNodes.Create(1);
-    ueNodes.Create(2);
+    ueNodes.Create(1);
     allEnbNodes.Add(lteEnbNodes);
     allEnbNodes.Add(mmWaveEnbNodes);
 
@@ -716,14 +719,13 @@ main(int argc, char* argv[])
     uemobility.Install(ueNodes);
     BuildingsHelper::Install(ueNodes);
 
-    // ueNodes.Get (0)->GetObject<MobilityModel> ()->SetPosition (Vector (ueInitialPosition, -5,
-    // 0));
-    ueNodes.Get(0)->GetObject<MobilityModel>()->SetPosition(Vector(ueInitialPosition, -5, 1.6));
+    // ueNodes.Get (0)->GetObject<MobilityModel> ()->SetPosition (Vector (ueInitialPosition, -5, 1.6));
+    ueNodes.Get (0)->GetObject<MobilityModel> ()->SetPosition (Vector (40, 60, 1.6));
     ueNodes.Get(0)->GetObject<ConstantVelocityMobilityModel>()->SetVelocity(Vector(0, 0, 0));
 
-    ueNodes.Get(1)->GetObject<MobilityModel>()->SetPosition(
-        Vector(ueInitialPosition + 5, -5, 1.6));
-    ueNodes.Get(1)->GetObject<ConstantVelocityMobilityModel>()->SetVelocity(Vector(0, 0, 0));
+    // ueNodes.Get(1)->GetObject<MobilityModel>()->SetPosition(
+    //     Vector(40, 60, 1.6));
+    // ueNodes.Get(1)->GetObject<ConstantVelocityMobilityModel>()->SetVelocity(Vector(0, 0, 0));
     // Install mmWave, lte, mc Devices to the nodes
     NetDeviceContainer lteEnbDevs = mmwaveHelper->InstallLteEnbDevice(lteEnbNodes);
     NetDeviceContainer mmWaveEnbDevs = mmwaveHelper->InstallEnbDevice(mmWaveEnbNodes);

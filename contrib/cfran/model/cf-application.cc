@@ -73,6 +73,7 @@ CfApplication::CfApplication()
       m_cfX2Port(4275)
 {
     NS_LOG_FUNCTION(this);
+    m_multiPacketManager = Create<MultiPacketManager>();
 }
 
 CfApplication::~CfApplication()
@@ -152,7 +153,6 @@ CfApplication::SendPacketToOtherGnb(uint64_t gnbId, Ptr<Packet> packet)
     }
 }
 
-
 void
 CfApplication::SendInitSuccessToUserFromGnb(uint64_t id)
 {
@@ -168,7 +168,6 @@ CfApplication::SendInitSuccessToUserFromGnb(uint64_t id)
 
     SendPakcetToUe(id, resultPacket);
 }
-
 
 void
 CfApplication::SendInitSuccessToConnectedGnb(uint64_t ueId)
@@ -274,8 +273,8 @@ CfApplication::RecvTaskResult(uint64_t ueId, UeTaskModel ueTask)
 
         SendPacketToOtherGnb(ueConnectedGnbId, resultPacket);
     }
-    NS_LOG_DEBUG("Gnb " << m_mmWaveEnbNetDevice->GetCellId() << " recv task result of (UE,Task) "
-                        << ueId << " " << ueTask.m_taskId);
+    NS_LOG_INFO("Gnb " << m_mmWaveEnbNetDevice->GetCellId() << " recv task result of (UE,Task) "
+                       << ueId << " " << ueTask.m_taskId);
 }
 
 void
@@ -341,17 +340,31 @@ CfApplication::RecvFromUe(Ptr<Socket> socket)
         }
         else if (cfRadioHeader.GetMessageType() == CfRadioHeader::TaskRequest)
         {
-            NS_LOG_INFO("Gnb " << m_mmWaveEnbNetDevice->GetCellId() << " Recv task request of UE "
-                               << cfRadioHeader.GetUeId());
             auto ueId = cfRadioHeader.GetUeId();
+            auto taskId = cfRadioHeader.GetTaskId();
             auto hereGnbId = m_mmWaveEnbNetDevice->GetCellId();
             auto offloadGnbId = cfRadioHeader.GetGnbId();
 
             if (hereGnbId == offloadGnbId)
             {
-                UeTaskModel ueTask = m_cfranSystemInfo->GetUeInfo(ueId).m_taskModel;
-                ueTask.m_taskId = cfRadioHeader.GetTaskId();
-                m_cfUnit->LoadUeTask(ueId, ueTask);
+                MultiPacketHeader mpHeader;
+                bool receiveCompleted = false;
+
+                packet->RemoveHeader(mpHeader);
+                receiveCompleted =
+                    m_multiPacketManager->AddAndCheckPacket(ueId,
+                                                            taskId,
+                                                            mpHeader.GetPacketId(),
+                                                            mpHeader.GetTotalPacketNum());
+                if (receiveCompleted)
+                {
+                    NS_LOG_INFO("Gnb " << m_mmWaveEnbNetDevice->GetCellId() << " Recv task request "
+                                       << cfRadioHeader.GetTaskId() << " of UE "
+                                       << cfRadioHeader.GetUeId());
+                    UeTaskModel ueTask = m_cfranSystemInfo->GetUeInfo(ueId).m_taskModel;
+                    ueTask.m_taskId = cfRadioHeader.GetTaskId();
+                    m_cfUnit->LoadUeTask(ueId, ueTask);
+                }
             }
             else
             {

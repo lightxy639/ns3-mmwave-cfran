@@ -4,6 +4,8 @@
 #include <ns3/application.h>
 #include <ns3/cf-model.h>
 #include <ns3/cf-unit.h>
+#include <ns3/multi-packet-manager.h>
+#include <ns3/multi-packet-header.h>
 #include <ns3/epc-x2.h>
 #include <ns3/packet.h>
 #include <ns3/socket.h>
@@ -97,6 +99,9 @@ class CfApplication : public Application
     uint16_t m_cfX2Port;
 
     std::map<uint16_t, Ptr<CfX2IfaceInfo>> m_cfX2InterfaceSockets;
+
+    Ptr<MultiPacketManager> m_multiPacketManager;
+    
     /// Callbacks for tracing the packet Rx events
     TracedCallback<Ptr<const Packet>> m_rxTrace;
 
