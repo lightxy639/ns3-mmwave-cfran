@@ -77,6 +77,7 @@ class UeCfApplication : public Application
     virtual void StartApplication(); // Called at time specified by Start
 
     virtual void StopApplication(); // Called at time specified by Stop
+    uint32_t m_taskNow;
 };
 
 } // namespace ns3

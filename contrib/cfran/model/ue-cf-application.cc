@@ -37,7 +37,7 @@ UeCfApplication::UeCfApplication()
       m_taskId(0),
       m_socket(0),
       m_minSize(1000),
-      m_requestDataSize(500000),
+      m_requestDataSize(50000),
       m_uploadPacketSize(1200),
       m_period(40)
 {
@@ -155,7 +155,7 @@ UeCfApplication::SendTaskRequest()
         SwitchOffloadAddress(connectingGnbIp, m_offloadPort);
     }
 
-    uint32_t packetNum = std::ceil(m_requestDataSize / m_uploadPacketSize);
+    uint32_t packetNum = std::ceil(float(m_requestDataSize) / m_uploadPacketSize);
     for (uint32_t n = 1; n <= packetNum; n++)
     {
         MultiPacketHeader mpHeader;

@@ -34,7 +34,7 @@ CfUnitUeIso::DoDispose()
 void
 CfUnitUeIso::LoadUeTask(uint64_t ueId, UeTaskModel ueTask)
 {
-    NS_LOG_FUNCTION(this);
+    NS_LOG_FUNCTION(this << ueId << ueTask.m_taskId);
     auto it = m_ueTask.find(ueId);
     if (it != m_ueTask.end())
     {

@@ -102,7 +102,7 @@ CfApplication::RecvTaskRequest()
 void
 CfApplication::SendPakcetToUe(uint64_t ueId, Ptr<Packet> packet)
 {
-    NS_LOG_FUNCTION(this);
+    NS_LOG_FUNCTION(this << ueId);
     CfranSystemInfo::UeInfo ueInfo = m_cfranSystemInfo->GetUeInfo(ueId);
     Ptr<ns3::mmwave::McUeNetDevice> mcUeNetDev = ueInfo.m_mcUeNetDevice;
 
@@ -238,7 +238,7 @@ CfApplication::LoadTaskToCfUnit(uint64_t id, UeTaskModel ueTask)
 void
 CfApplication::RecvTaskResult(uint64_t ueId, UeTaskModel ueTask)
 {
-    NS_LOG_FUNCTION(this);
+    NS_LOG_FUNCTION(this << ueId << ueTask.m_taskId);
 
     auto ueConnectedGnbId =
         m_cfranSystemInfo->GetUeInfo(ueId).m_mcUeNetDevice->GetMmWaveTargetEnb()->GetCellId();

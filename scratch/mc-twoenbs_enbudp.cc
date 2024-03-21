@@ -386,17 +386,18 @@ int
 main(int argc, char* argv[])
 {
     // LogComponentEnable("McTwoEnbs", LOG_DEBUG);
-    // LogComponentEnable("CfApplication", LOG_FUNCTION);
+    LogComponentEnable("CfApplication", LOG_FUNCTION);
     LogComponentEnable("CfApplication", LOG_INFO);
     LogComponentEnable("CfApplication", LOG_PREFIX_ALL);
-    // LogComponentEnable("CfApplicationHelper", LOG_DEBUG);
+    // LogComponentEnable("CfApplicationHelper", LOG_FUNCTION);
     LogComponentEnable("UeCfApplication", LOG_INFO);
     // LogComponentEnable("UeCfApplication", LOG_FUNCTION);
     LogComponentEnable("UeCfApplication", LOG_PREFIX_ALL);
 
+    LogComponentEnable("MultiPacketManager", LOG_LEVEL_FUNCTION);
     LogComponentEnable("MultiPacketManager", LOG_LEVEL_DEBUG);
     LogComponentEnable("MultiPacketManager", LOG_PREFIX_ALL);
-    // LogComponentEnable("CfUnit", LOG_DEBUG);
+    LogComponentEnable("CfUnitUeIso", LOG_FUNCTION);
     // LogComponentEnable("CfUnitUeIso", LOG_FUNCTION);
     // LogComponentEnable("McUeNetDevice", LOG_LOGIC);
     // LogComponentEnable("MmWaveNetDevice", LOG_LOGIC);
@@ -719,8 +720,8 @@ main(int argc, char* argv[])
     uemobility.Install(ueNodes);
     BuildingsHelper::Install(ueNodes);
 
-    // ueNodes.Get (0)->GetObject<MobilityModel> ()->SetPosition (Vector (ueInitialPosition, -5, 1.6));
-    ueNodes.Get (0)->GetObject<MobilityModel> ()->SetPosition (Vector (40, 60, 1.6));
+    ueNodes.Get (0)->GetObject<MobilityModel> ()->SetPosition (Vector (ueInitialPosition, -5, 1.6));
+    // ueNodes.Get(0)->GetObject<MobilityModel> ()->SetPosition (Vector (40, 60, 1.6));
     ueNodes.Get(0)->GetObject<ConstantVelocityMobilityModel>()->SetVelocity(Vector(0, 0, 0));
 
     // ueNodes.Get(1)->GetObject<MobilityModel>()->SetPosition(
