@@ -70,7 +70,10 @@ CfApplication::GetTypeId()
 
 CfApplication::CfApplication()
     : m_socket(nullptr),
-      m_cfX2Port(4275)
+      m_cfX2Port(4275),
+      m_appSize(50000000),
+      m_defaultPacketSize(1200),
+      m_initDelay(200)
 {
     NS_LOG_FUNCTION(this);
     m_multiPacketManager = Create<MultiPacketManager>();
@@ -268,6 +271,7 @@ CfApplication::RecvTaskResult(uint64_t ueId, UeTaskModel ueTask)
         cfX2Header.SetSourceGnbId(m_mmWaveEnbNetDevice->GetCellId());
         cfX2Header.SetTargetGnbId(ueConnectedGnbId);
         cfX2Header.SetUeId(ueId);
+        cfX2Header.SetTaskId(ueTask.m_taskId);
 
         resultPacket->AddHeader(cfX2Header);
 
@@ -334,9 +338,10 @@ CfApplication::RecvFromUe(Ptr<Socket> socket)
         {
             NS_LOG_INFO("Gnb " << m_mmWaveEnbNetDevice->GetCellId() << "Recv init request of UE "
                                << cfRadioHeader.GetUeId());
-
+            UpdateUeState(cfRadioHeader.GetUeId(), UeState::Initializing);
             m_cfUnit->AddNewUe(cfRadioHeader.GetUeId());
             SendInitSuccessToUserFromGnb(cfRadioHeader.GetUeId());
+            UpdateUeState(cfRadioHeader.GetUeId(), UeState::Serving);
         }
         else if (cfRadioHeader.GetMessageType() == CfRadioHeader::TaskRequest)
         {
@@ -368,19 +373,19 @@ CfApplication::RecvFromUe(Ptr<Socket> socket)
             }
             else
             {
-                NS_LOG_INFO("Gnb " << hereGnbId << " Send the request of UE "
-                                   << cfRadioHeader.GetUeId() << " to other gNB.");
+                // NS_LOG_INFO("Gnb " << hereGnbId << " Send the request of UE "
+                //                    << cfRadioHeader.GetUeId() << " to other gNB.");
                 CfX2Header x2Hd;
                 x2Hd.SetMessageType(CfX2Header::TaskRequest);
                 x2Hd.SetSourceGnbId(hereGnbId);
                 x2Hd.SetTargetGnbId(offloadGnbId);
                 x2Hd.SetUeId(ueId);
                 x2Hd.SetTaskId(cfRadioHeader.GetTaskId());
-                Ptr<Packet> resultPacket = Create<Packet>(500);
+                // Ptr<Packet> resultPacket = Create<Packet>(500);
 
-                resultPacket->AddHeader(x2Hd);
+                packet->AddHeader(x2Hd);
 
-                SendPacketToOtherGnb(offloadGnbId, resultPacket);
+                SendPacketToOtherGnb(offloadGnbId, packet);
             }
         }
         else
@@ -448,30 +453,60 @@ CfApplication::RecvFromOtherGnb(Ptr<Socket> socket)
             NS_LOG_INFO("Gnb " << m_mmWaveEnbNetDevice->GetCellId() << "Recv init request of UE "
                                << cfX2Header.GetUeId() << " from gnb "
                                << cfX2Header.GetSourceGnbId());
+
+            UpdateUeState(cfX2Header.GetUeId(), UeState::Initializing);
             m_cfUnit->AddNewUe(cfX2Header.GetUeId());
             SendInitSuccessToConnectedGnb(cfX2Header.GetUeId());
+            UpdateUeState(cfX2Header.GetUeId(), UeState::Serving);
         }
         else if (cfX2Header.GetMessageType() == CfX2Header::TaskRequest)
         {
-            NS_LOG_INFO("Gnb " << m_mmWaveEnbNetDevice->GetCellId() << " Recv task request of UE "
-                               << cfX2Header.GetUeId() << " from gnb "
-                               << cfX2Header.GetSourceGnbId());
             auto ueId = cfX2Header.GetUeId();
-            UeTaskModel ueTask = m_cfranSystemInfo->GetUeInfo(ueId).m_taskModel;
-            ueTask.m_taskId = cfX2Header.GetTaskId();
-            m_cfUnit->LoadUeTask(ueId, ueTask);
+            auto taskId = cfX2Header.GetTaskId();
+
+            MultiPacketHeader mpHeader;
+            bool receiveCompleted = false;
+
+            packet->RemoveHeader(mpHeader);
+            receiveCompleted =
+                m_multiPacketManager->AddAndCheckPacket(ueId + 100,
+                                                        taskId,
+                                                        mpHeader.GetPacketId(),
+                                                        mpHeader.GetTotalPacketNum());
+            if (receiveCompleted)
+            {
+                NS_LOG_INFO("Gnb " << m_mmWaveEnbNetDevice->GetCellId()
+                                   << " Recv task request of UE " << cfX2Header.GetUeId()
+                                   << " from gnb " << cfX2Header.GetSourceGnbId());
+                UeTaskModel ueTask = m_cfranSystemInfo->GetUeInfo(ueId).m_taskModel;
+                ueTask.m_taskId = taskId;
+                m_cfUnit->LoadUeTask(ueId, ueTask);
+            }
         }
         else if (cfX2Header.GetMessageType() == CfX2Header::InitSuccess)
         {
             NS_LOG_INFO("Gnb " << m_mmWaveEnbNetDevice->GetCellId()
                                << " Recv forwarded InitSuccess of UE " << cfX2Header.GetUeId()
                                << " from gnb " << cfX2Header.GetSourceGnbId());
+
+            auto ueId = cfX2Header.GetUeId();
+            auto offloadGnbId = cfX2Header.GetSourceGnbId();
+
+            CfRadioHeader cfRadioHeader;
+            cfRadioHeader.SetMessageType(CfRadioHeader::InitSuccess);
+            cfRadioHeader.SetUeId(ueId);
+            cfRadioHeader.SetGnbId(offloadGnbId);
+            Ptr<Packet> initSuccPakcet = Create<Packet>(500);
+            initSuccPakcet->AddHeader(cfRadioHeader);
+
+            SendPakcetToUe(ueId, initSuccPakcet);
         }
         else if (cfX2Header.GetMessageType() == CfX2Header::TaskResult)
         {
             NS_LOG_INFO("Gnb " << m_mmWaveEnbNetDevice->GetCellId()
-                               << " Recv forwarded TaskResult of UE " << cfX2Header.GetUeId()
-                               << " from gnb " << cfX2Header.GetSourceGnbId());
+                               << " Recv forwarded Task Result " << cfX2Header.GetTaskId()
+                               << " of UE " << cfX2Header.GetUeId() << " from gnb "
+                               << cfX2Header.GetSourceGnbId());
             NS_ASSERT(cfX2Header.GetTargetGnbId() == m_mmWaveEnbNetDevice->GetCellId());
 
             CfRadioHeader cfRadioHeader;
@@ -484,11 +519,126 @@ CfApplication::RecvFromOtherGnb(Ptr<Socket> socket)
 
             SendPakcetToUe(cfX2Header.GetUeId(), resultPacket);
         }
+        else if (cfX2Header.GetMessageType() == CfX2Header::MigrationData)
+        {
+            auto ueId = cfX2Header.GetUeId();
+            auto sourceGnbId = cfX2Header.GetSourceGnbId();
+
+            MultiPacketHeader mpHeader;
+            bool receiveCompleted = false;
+
+            packet->RemoveHeader(mpHeader);
+
+            receiveCompleted =
+                m_multiPacketManager->AddAndCheckPacket(sourceGnbId + 200,
+                                                        ueId,
+                                                        mpHeader.GetPacketId(),
+                                                        mpHeader.GetTotalPacketNum());
+            if (receiveCompleted)
+            {
+                NS_LOG_INFO("Gnb " << m_mmWaveEnbNetDevice->GetCellId()
+                                   << " recv migration data of UE " << ueId << " from gNB "
+                                   << sourceGnbId);
+                UpdateUeState(ueId, UeState::Initializing);
+
+                Simulator::Schedule(MilliSeconds(m_initDelay),
+                                    &CfApplication::CompleteMigrationAtTarget,
+                                    this,
+                                    ueId,
+                                    sourceGnbId);
+            }
+        }
+        else if (cfX2Header.GetMessageType() == CfX2Header::MigrationDone)
+        {
+            NS_LOG_INFO("Migration of UE " << cfX2Header.GetUeId() << " done, delete old info");
+            auto ueId = cfX2Header.GetUeId();
+            UpdateUeState(ueId, UeState::Over);
+            m_cfUnit->DeleteUe(ueId);
+        }
         else
         {
             NS_FATAL_ERROR("Gnb " << m_mmWaveEnbNetDevice->GetCellId()
                                   << " receive a packet without valid type.");
         }
+    }
+}
+
+void
+CfApplication::MigrateUeService(uint64_t ueId, uint64_t targetGnbId)
+{
+    NS_LOG_FUNCTION(this);
+
+    UpdateUeState(ueId, UeState::Migrating);
+    uint32_t packetNum = ceil(double(m_appSize) / m_defaultPacketSize);
+
+    for (uint32_t n = 1; n <= packetNum; n++)
+    {
+        MultiPacketHeader mpHeader;
+        mpHeader.SetPacketId(n);
+        mpHeader.SetTotalpacketNum(packetNum);
+
+        CfX2Header cfX2Header;
+        cfX2Header.SetMessageType(CfX2Header::MigrationData);
+        cfX2Header.SetUeId(ueId);
+        cfX2Header.SetSourceGnbId(m_mmWaveEnbNetDevice->GetCellId());
+        cfX2Header.SetTargetGnbId(targetGnbId);
+
+        Ptr<Packet> p = Create<Packet>(m_defaultPacketSize);
+        p->AddHeader(mpHeader);
+        p->AddHeader(cfX2Header);
+
+        SendPacketToOtherGnb(targetGnbId, p);
+    }
+}
+
+void
+CfApplication::CompleteMigrationAtTarget(uint64_t ueId, uint64_t oldGnbId)
+{
+    m_cfUnit->AddNewUe(ueId);
+    UpdateUeState(ueId, UeState::Serving);
+
+    //TODO not harmonious
+    Ptr<Packet> migraDonePacket = Create<Packet>(500);
+    CfX2Header migraCfX2Header;
+    migraCfX2Header.SetMessageType(CfX2Header::MigrationDone);
+    migraCfX2Header.SetUeId(ueId);
+    migraCfX2Header.SetSourceGnbId(m_mmWaveEnbNetDevice->GetCellId());
+    migraCfX2Header.SetTargetGnbId(oldGnbId);
+    migraDonePacket->AddHeader(migraCfX2Header);
+    SendPacketToOtherGnb(oldGnbId, migraDonePacket);
+
+    SendInitSuccessToConnectedGnb(ueId);
+}
+
+void
+CfApplication::UpdateUeState(uint64_t id, UeState state)
+{
+    NS_LOG_FUNCTION(this << id << state);
+
+    NS_LOG_INFO("UE " << id << " Stat changed to " << state);
+    if (state == UeState::Initializing)
+    {
+        NS_ASSERT(m_ueState.find(id) == m_ueState.end());
+        m_ueState[id] = UeState::Initializing;
+    }
+    else if (state == UeState::Serving)
+    {
+        NS_ASSERT(m_ueState[id] == UeState::Initializing);
+        m_ueState[id] = UeState::Serving;
+    }
+    else if (state == UeState::Migrating)
+    {
+        NS_ASSERT(m_ueState[id] == UeState::Serving);
+        m_ueState[id] = UeState::Migrating;
+    }
+    else if (state == UeState::Over)
+    {
+        NS_ASSERT(m_ueState.find(id) != m_ueState.end());
+        m_ueState.erase(id);
+    }
+    else
+    {
+        NS_FATAL_ERROR("Unvalid state.");
     }
 }
 } // namespace ns3

@@ -43,7 +43,7 @@ MultiPacketManager::AddAndCheckPacket(uint64_t sourceId,
                                       uint64_t packetId,
                                       uint64_t totalPacketNum)
 {
-    NS_LOG_FUNCTION(this << sourceId << fileId << packetId);
+    NS_LOG_FUNCTION(this << sourceId << fileId << packetId << totalPacketNum);
 
     auto itSrc = m_fileInfo.find(sourceId);
     if (itSrc != m_fileInfo.end())

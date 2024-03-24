@@ -320,7 +320,7 @@ static ns3::GlobalValue g_mmWaveDistance("mmWaveDist",
 static ns3::GlobalValue g_numBuildingsBetweenMmWaveEnb(
     "numBlocks",
     "Number of buildings between MmWave eNB 1 and 2",
-    ns3::UintegerValue(8),
+    ns3::UintegerValue(0),
     ns3::MakeUintegerChecker<uint32_t>());
 static ns3::GlobalValue g_interPckInterval("interPckInterval",
                                            "Interarrival time of UDP packets (us)",
@@ -386,7 +386,6 @@ int
 main(int argc, char* argv[])
 {
     // LogComponentEnable("McTwoEnbs", LOG_DEBUG);
-    LogComponentEnable("CfApplication", LOG_FUNCTION);
     LogComponentEnable("CfApplication", LOG_INFO);
     LogComponentEnable("CfApplication", LOG_PREFIX_ALL);
     // LogComponentEnable("CfApplicationHelper", LOG_FUNCTION);
@@ -394,10 +393,10 @@ main(int argc, char* argv[])
     // LogComponentEnable("UeCfApplication", LOG_FUNCTION);
     LogComponentEnable("UeCfApplication", LOG_PREFIX_ALL);
 
-    LogComponentEnable("MultiPacketManager", LOG_LEVEL_FUNCTION);
-    LogComponentEnable("MultiPacketManager", LOG_LEVEL_DEBUG);
-    LogComponentEnable("MultiPacketManager", LOG_PREFIX_ALL);
-    LogComponentEnable("CfUnitUeIso", LOG_FUNCTION);
+    // LogComponentEnable("MultiPacketManager", LOG_LEVEL_FUNCTION);
+    // LogComponentEnable("MultiPacketManager", LOG_LEVEL_DEBUG);
+    // LogComponentEnable("MultiPacketManager", LOG_PREFIX_ALL);
+    // LogComponentEnable("CfUnitUeIso", LOG_FUNCTION);
     // LogComponentEnable("CfUnitUeIso", LOG_FUNCTION);
     // LogComponentEnable("McUeNetDevice", LOG_LOGIC);
     // LogComponentEnable("MmWaveNetDevice", LOG_LOGIC);
@@ -661,9 +660,9 @@ main(int argc, char* argv[])
     NodeContainer mmWaveEnbNodes;
     NodeContainer lteEnbNodes;
     NodeContainer allEnbNodes;
-    mmWaveEnbNodes.Create(1);
+    mmWaveEnbNodes.Create(2);
     lteEnbNodes.Create(1);
-    ueNodes.Create(1);
+    ueNodes.Create(2);
     allEnbNodes.Add(lteEnbNodes);
     allEnbNodes.Add(mmWaveEnbNodes);
 
@@ -720,12 +719,13 @@ main(int argc, char* argv[])
     uemobility.Install(ueNodes);
     BuildingsHelper::Install(ueNodes);
 
-    ueNodes.Get (0)->GetObject<MobilityModel> ()->SetPosition (Vector (ueInitialPosition, -5, 1.6));
-    // ueNodes.Get(0)->GetObject<MobilityModel> ()->SetPosition (Vector (40, 60, 1.6));
+    ueNodes.Get (0)->GetObject<MobilityModel> ()->SetPosition (Vector (60, 70, 1.6));
     ueNodes.Get(0)->GetObject<ConstantVelocityMobilityModel>()->SetVelocity(Vector(0, 0, 0));
 
+    // ueNodes.Get (0)->GetObject<MobilityModel> ()->SetPosition (Vector (ueInitialPosition, -5, 1.6));
+    // ueNodes.Get(0)->GetObject<ConstantVelocityMobilityModel>()->SetVelocity(Vector(0, 0, 0));
     // ueNodes.Get(1)->GetObject<MobilityModel>()->SetPosition(
-    //     Vector(40, 60, 1.6));
+    //     Vector(60, 70, 1.6));
     // ueNodes.Get(1)->GetObject<ConstantVelocityMobilityModel>()->SetVelocity(Vector(0, 0, 0));
     // Install mmWave, lte, mc Devices to the nodes
     NetDeviceContainer lteEnbDevs = mmwaveHelper->InstallLteEnbDevice(lteEnbNodes);
@@ -858,12 +858,15 @@ main(int argc, char* argv[])
     Simulator::Schedule(Seconds(transientDuration),
                         &ChangeSpeed,
                         ueNodes.Get(0),
-                        Vector(ueSpeed, 0, 0)); // start UE movement after Seconds(0.5)
+                        Vector(0, 0, 0)); // start UE movement after Seconds(0.5)
+                        // Vector(ueSpeed, 0, 0)); // start UE movement after Seconds(0.5)
     Simulator::Schedule(Seconds(simTime - 1),
                         &ChangeSpeed,
                         ueNodes.Get(0),
                         Vector(0, 0, 0)); // start UE movement after Seconds(0.5)
-
+    // Hasty test
+    Ptr<CfApplication> cfApp = DynamicCast<CfApplication> (serverApps.Get(0));
+    Simulator::Schedule(Seconds(transientDuration + 2), &CfApplication::MigrateUeService, cfApp, 1, 3);
     double numPrints = 0;
     for (int i = 0; i < numPrints; i++)
     {
