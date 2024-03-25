@@ -1201,6 +1201,13 @@ class LteEnbRrc : public Object
     void DoSendReleaseDataRadioBearer(uint64_t imsi, uint16_t rnti, uint8_t bearerId);
 
     /**
+     * Triggers an handover between secondary cells
+     * \param imsi UE
+     * \param targetCellId target cell
+     */
+    void PerformHandoverToTargetCell(uint64_t imsi, uint16_t targetCellId);
+
+    /**
      * Identifies how EPS Bearer parameters are mapped to different RLC types
      *
      */
@@ -1271,7 +1278,8 @@ class LteEnbRrc : public Object
     {
         FIXED_TTT = 1,
         DYNAMIC_TTT = 2,
-        THRESHOLD = 3
+        THRESHOLD = 3,
+        NO_AUTO = 4
     };
 
     struct HandoverEventInfo

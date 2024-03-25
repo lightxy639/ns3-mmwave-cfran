@@ -367,7 +367,7 @@ static ns3::GlobalValue g_noiseAndFilter(
     ns3::MakeBooleanChecker());
 static ns3::GlobalValue g_handoverMode("handoverMode",
                                        "Handover mode",
-                                       ns3::UintegerValue(3),
+                                       ns3::UintegerValue(4),
                                        ns3::MakeUintegerChecker<uint8_t>());
 static ns3::GlobalValue g_reportTablePeriodicity("reportTablePeriodicity",
                                                  "Periodicity of RTs",
@@ -393,6 +393,9 @@ main(int argc, char* argv[])
     // LogComponentEnable("UeCfApplication", LOG_FUNCTION);
     LogComponentEnable("UeCfApplication", LOG_PREFIX_ALL);
 
+    LogComponentEnable("LteEnbRrc", LOG_INFO);
+    LogComponentEnable("LteEnbRrc", LOG_DEBUG);
+    LogComponentEnable("LteEnbRrc", LOG_PREFIX_ALL);
     // LogComponentEnable("MultiPacketManager", LOG_LEVEL_FUNCTION);
     // LogComponentEnable("MultiPacketManager", LOG_LEVEL_DEBUG);
     // LogComponentEnable("MultiPacketManager", LOG_PREFIX_ALL);
@@ -572,6 +575,9 @@ main(int argc, char* argv[])
         Config::SetDefault("ns3::LteEnbRrc::SecondaryCellHandoverMode",
                            EnumValue(LteEnbRrc::DYNAMIC_TTT));
         break;
+    case 4:
+        Config::SetDefault("ns3::LteEnbRrc::SecondaryCellHandoverMode",
+                            EnumValue(LteEnbRrc::NO_AUTO));
     }
 
     Config::SetDefault("ns3::LteEnbRrc::FixedTttValue", UintegerValue(150));
@@ -662,7 +668,7 @@ main(int argc, char* argv[])
     NodeContainer allEnbNodes;
     mmWaveEnbNodes.Create(2);
     lteEnbNodes.Create(1);
-    ueNodes.Create(2);
+    ueNodes.Create(1);
     allEnbNodes.Add(lteEnbNodes);
     allEnbNodes.Add(mmWaveEnbNodes);
 
@@ -719,12 +725,12 @@ main(int argc, char* argv[])
     uemobility.Install(ueNodes);
     BuildingsHelper::Install(ueNodes);
 
-    ueNodes.Get (0)->GetObject<MobilityModel> ()->SetPosition (Vector (60, 70, 1.6));
+    ueNodes.Get(0)->GetObject<MobilityModel>()->SetPosition(Vector(60, 70, 1.6));
     ueNodes.Get(0)->GetObject<ConstantVelocityMobilityModel>()->SetVelocity(Vector(0, 0, 0));
 
-    // ueNodes.Get (0)->GetObject<MobilityModel> ()->SetPosition (Vector (ueInitialPosition, -5, 1.6));
-    // ueNodes.Get(0)->GetObject<ConstantVelocityMobilityModel>()->SetVelocity(Vector(0, 0, 0));
-    // ueNodes.Get(1)->GetObject<MobilityModel>()->SetPosition(
+    // ueNodes.Get (0)->GetObject<MobilityModel> ()->SetPosition (Vector (ueInitialPosition,
+    // -5, 1.6)); ueNodes.Get(0)->GetObject<ConstantVelocityMobilityModel>()->SetVelocity(Vector(0,
+    // 0, 0)); ueNodes.Get(1)->GetObject<MobilityModel>()->SetPosition(
     //     Vector(60, 70, 1.6));
     // ueNodes.Get(1)->GetObject<ConstantVelocityMobilityModel>()->SetVelocity(Vector(0, 0, 0));
     // Install mmWave, lte, mc Devices to the nodes
@@ -848,7 +854,6 @@ main(int argc, char* argv[])
     UeCfApplicationHelper ueCfAppHelper;
     clientApps.Add(ueCfAppHelper.Install(ueNodes));
 
-
     // Start applications
     NS_LOG_UNCOND("transientDuration " << transientDuration << " simTime " << simTime);
     serverApps.Start(Seconds(transientDuration));
@@ -859,14 +864,27 @@ main(int argc, char* argv[])
                         &ChangeSpeed,
                         ueNodes.Get(0),
                         Vector(0, 0, 0)); // start UE movement after Seconds(0.5)
-                        // Vector(ueSpeed, 0, 0)); // start UE movement after Seconds(0.5)
+    // Vector(ueSpeed, 0, 0)); // start UE movement after Seconds(0.5)
     Simulator::Schedule(Seconds(simTime - 1),
                         &ChangeSpeed,
                         ueNodes.Get(0),
                         Vector(0, 0, 0)); // start UE movement after Seconds(0.5)
     // Hasty test
-    Ptr<CfApplication> cfApp = DynamicCast<CfApplication> (serverApps.Get(0));
-    Simulator::Schedule(Seconds(transientDuration + 2), &CfApplication::MigrateUeService, cfApp, 1, 3);
+    // Ptr<CfApplication> cfApp = DynamicCast<CfApplication> (serverApps.Get(0));
+    // Simulator::Schedule(Seconds(transientDuration + 2), &CfApplication::MigrateUeService, cfApp,
+    // 1, 3);
+    Simulator::Schedule(Seconds(1.5),
+                        &LteEnbRrc::PerformHandoverToTargetCell,
+                        DynamicCast<LteEnbNetDevice>(lteEnbDevs.Get(0))->GetRrc(),
+                        1,
+                        3);
+
+    Simulator::Schedule(Seconds(2.5),
+                        &LteEnbRrc::PerformHandoverToTargetCell,
+                        DynamicCast<LteEnbNetDevice>(lteEnbDevs.Get(0))->GetRrc(),
+                        1,
+                        2);
+                        
     double numPrints = 0;
     for (int i = 0; i < numPrints; i++)
     {
