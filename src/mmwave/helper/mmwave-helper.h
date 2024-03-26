@@ -398,6 +398,15 @@ class MmWaveHelper : public Object
     // void EnableMcTraces (void);
     Ptr<McStatsCalculator> GetMcStats(void);
 
+    /**
+     * The `E2Mode` attribute. If true, enable E2 interface
+     */
+    bool m_e2mode_nr;
+    bool m_e2mode_lte;
+    std::string m_e2ip;
+    uint16_t m_e2port;
+    uint16_t m_e2localPort;
+    
     std::map<uint8_t, Ptr<SpectrumChannel>> m_channel; // mmWave TDD channel
     Ptr<SpectrumChannel> m_downlinkChannel; /// The downlink LTE channel used in the simulation.
     Ptr<SpectrumChannel> m_uplinkChannel;   /// The uplink LTE channel used in the simulation.

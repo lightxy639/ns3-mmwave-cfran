@@ -50,12 +50,13 @@
 #include <ns3/lte-spectrum-phy.h>
 #include <ns3/lte-ue-component-carrier-manager.h>
 #include <ns3/mmwave-beamforming-model.h>
-#include <ns3/mmwave-net-device.h>
 #include <ns3/mmwave-lte-rrc-protocol-real.h>
+#include <ns3/mmwave-net-device.h>
 #include <ns3/mmwave-propagation-loss-model.h>
 #include <ns3/mmwave-rrc-protocol-ideal.h>
 #include <ns3/multi-model-spectrum-channel.h>
 #include <ns3/object-map.h>
+#include <ns3/oran-interface-helper.h>
 #include <ns3/pointer.h>
 #include <ns3/string.h>
 #include <ns3/three-gpp-propagation-loss-model.h>
@@ -268,7 +269,38 @@ MmWaveHelper::GetTypeId(void)
                           "If it is more than one and m_lteUseCa is false, it will raise an error ",
                           UintegerValue(1),
                           MakeUintegerAccessor(&MmWaveHelper::m_noOfLteCcs),
-                          MakeUintegerChecker<uint16_t>(MIN_NO_CC, MAX_NO_CC));
+                          MakeUintegerChecker<uint16_t>(MIN_NO_CC, MAX_NO_CC))
+    .AddAttribute ("E2Termination",
+                   "The E2 termination object associated to this node",
+                   PointerValue (),
+                   MakePointerAccessor (&MmWaveEnbNetDevice::SetE2Termination,
+                                                &MmWaveEnbNetDevice::GetE2Termination),
+                   MakePointerChecker <E2Termination> ())
+            .AddAttribute("E2ModeNr",
+                          "If true, enable reporting over E2 for NR cells.",
+                          BooleanValue(false),
+                          MakeBooleanAccessor(&MmWaveHelper::m_e2mode_nr),
+                          MakeBooleanChecker())
+            .AddAttribute("E2ModeLte",
+                          "If true, enable reporting over E2 for LTE cells.",
+                          BooleanValue(true),
+                          MakeBooleanAccessor(&MmWaveHelper::m_e2mode_lte),
+                          MakeBooleanChecker())
+            .AddAttribute("E2TermIp",
+                          "The IP address of the RIC E2 termination",
+                          StringValue("10.244.0.240"),
+                          MakeStringAccessor(&MmWaveHelper::m_e2ip),
+                          MakeStringChecker())
+            .AddAttribute("E2Port",
+                          "Port number for E2",
+                          UintegerValue(36422),
+                          MakeUintegerAccessor(&MmWaveHelper::m_e2port),
+                          MakeUintegerChecker<uint16_t>())
+            .AddAttribute("E2LocalPort",
+                          "The first port number for the local bind",
+                          UintegerValue(38470),
+                          MakeUintegerAccessor(&MmWaveHelper::m_e2localPort),
+                          MakeUintegerChecker<uint16_t>());
 
     return tid;
 }
@@ -2129,6 +2161,28 @@ MmWaveHelper::InstallSingleEnbDevice(Ptr<Node> n)
             }
     }*/
 
+    if (m_e2mode_nr)
+    {
+        const uint16_t local_port = m_e2localPort + (uint16_t)cellId;
+        const std::string gnb_id{std::to_string(cellId)};
+
+        std::string plmnId = "111";
+
+        NS_LOG_INFO("cell_id " << gnb_id);
+        Ptr<E2Termination> e2term =
+            CreateObject<E2Termination>(m_e2ip, m_e2port, local_port, gnb_id, plmnId);
+
+        device->SetAttribute("E2Termination", PointerValue(e2term));
+
+        // EnableE2PdcpTraces();
+        // EnableE2RlcTraces();
+        // device->SetAttribute("E2PdcpCalculator", PointerValue(m_e2PdcpStats));
+        // device->SetAttribute("E2RlcCalculator", PointerValue(m_e2RlcStats));
+        // device->SetAttribute("E2DuCalculator", PointerValue(m_phyStats));
+
+        // device->SetAttribute("McPdcpFrameCalculator", PointerValue(m_mcPdcpFrameStats));
+    }
+
     device->Initialize();
     n->AddDevice(device);
 
@@ -2418,6 +2472,25 @@ MmWaveHelper::InstallSingleLteEnbDevice(Ptr<Node> n)
         }
     } // end for
     rrc->SetForwardUpCallback(MakeCallback(&LteEnbNetDevice::Receive, dev));
+
+    if (m_e2mode_lte)
+    {
+        const uint16_t local_port = m_e2localPort + (uint16_t)cellId;
+        const std::string enb_id{std::to_string(cellId)};
+        std::string plmnId = "111";
+
+        NS_LOG_INFO("enb_id " << enb_id);
+        Ptr<E2Termination> e2term =
+            CreateObject<E2Termination> (m_e2ip, m_e2port, local_port, enb_id, plmnId);
+
+        dev->SetAttribute("E2Termination", PointerValue(e2term));
+
+        // EnableE2PdcpTraces();
+        // EnableE2RlcTraces();
+        // dev->SetAttribute("E2PdcpCalculator", PointerValue(m_e2PdcpStatsLte));
+        // dev->SetAttribute("E2RlcCalculator", PointerValue(m_e2RlcStatsLte));
+    }
+
     dev->Initialize();
     n->AddDevice(dev);
 

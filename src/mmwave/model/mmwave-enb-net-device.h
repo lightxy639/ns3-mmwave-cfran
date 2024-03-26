@@ -42,6 +42,7 @@
 #include "ns3/nstime.h"
 #include "ns3/traced-callback.h"
 #include <ns3/lte-enb-rrc.h>
+#include <ns3/oran-interface.h>
 
 #include <map>
 #include <vector>
@@ -91,6 +92,12 @@ class MmWaveEnbNetDevice : public MmWaveNetDevice
 
     Ptr<LteEnbRrc> GetRrc(void);
 
+    void SetE2Termination(Ptr<E2Termination> e2term);
+
+    Ptr<E2Termination> GetE2Termination() const;
+
+    void KpmSubscriptionCallback(E2AP_PDU_t* sub_req_pdu);
+    
     void SetCcMap(std::map<uint8_t, Ptr<MmWaveComponentCarrier>> ccm) override;
 
   protected:
@@ -110,6 +117,8 @@ class MmWaveEnbNetDevice : public MmWaveNetDevice
         m_componentCarrierManager; ///< the component carrier manager of this eNb
 
     bool m_isConfigured;
+
+    Ptr<E2Termination> m_e2term;
 };
 } // namespace mmwave
 } // namespace ns3

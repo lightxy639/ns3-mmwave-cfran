@@ -37,12 +37,14 @@
 #include <ns3/abort.h>
 #include <ns3/callback.h>
 #include <ns3/enum.h>
+#include <ns3/epc-x2.h>
 #include <ns3/ipv4-l3-protocol.h>
 #include <ns3/ipv6-l3-protocol.h>
 #include <ns3/llc-snap-header.h>
 #include <ns3/log.h>
 #include <ns3/lte-enb-component-carrier-manager.h>
 #include <ns3/lte-enb-rrc.h>
+#include <ns3/lte-pdcp-tag.h>
 #include <ns3/mmwave-component-carrier-enb.h>
 #include <ns3/node.h>
 #include <ns3/packet-burst.h>
@@ -51,9 +53,6 @@
 #include <ns3/simulator.h>
 #include <ns3/trace-source-accessor.h>
 #include <ns3/uinteger.h>
-
-#include <ns3/epc-x2.h>
-#include <ns3/lte-pdcp-tag.h>
 
 namespace ns3
 {
@@ -86,7 +85,13 @@ MmWaveEnbNetDevice::GetTypeId()
                           "Cell Identifier",
                           UintegerValue(0),
                           MakeUintegerAccessor(&MmWaveEnbNetDevice::m_cellId),
-                          MakeUintegerChecker<uint16_t>());
+                          MakeUintegerChecker<uint16_t>())
+            .AddAttribute("E2Termination",
+                          "The E2 termination object associated to this node",
+                          PointerValue(),
+                          MakePointerAccessor(&MmWaveEnbNetDevice::SetE2Termination,
+                                              &MmWaveEnbNetDevice::GetE2Termination),
+                          MakePointerChecker<E2Termination>());
     return tid;
 }
 
@@ -211,6 +216,54 @@ MmWaveEnbNetDevice::GetRrc(void)
     return m_rrc;
 }
 
+Ptr<E2Termination>
+MmWaveEnbNetDevice::GetE2Termination() const
+{
+    return m_e2term;
+}
+
+void
+MmWaveEnbNetDevice::SetE2Termination(Ptr<E2Termination> e2term)
+{
+    m_e2term = e2term;
+
+    NS_LOG_DEBUG("Register E2SM");
+
+    if (!m_forceE2FileLogging)
+    {
+        Ptr<KpmFunctionDescription> kpmFd = Create<KpmFunctionDescription>();
+        e2term->RegisterKpmCallbackToE2Sm(
+            200,
+            kpmFd,
+            std::bind(&MmWaveEnbNetDevice::KpmSubscriptionCallback, this, std::placeholders::_1));
+    }
+}
+
+/**
+ * KPM Subscription Request callback.
+ * This function is triggered whenever a RIC Subscription Request for
+ * the KPM RAN Function is received.
+ *
+ * \param pdu request message
+ */
+void
+MmWaveEnbNetDevice::KpmSubscriptionCallback(E2AP_PDU_t* sub_req_pdu)
+{
+    NS_LOG_DEBUG("\nReceived RIC Subscription Request, cellId= " << m_cellId << "\n");
+
+    E2Termination::RicSubscriptionRequest_rval_s params =
+        m_e2term->ProcessRicSubscriptionRequest(sub_req_pdu);
+    NS_LOG_DEBUG("requestorId " << +params.requestorId << ", instanceId " << +params.instanceId
+                                << ", ranFuncionId " << +params.ranFuncionId << ", actionId "
+                                << +params.actionId);
+
+    if (!m_isReportingEnabled)
+    {
+        BuildAndSendReportMessage(params);
+        m_isReportingEnabled = true;
+    }
+}
+
 bool
 MmWaveEnbNetDevice::DoSend(Ptr<Packet> packet, const Address& dest, uint16_t protocolNumber)
 {
@@ -219,15 +272,14 @@ MmWaveEnbNetDevice::DoSend(Ptr<Packet> packet, const Address& dest, uint16_t pro
                         protocolNumber != Ipv6L3Protocol::PROT_NUMBER,
                     "unsupported protocol " << protocolNumber << ", only IPv4/IPv6 is supported");
     return m_rrc->SendData(packet);
-        // EpcX2SapUser::UeDataParams params;
+    // EpcX2SapUser::UeDataParams params;
 
-        // params.gtpTeid = 1;
-        // params.ueData = packet;
-        // PdcpTag pdcpTag(Simulator::Now());
+    // params.gtpTeid = 1;
+    // params.ueData = packet;
+    // PdcpTag pdcpTag(Simulator::Now());
 
-        // params.ueData->AddByteTag(pdcpTag);
-        // this->GetNode()->GetObject<EpcX2>()->GetX2RlcUserMap().find(1)->second->SendMcPdcpSdu(params);
-    
+    // params.ueData->AddByteTag(pdcpTag);
+    // this->GetNode()->GetObject<EpcX2>()->GetX2RlcUserMap().find(1)->second->SendMcPdcpSdu(params);
 }
 
 void

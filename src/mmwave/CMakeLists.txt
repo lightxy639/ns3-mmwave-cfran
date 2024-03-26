@@ -156,5 +156,6 @@ build_lib(
     ${libinternet}
     ${liblte}
     ${libpropagation}
+    ${liboran-interface}
   TEST_SOURCES ${test_sources}
 )
