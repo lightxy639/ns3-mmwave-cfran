@@ -276,9 +276,23 @@ E2Termination::ProcessRicSubscriptionRequest (E2AP_PDU_t* sub_req_pdu)
   reqParams.instanceId = reqInstanceId;
   reqParams.ranFuncionId = ranFuncionId;
   reqParams.actionId = reqActionId;
+
+  m_subscriptionPara = reqParams;
+  m_receivedSubscriptionReq = true;
   return reqParams;
 }
 
+E2Termination::RicSubscriptionRequest_rval_s
+E2Termination::GetSubscriptionPara()
+{
+  return m_subscriptionPara;
+}
+
+bool
+E2Termination::GetSubscriptionState()
+{
+  return m_receivedSubscriptionReq;
+}
 void
 E2Termination::SendE2Message (E2AP_PDU* pdu)
 {

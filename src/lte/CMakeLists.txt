@@ -1,3 +1,8 @@
+# include_directories(/usr/local/include/e2sim) # CXXFLAGS -I counterpart
+# # add_definitions(-DLAPACK -DLUSOLVER=LAPACK) # CXXDEFINES counterpart
+# link_directories(/usr/local/lib) # LINKFLAGS -L counterpart
+# link_libraries(e2sim) # LINKFLAGS -l or LIB counterpart
+
 set(emu_sources)
 set(emu_headers)
 set(emu_features)
@@ -370,6 +375,7 @@ build_lib(
     ${libinternet}
     ${libcsma}
     ${libconfig-store}
+    ${liboran-interface}
   TEST_SOURCES ${test_sources}
   MODULE_ENABLED_FEATURES ${emu_features}
 )

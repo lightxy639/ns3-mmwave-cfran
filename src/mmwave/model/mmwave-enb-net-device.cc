@@ -229,14 +229,21 @@ MmWaveEnbNetDevice::SetE2Termination(Ptr<E2Termination> e2term)
 
     NS_LOG_DEBUG("Register E2SM");
 
-    if (!m_forceE2FileLogging)
-    {
-        Ptr<KpmFunctionDescription> kpmFd = Create<KpmFunctionDescription>();
-        e2term->RegisterKpmCallbackToE2Sm(
-            200,
-            kpmFd,
-            std::bind(&MmWaveEnbNetDevice::KpmSubscriptionCallback, this, std::placeholders::_1));
-    }
+    Ptr<KpmFunctionDescription> kpmFd = Create<KpmFunctionDescription>();
+    e2term->RegisterKpmCallbackToE2Sm(
+        200,
+        kpmFd,
+        std::bind(&MmWaveEnbNetDevice::KpmSubscriptionCallback, this, std::placeholders::_1));
+        
+    // if (!m_forceE2FileLogging)
+    // {
+    //     Ptr<KpmFunctionDescription> kpmFd = Create<KpmFunctionDescription>();
+    //     e2term->RegisterKpmCallbackToE2Sm(
+    //         200,
+    //         kpmFd,
+    //         std::bind(&MmWaveEnbNetDevice::KpmSubscriptionCallback, this,
+    //         std::placeholders::_1));
+    // }
 }
 
 /**
@@ -257,11 +264,11 @@ MmWaveEnbNetDevice::KpmSubscriptionCallback(E2AP_PDU_t* sub_req_pdu)
                                 << ", ranFuncionId " << +params.ranFuncionId << ", actionId "
                                 << +params.actionId);
 
-    if (!m_isReportingEnabled)
-    {
-        BuildAndSendReportMessage(params);
-        m_isReportingEnabled = true;
-    }
+    // if (!m_isReportingEnabled)
+    // {
+    //     BuildAndSendReportMessage(params);
+    //     m_isReportingEnabled = true;
+    // }
 }
 
 bool

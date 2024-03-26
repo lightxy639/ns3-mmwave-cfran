@@ -1,3 +1,5 @@
+include_directories(/usr/local/include/e2sim) # CXXFLAGS -I counterpart
+
 set(source_files
     helper/mmwave-helper.cc
     helper/mmwave-phy-trace.cc

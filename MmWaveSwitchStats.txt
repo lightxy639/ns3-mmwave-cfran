@@ -1,6 +1,1 @@
 SwitchToMmWave 0.0462679 1 2 1 
-SwitchToMmWave 1.502 1 3 1 
-SwitchToMmWave 1.50277 1 3 1 
-SwitchToMmWave 2.502 1 2 2 
-SwitchToMmWave 2.50277 1 2 2 
-SwitchToMmWave 2.50277 1 2 2 

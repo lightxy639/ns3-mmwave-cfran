@@ -114,6 +114,10 @@ namespace ns3 {
         uint8_t actionId; //!< RIC Action ID
       }; 
 
+      RicSubscriptionRequest_rval_s GetSubscriptionPara();
+
+      bool GetSubscriptionState();
+
       /**
       * Process RIC Subscription Request.
       * This function processes the RIC Subscription Request and sends the 
@@ -155,6 +159,9 @@ namespace ns3 {
       uint16_t m_clientPort; //!< local bind port
       std::string m_gnbId; //!< GNB id
       std::string m_plmnId; //!< PLMN Id
+
+      bool m_receivedSubscriptionReq;
+      RicSubscriptionRequest_rval_s m_subscriptionPara;
   };
 }
 

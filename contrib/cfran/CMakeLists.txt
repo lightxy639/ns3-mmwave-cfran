@@ -1,3 +1,8 @@
+include_directories(/usr/local/include/e2sim) # CXXFLAGS -I counterpart
+# add_definitions(-DLAPACK -DLUSOLVER=LAPACK) # CXXDEFINES counterpart
+link_directories(/usr/local/lib) # LINKFLAGS -L counterpart
+link_libraries(e2sim) # LINKFLAGS -l or LIB counterpart
+
 check_include_file_cxx(stdint.h HAVE_STDINT_H)
 if(HAVE_STDINT_H)
     add_definitions(-DHAVE_STDINT_H)
@@ -65,7 +70,7 @@ build_lib(
     LIBNAME cfran
     SOURCE_FILES ${source_files}
     HEADER_FILES ${header_files}
-    LIBRARIES_TO_LINK ${libmmwave}
+    LIBRARIES_TO_LINK ${libmmwave} ${liboran-interface}
     TEST_SOURCES test/cfran-test-suite.cc
                  ${examples_as_tests_sources}
 )

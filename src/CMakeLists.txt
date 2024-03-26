@@ -1,5 +1,10 @@
 set(libs "${libs_to_build}")
 
+include_directories(/usr/local/include/e2sim) # CXXFLAGS -I counterpart
+# add_definitions(-DLAPACK -DLUSOLVER=LAPACK) # CXXDEFINES counterpart
+link_directories(/usr/local/lib) # LINKFLAGS -L counterpart
+link_libraries(e2sim) # LINKFLAGS -l or LIB counterpart
+
 # Process the visualizer module first if enabled
 if(visualizer IN_LIST libs)
   if(${ENABLE_VISUALIZER})

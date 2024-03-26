@@ -30,6 +30,7 @@
 #include "ns3/lte-phy.h"
 #include "ns3/mac48-address.h"
 #include "ns3/nstime.h"
+#include "ns3/oran-interface.h"
 #include "ns3/traced-callback.h"
 
 #include <map>
@@ -216,6 +217,12 @@ class LteEnbNetDevice : public LteNetDevice
 
     std::map<uint8_t, Ptr<ComponentCarrierEnb>> GetCcMap(void);
 
+    void SetE2Termination(Ptr<E2Termination> e2term);
+
+    Ptr<E2Termination> GetE2Termination() const;
+
+    void KpmSubscriptionCallback(E2AP_PDU_t* sub_req_pdu);
+
   protected:
     // inherited from Object
     virtual void DoInitialize(void);
@@ -264,6 +271,8 @@ class LteEnbNetDevice : public LteNetDevice
 
     Ptr<LteEnbComponentCarrierManager>
         m_componentCarrierManager; ///< the component carrier manager of this eNb
+
+    Ptr<E2Termination> m_e2term;
 
 }; // end of class LteEnbNetDevice
 

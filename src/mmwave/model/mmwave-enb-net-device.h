@@ -42,7 +42,7 @@
 #include "ns3/nstime.h"
 #include "ns3/traced-callback.h"
 #include <ns3/lte-enb-rrc.h>
-#include <ns3/oran-interface.h>
+#include "ns3/oran-interface.h"
 
 #include <map>
 #include <vector>

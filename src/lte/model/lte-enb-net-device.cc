@@ -144,7 +144,13 @@ LteEnbNetDevice::GetTypeId(void)
                 BooleanValue(false),
                 MakeBooleanAccessor(&LteEnbNetDevice::SetCsgIndication,
                                     &LteEnbNetDevice::GetCsgIndication),
-                MakeBooleanChecker());
+                MakeBooleanChecker())
+            .AddAttribute("E2Termination",
+                          "The E2 termination object associated to this node",
+                          PointerValue(),
+                          MakePointerAccessor(&LteEnbNetDevice::SetE2Termination,
+                                              &LteEnbNetDevice::GetE2Termination),
+                          MakePointerChecker<E2Termination>());
     return tid;
 }
 
@@ -428,6 +434,55 @@ LteEnbNetDevice::UpdateConfig(void)
          * ``DoInitialize`` to re-invoke this function.
          */
     }
+}
+
+Ptr<E2Termination>
+LteEnbNetDevice::GetE2Termination() const
+{
+    return m_e2term;
+}
+
+void
+LteEnbNetDevice::SetE2Termination(Ptr<E2Termination> e2term)
+{
+    m_e2term = e2term;
+
+    NS_LOG_DEBUG("Register E2SM");
+
+    // if (!m_forceE2FileLogging)
+    // {
+    //     Ptr<KpmFunctionDescription> kpmFd = Create<KpmFunctionDescription>();
+    //     e2term->RegisterKpmCallbackToE2Sm(
+    //         200,
+    //         kpmFd,
+    //         std::bind(&LteEnbNetDevice::KpmSubscriptionCallback, this,
+    //         std::placeholders::_1));
+    // }
+}
+
+/**
+ * KPM Subscription Request callback.
+ * This function is triggered whenever a RIC Subscription Request for
+ * the KPM RAN Function is received.
+ *
+ * \param pdu request message
+ */
+void
+LteEnbNetDevice::KpmSubscriptionCallback(E2AP_PDU_t* sub_req_pdu)
+{
+    NS_LOG_DEBUG("\nReceived RIC Subscription Request, cellId= " << m_cellId << "\n");
+
+    E2Termination::RicSubscriptionRequest_rval_s params =
+        m_e2term->ProcessRicSubscriptionRequest(sub_req_pdu);
+    NS_LOG_DEBUG("requestorId " << +params.requestorId << ", instanceId " << +params.instanceId
+                                << ", ranFuncionId " << +params.ranFuncionId << ", actionId "
+                                << +params.actionId);
+
+    // if (!m_isReportingEnabled)
+    // {
+    //     BuildAndSendReportMessage(params);
+    //     m_isReportingEnabled = true;
+    // }
 }
 
 } // namespace ns3

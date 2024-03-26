@@ -13,6 +13,7 @@ build_lib(
     model/kpm-function-description.cc
     model/ric-control-message.cc
     model/ric-control-function-description.cc
+    model/cJSON.cc
     helper/oran-interface-helper.cc
     helper/indication-message-helper.cc
     helper/lte-indication-message-helper.cc
@@ -25,6 +26,7 @@ build_lib(
     model/kpm-function-description.h
     model/ric-control-message.h
     model/ric-control-function-description.h
+    model/cJSON.h
     helper/oran-interface-helper.h
     helper/indication-message-helper.h
     helper/lte-indication-message-helper.h
