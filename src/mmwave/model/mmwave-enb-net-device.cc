@@ -234,7 +234,7 @@ MmWaveEnbNetDevice::SetE2Termination(Ptr<E2Termination> e2term)
         200,
         kpmFd,
         std::bind(&MmWaveEnbNetDevice::KpmSubscriptionCallback, this, std::placeholders::_1));
-        
+
     // if (!m_forceE2FileLogging)
     // {
     //     Ptr<KpmFunctionDescription> kpmFd = Create<KpmFunctionDescription>();
@@ -318,6 +318,12 @@ MmWaveEnbNetDevice::UpdateConfig(void)
             }
 
             m_rrc->ConfigureCell(ccConfMap);
+
+            if (m_e2term != 0)
+            {
+                NS_LOG_DEBUG("E2sim start in cell " << m_cellId);
+                Simulator::Schedule(MicroSeconds(0), &E2Termination::Start, m_e2term);
+            }
             m_isConfigured = true;
         }
 

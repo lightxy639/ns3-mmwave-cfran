@@ -386,16 +386,22 @@ int
 main(int argc, char* argv[])
 {
     // LogComponentEnable("McTwoEnbs", LOG_DEBUG);
-    LogComponentEnable("CfApplication", LOG_INFO);
-    LogComponentEnable("CfApplication", LOG_PREFIX_ALL);
-    // LogComponentEnable("CfApplicationHelper", LOG_FUNCTION);
-    LogComponentEnable("UeCfApplication", LOG_INFO);
-    // LogComponentEnable("UeCfApplication", LOG_FUNCTION);
-    LogComponentEnable("UeCfApplication", LOG_PREFIX_ALL);
+    // LogComponentEnable("CfApplication", LOG_INFO);
+    // LogComponentEnable("CfApplication", LOG_PREFIX_ALL);
+    // // LogComponentEnable("CfApplicationHelper", LOG_FUNCTION);
+    // LogComponentEnable("UeCfApplication", LOG_INFO);
+    // // LogComponentEnable("UeCfApplication", LOG_FUNCTION);
+    // LogComponentEnable("UeCfApplication", LOG_PREFIX_ALL);
 
-    LogComponentEnable("LteEnbRrc", LOG_INFO);
-    LogComponentEnable("LteEnbRrc", LOG_DEBUG);
-    LogComponentEnable("LteEnbRrc", LOG_PREFIX_ALL);
+    // LogComponentEnable("LteEnbRrc", LOG_INFO);
+    // LogComponentEnable("LteEnbRrc", LOG_DEBUG);
+    // LogComponentEnable("LteEnbRrc", LOG_PREFIX_ALL);
+    LogComponentEnable("LteEnbNetDevice", LOG_INFO);
+    LogComponentEnable("LteEnbNetDevice", LOG_DEBUG);
+    LogComponentEnable("LteEnbNetDevice", LOG_PREFIX_ALL);
+    LogComponentEnable("MmWaveEnbNetDevice", LOG_INFO);
+    LogComponentEnable("MmWaveEnbNetDevice", LOG_DEBUG);
+    LogComponentEnable("MmWaveEnbNetDevice", LOG_PREFIX_ALL);
     // LogComponentEnable("MultiPacketManager", LOG_LEVEL_FUNCTION);
     // LogComponentEnable("MultiPacketManager", LOG_LEVEL_DEBUG);
     // LogComponentEnable("MultiPacketManager", LOG_PREFIX_ALL);
@@ -615,6 +621,9 @@ main(int argc, char* argv[])
     // is needed
     Config::SetDefault("ns3::PhasedArrayModel::AntennaElement",
                        PointerValue(CreateObject<IsotropicAntennaModel>()));
+
+    Config::SetDefault("ns3::MmWaveHelper::E2TermIp", StringValue("10.0.2.10"));
+
 
     Ptr<MmWaveHelper> mmwaveHelper = CreateObject<MmWaveHelper>();
     mmwaveHelper->SetPathlossModelType("ns3::ThreeGppUmiStreetCanyonPropagationLossModel");

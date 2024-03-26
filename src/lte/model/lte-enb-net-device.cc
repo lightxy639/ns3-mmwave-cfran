@@ -426,6 +426,12 @@ LteEnbNetDevice::UpdateConfig(void)
         NS_LOG_LOGIC(this << " Updating SIB1 of cell " << m_cellId << " with CSG ID " << m_csgId
                           << " and CSG indication " << m_csgIndication);
         m_rrc->SetCsgId(m_csgId, m_csgIndication);
+
+        if (m_e2term)
+        {
+            NS_LOG_DEBUG("E2sim start in cell " << m_cellId);
+            Simulator::Schedule(MicroSeconds(0), &E2Termination::Start, m_e2term);
+        }
     }
     else
     {
@@ -449,20 +455,19 @@ LteEnbNetDevice::SetE2Termination(Ptr<E2Termination> e2term)
 
     NS_LOG_DEBUG("Register E2SM");
 
+    Ptr<KpmFunctionDescription> kpmFd = Create<KpmFunctionDescription>();
+    e2term->RegisterKpmCallbackToE2Sm(
+        200,
+        kpmFd,
+        std::bind(&LteEnbNetDevice::KpmSubscriptionCallback, this, std::placeholders::_1));
     // if (!m_forceE2FileLogging)
     // {
-    //     Ptr<KpmFunctionDescription> kpmFd = Create<KpmFunctionDescription>();
-    //     e2term->RegisterKpmCallbackToE2Sm(
-    //         200,
-    //         kpmFd,
-    //         std::bind(&LteEnbNetDevice::KpmSubscriptionCallback, this,
-    //         std::placeholders::_1));
     // }
 }
 
 /**
  * KPM Subscription Request callback.
- * This function is triggered whenever a RIC Subscription Request for
+ * This function is triggerd whenever a RIC Subscription Request for
  * the KPM RAN Function is received.
  *
  * \param pdu request message

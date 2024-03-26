@@ -278,7 +278,7 @@ MmWaveHelper::GetTypeId(void)
                    MakePointerChecker <E2Termination> ())
             .AddAttribute("E2ModeNr",
                           "If true, enable reporting over E2 for NR cells.",
-                          BooleanValue(false),
+                          BooleanValue(true),
                           MakeBooleanAccessor(&MmWaveHelper::m_e2mode_nr),
                           MakeBooleanChecker())
             .AddAttribute("E2ModeLte",
