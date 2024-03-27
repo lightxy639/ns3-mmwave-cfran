@@ -40,9 +40,9 @@
 
 #include "ns3/event-id.h"
 #include "ns3/nstime.h"
+#include "ns3/oran-interface.h"
 #include "ns3/traced-callback.h"
 #include <ns3/lte-enb-rrc.h>
-#include "ns3/oran-interface.h"
 
 #include <map>
 #include <vector>
@@ -97,7 +97,13 @@ class MmWaveEnbNetDevice : public MmWaveNetDevice
     Ptr<E2Termination> GetE2Termination() const;
 
     void KpmSubscriptionCallback(E2AP_PDU_t* sub_req_pdu);
-    
+
+    void BuildAndSendReportMessage();
+
+    Ptr<KpmIndicationHeader> BuildRicIndicationHeader(std::string plmId,
+                                                      std::string gnbId,
+                                                      uint16_t nrCellId);
+
     void SetCcMap(std::map<uint8_t, Ptr<MmWaveComponentCarrier>> ccm) override;
 
   protected:

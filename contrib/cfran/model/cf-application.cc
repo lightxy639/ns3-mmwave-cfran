@@ -96,6 +96,18 @@ CfApplication::SetMmWaveEnbNetDevice(Ptr<mmwave::MmWaveEnbNetDevice> mmwaveEnbNe
     m_mmWaveEnbNetDevice = mmwaveEnbNetDev;
 }
 
+Ptr<E2Termination>
+CfApplication::GetE2Termination() const
+{
+    return m_e2term;
+}
+
+void
+CfApplication::SetE2Termination(Ptr<E2Termination> e2term)
+{
+    m_e2term = e2term;
+}
+
 void
 CfApplication::RecvTaskRequest()
 {
@@ -597,7 +609,7 @@ CfApplication::CompleteMigrationAtTarget(uint64_t ueId, uint64_t oldGnbId)
     m_cfUnit->AddNewUe(ueId);
     UpdateUeState(ueId, UeState::Serving);
 
-    //TODO not harmonious
+    // TODO not harmonious
     Ptr<Packet> migraDonePacket = Create<Packet>(500);
     CfX2Header migraCfX2Header;
     migraCfX2Header.SetMessageType(CfX2Header::MigrationDone);

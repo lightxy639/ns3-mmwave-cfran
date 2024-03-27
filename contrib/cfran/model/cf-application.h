@@ -7,6 +7,7 @@
 #include <ns3/epc-x2.h>
 #include <ns3/multi-packet-header.h>
 #include <ns3/multi-packet-manager.h>
+#include <ns3/oran-interface.h>
 #include <ns3/packet.h>
 #include <ns3/socket.h>
 #include <ns3/system-info.h>
@@ -74,6 +75,10 @@ class CfApplication : public Application
 
     void SetMmWaveEnbNetDevice(Ptr<mmwave::MmWaveEnbNetDevice> mmwaveEnbNetDev);
 
+    void SetE2Termination(Ptr<E2Termination> e2term);
+
+    Ptr<E2Termination> GetE2Termination() const;
+
     void InitX2Info();
 
     void RecvTaskRequest();
@@ -102,6 +107,8 @@ class CfApplication : public Application
     Ptr<CfranSystemInfo> m_cfranSystemInfo;
 
     Ptr<Socket> m_socket;
+
+    Ptr<E2Termination> m_e2term;
 
     uint16_t m_port;
 

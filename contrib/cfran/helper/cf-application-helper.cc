@@ -66,6 +66,11 @@ CfApplicationHelper::Install(NodeContainer c)
                 {
                     NS_FATAL_ERROR("No available cfunit on node.");
                 }
+
+                if (mmWaveEnbNetDev->GetE2Termination() != nullptr)
+                {
+                    DynamicCast<CfApplication>(app)->SetE2Termination(mmWaveEnbNetDev->GetE2Termination());
+                }
                 break;
             }
         }

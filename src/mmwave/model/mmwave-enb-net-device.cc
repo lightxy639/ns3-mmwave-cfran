@@ -31,10 +31,12 @@
 
 #include "mmwave-enb-net-device.h"
 
+#include "encode_e2apv1.hpp"
 #include "mmwave-net-device.h"
 #include "mmwave-ue-net-device.h"
 
 #include <ns3/abort.h>
+#include <ns3/cJSON.h>
 #include <ns3/callback.h>
 #include <ns3/enum.h>
 #include <ns3/epc-x2.h>
@@ -263,12 +265,75 @@ MmWaveEnbNetDevice::KpmSubscriptionCallback(E2AP_PDU_t* sub_req_pdu)
     NS_LOG_DEBUG("requestorId " << +params.requestorId << ", instanceId " << +params.instanceId
                                 << ", ranFuncionId " << +params.ranFuncionId << ", actionId "
                                 << +params.actionId);
-
+    BuildAndSendReportMessage();
     // if (!m_isReportingEnabled)
     // {
     //     BuildAndSendReportMessage(params);
     //     m_isReportingEnabled = true;
     // }
+}
+
+Ptr<KpmIndicationHeader>
+MmWaveEnbNetDevice::BuildRicIndicationHeader(std::string plmId,
+                                             std::string gnbId,
+                                             uint16_t nrCellId)
+{
+    KpmIndicationHeader::KpmRicIndicationHeaderValues headerValues;
+    headerValues.m_plmId = plmId;
+    headerValues.m_gnbId = gnbId;
+    headerValues.m_nrCellId = nrCellId;
+    auto time = Simulator::Now();
+    // uint64_t timestamp = m_startTime + (uint64_t)time.GetMilliSeconds();
+    uint64_t timestamp = (uint64_t)time.GetMilliSeconds();
+    NS_LOG_DEBUG("NR plmid " << plmId << " gnbId " << gnbId << " nrCellId " << nrCellId);
+    NS_LOG_DEBUG("Timestamp " << timestamp);
+    headerValues.m_timestamp = timestamp;
+
+    Ptr<KpmIndicationHeader> header =
+        Create<KpmIndicationHeader>(KpmIndicationHeader::GlobalE2nodeType::gNB, headerValues);
+
+    return header;
+}
+
+void
+MmWaveEnbNetDevice::BuildAndSendReportMessage()
+{
+    NS_LOG_FUNCTION(this);
+    std::string plmId = "111";
+    std::string gnbId = std::to_string(m_cellId);
+
+    cJSON* msg = cJSON_CreateObject();
+    cJSON_AddStringToObject(msg, "msgSource", "mmwaveEnbNetDev");
+    cJSON_AddNumberToObject(msg, "cellId", m_cellId);
+    std::string cellReportString = cJSON_PrintUnformatted(msg);
+
+    Ptr<KpmIndicationHeader> header = BuildRicIndicationHeader(plmId, gnbId, m_cellId);
+    NS_LOG_DEBUG("Send NR DU");
+    const char* vrReportingMsg = cellReportString.c_str();
+    NS_LOG_DEBUG("vrReportingMsg:\n" << vrReportingMsg);
+    // NS_LOG_DEBUG("SIZE: " << sizeof(vrReportingMsg));
+    std::cout << "The size of MmWaveEnbNetDevice vrReportingMsg is " << strlen(vrReportingMsg)
+              << std::endl;
+
+    E2AP_PDU* pdu_du_ue = new E2AP_PDU;
+    auto kpmPrams = m_e2term->GetSubscriptionPara();
+    encoding::generate_e2apv1_indication_request_parameterized(
+        pdu_du_ue,
+        kpmPrams.requestorId,
+        kpmPrams.instanceId,
+        kpmPrams.ranFuncionId,
+        kpmPrams.actionId,
+        1,                          // TODO sequence number
+        (uint8_t*)header->m_buffer, // buffer containing the encoded header
+        header->m_size,             // size of the encoded header
+        //  (uint8_t*) duMsg->m_buffer, // buffer containing the encoded message
+        (uint8_t*)(vrReportingMsg),
+        //  duMsg->m_size
+        strlen(vrReportingMsg)); // size of the encoded message
+    m_e2term->SendE2Message(pdu_du_ue);
+    delete pdu_du_ue;
+
+    Simulator::ScheduleWithContext(GetNode()->GetId(), MilliSeconds(500), &MmWaveEnbNetDevice::BuildAndSendReportMessage, this);
 }
 
 bool
@@ -319,7 +384,7 @@ MmWaveEnbNetDevice::UpdateConfig(void)
 
             m_rrc->ConfigureCell(ccConfMap);
 
-            if (m_e2term != 0)
+            if (m_e2term != nullptr)
             {
                 NS_LOG_DEBUG("E2sim start in cell " << m_cellId);
                 Simulator::Schedule(MicroSeconds(0), &E2Termination::Start, m_e2term);
