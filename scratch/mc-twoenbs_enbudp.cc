@@ -386,12 +386,12 @@ int
 main(int argc, char* argv[])
 {
     // LogComponentEnable("McTwoEnbs", LOG_DEBUG);
-    // LogComponentEnable("CfApplication", LOG_INFO);
-    // LogComponentEnable("CfApplication", LOG_PREFIX_ALL);
-    // // LogComponentEnable("CfApplicationHelper", LOG_FUNCTION);
-    // LogComponentEnable("UeCfApplication", LOG_INFO);
-    // // LogComponentEnable("UeCfApplication", LOG_FUNCTION);
-    // LogComponentEnable("UeCfApplication", LOG_PREFIX_ALL);
+    LogComponentEnable("CfApplication", LOG_INFO);
+    LogComponentEnable("CfApplication", LOG_PREFIX_ALL);
+    // LogComponentEnable("CfApplicationHelper", LOG_FUNCTION);
+    LogComponentEnable("UeCfApplication", LOG_INFO);
+    // LogComponentEnable("UeCfApplication", LOG_FUNCTION);
+    LogComponentEnable("UeCfApplication", LOG_PREFIX_ALL);
 
     // LogComponentEnable("LteEnbRrc", LOG_INFO);
     // LogComponentEnable("LteEnbRrc", LOG_DEBUG);
@@ -642,7 +642,6 @@ main(int argc, char* argv[])
     mmwaveHelper->SetEpcHelper(epcHelper);
     mmwaveHelper->SetHarqEnabled(harqEnabled);
     mmwaveHelper->Initialize();
-    mmwaveHelper->EnableTraces();
 
     ConfigStore inputConfig;
     inputConfig.ConfigureDefaults();
@@ -906,7 +905,7 @@ main(int argc, char* argv[])
 
     // Simulator::Schedule(Seconds(1), &TargetEnbTest);
 
-    // mmwaveHelper->EnableTraces();
+    mmwaveHelper->EnableTraces();
 
     // set to true if you want to print the map of buildings, ues and enbs
     bool print = false;

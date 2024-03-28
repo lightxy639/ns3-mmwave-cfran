@@ -342,6 +342,9 @@ MmWaveHelper::DoInitialize()
     MmWaveChannelModelInitialization(); // channel initialization
 
     m_phyStats = CreateObject<MmWavePhyTrace>();
+    m_rlcStats = CreateObject<MmWaveBearerStatsCalculator>("RLC");
+    m_pdcpStats = CreateObject<MmWaveBearerStatsCalculator>("PDCP");
+    m_mcStats = CreateObject<McStatsCalculator>();
     m_radioBearerStatsConnector = CreateObject<MmWaveBearerStatsConnector>();
     m_enbStats = CreateObject<MmWaveMacTrace>();
 
@@ -3131,9 +3134,9 @@ MmWaveHelper::EnableTransportBlockTrace()
 void
 MmWaveHelper::EnableRlcTraces(void)
 {
-    NS_ASSERT_MSG(!m_rlcStats,
-                  "please make sure that MmWaveHelper::EnableRlcTraces is called at most once");
-    m_rlcStats = CreateObject<MmWaveBearerStatsCalculator>("RLC");
+    // NS_ASSERT_MSG(!m_rlcStats,
+    //               "please make sure that MmWaveHelper::EnableRlcTraces is called at most once");
+    // m_rlcStats = CreateObject<MmWaveBearerStatsCalculator>("RLC");
     m_radioBearerStatsConnector->EnableRlcStats(m_rlcStats);
 }
 
@@ -3146,9 +3149,9 @@ MmWaveHelper::GetRlcStats(void)
 void
 MmWaveHelper::EnablePdcpTraces(void)
 {
-    NS_ASSERT_MSG(!m_pdcpStats,
-                  "please make sure that MmWaveHelper::EnablePdcpTraces is called at most once");
-    m_pdcpStats = CreateObject<MmWaveBearerStatsCalculator>("PDCP");
+    // NS_ASSERT_MSG(!m_pdcpStats,
+    //               "please make sure that MmWaveHelper::EnablePdcpTraces is called at most once");
+    // m_pdcpStats = CreateObject<MmWaveBearerStatsCalculator>("PDCP");
     m_radioBearerStatsConnector->EnablePdcpStats(m_pdcpStats);
 }
 
@@ -3161,9 +3164,9 @@ MmWaveHelper::GetPdcpStats(void)
 void
 MmWaveHelper::EnableMcTraces(void)
 {
-    NS_ASSERT_MSG(!m_mcStats,
-                  "please make sure that MmWaveHelper::EnableMcTraces is called at most once");
-    m_mcStats = CreateObject<McStatsCalculator>();
+    // NS_ASSERT_MSG(!m_mcStats,
+    //               "please make sure that MmWaveHelper::EnableMcTraces is called at most once");
+    // m_mcStats = CreateObject<McStatsCalculator>();
     m_radioBearerStatsConnector->EnableMcStats(m_mcStats);
 }
 
