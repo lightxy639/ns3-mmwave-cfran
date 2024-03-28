@@ -1576,6 +1576,13 @@ class LteEnbRrc : public Object
 
   public:
     /**
+     * Get the UE map
+     *
+     * \return the map of rnti and UeManager
+     */
+    std::map<uint16_t, Ptr<UeManager>> GetUeMap() const;
+    
+    /**
      * Add a neighbour with an X2 interface
      *
      * \param cellId neighbouring cell id

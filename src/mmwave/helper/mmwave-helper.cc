@@ -270,12 +270,12 @@ MmWaveHelper::GetTypeId(void)
                           UintegerValue(1),
                           MakeUintegerAccessor(&MmWaveHelper::m_noOfLteCcs),
                           MakeUintegerChecker<uint16_t>(MIN_NO_CC, MAX_NO_CC))
-    .AddAttribute ("E2Termination",
-                   "The E2 termination object associated to this node",
-                   PointerValue (),
-                   MakePointerAccessor (&MmWaveEnbNetDevice::SetE2Termination,
-                                                &MmWaveEnbNetDevice::GetE2Termination),
-                   MakePointerChecker <E2Termination> ())
+            .AddAttribute("E2Termination",
+                          "The E2 termination object associated to this node",
+                          PointerValue(),
+                          MakePointerAccessor(&MmWaveEnbNetDevice::SetE2Termination,
+                                              &MmWaveEnbNetDevice::GetE2Termination),
+                          MakePointerChecker<E2Termination>())
             .AddAttribute("E2ModeNr",
                           "If true, enable reporting over E2 for NR cells.",
                           BooleanValue(true),
@@ -2183,6 +2183,10 @@ MmWaveHelper::InstallSingleEnbDevice(Ptr<Node> n)
         // device->SetAttribute("McPdcpFrameCalculator", PointerValue(m_mcPdcpFrameStats));
     }
 
+    device->SetAttribute("PdcpCalculator", PointerValue(m_pdcpStats));
+    device->SetAttribute("RlcCalculator", PointerValue(m_rlcStats));
+    device->SetAttribute("DuCalculator", PointerValue(m_phyStats));
+
     device->Initialize();
     n->AddDevice(device);
 
@@ -2481,7 +2485,7 @@ MmWaveHelper::InstallSingleLteEnbDevice(Ptr<Node> n)
 
         NS_LOG_INFO("enb_id " << enb_id);
         Ptr<E2Termination> e2term =
-            CreateObject<E2Termination> (m_e2ip, m_e2port, local_port, enb_id, plmnId);
+            CreateObject<E2Termination>(m_e2ip, m_e2port, local_port, enb_id, plmnId);
 
         dev->SetAttribute("E2Termination", PointerValue(e2term));
 

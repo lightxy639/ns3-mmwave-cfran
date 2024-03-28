@@ -43,6 +43,8 @@
 #include "ns3/oran-interface.h"
 #include "ns3/traced-callback.h"
 #include <ns3/lte-enb-rrc.h>
+#include <ns3/mmwave-bearer-stats-calculator.h>
+#include <ns3/mmwave-phy-trace.h>
 
 #include <map>
 #include <vector>
@@ -125,6 +127,10 @@ class MmWaveEnbNetDevice : public MmWaveNetDevice
     bool m_isConfigured;
 
     Ptr<E2Termination> m_e2term;
+    std::string GetImsiString(uint64_t imsi);
+    Ptr<MmWaveBearerStatsCalculator> m_pdcpStatsCalculator;
+    Ptr<MmWaveBearerStatsCalculator> m_rlcStatsCalculator;
+    Ptr<MmWavePhyTrace> m_phyCalculator;
 };
 } // namespace mmwave
 } // namespace ns3

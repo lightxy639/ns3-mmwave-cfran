@@ -402,6 +402,9 @@ main(int argc, char* argv[])
     LogComponentEnable("MmWaveEnbNetDevice", LOG_INFO);
     LogComponentEnable("MmWaveEnbNetDevice", LOG_DEBUG);
     LogComponentEnable("MmWaveEnbNetDevice", LOG_PREFIX_ALL);
+    LogComponentEnable("MmWavePhyTrace", LOG_INFO);
+    LogComponentEnable("MmWavePhyTrace", LOG_DEBUG);
+    LogComponentEnable("MmWavePhyTrace", LOG_PREFIX_ALL);
     // LogComponentEnable("MultiPacketManager", LOG_LEVEL_FUNCTION);
     // LogComponentEnable("MultiPacketManager", LOG_LEVEL_DEBUG);
     // LogComponentEnable("MultiPacketManager", LOG_PREFIX_ALL);
@@ -639,6 +642,7 @@ main(int argc, char* argv[])
     mmwaveHelper->SetEpcHelper(epcHelper);
     mmwaveHelper->SetHarqEnabled(harqEnabled);
     mmwaveHelper->Initialize();
+    mmwaveHelper->EnableTraces();
 
     ConfigStore inputConfig;
     inputConfig.ConfigureDefaults();
@@ -902,7 +906,7 @@ main(int argc, char* argv[])
 
     // Simulator::Schedule(Seconds(1), &TargetEnbTest);
 
-    mmwaveHelper->EnableTraces();
+    // mmwaveHelper->EnableTraces();
 
     // set to true if you want to print the map of buildings, ues and enbs
     bool print = false;

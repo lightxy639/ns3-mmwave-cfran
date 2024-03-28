@@ -3541,6 +3541,12 @@ LteEnbRrc::GetLteEnbCphySapUser(uint8_t pos)
     return m_cphySapUser.at(pos);
 }
 
+std::map<uint16_t, Ptr<UeManager> >
+LteEnbRrc::GetUeMap() const
+{
+  return m_ueMap;
+}
+
 bool
 LteEnbRrc::HasUeManager(uint16_t rnti) const
 {

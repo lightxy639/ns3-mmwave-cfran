@@ -93,7 +93,22 @@ MmWaveEnbNetDevice::GetTypeId()
                           PointerValue(),
                           MakePointerAccessor(&MmWaveEnbNetDevice::SetE2Termination,
                                               &MmWaveEnbNetDevice::GetE2Termination),
-                          MakePointerChecker<E2Termination>());
+                          MakePointerChecker<E2Termination>())
+            .AddAttribute("RlcCalculator",
+                          "The RLC calculator object for reporting",
+                          PointerValue(),
+                          MakePointerAccessor(&MmWaveEnbNetDevice::m_rlcStatsCalculator),
+                          MakePointerChecker<MmWaveBearerStatsCalculator>())
+            .AddAttribute("DuCalculator",
+                          "The DU calculator object for reporting",
+                          PointerValue(),
+                          MakePointerAccessor(&MmWaveEnbNetDevice::m_phyCalculator),
+                          MakePointerChecker<MmWavePhyTrace>())
+            .AddAttribute("PdcpCalculator",
+                          "The PDCP calculator object for  reporting",
+                          PointerValue(),
+                          MakePointerAccessor(&MmWaveEnbNetDevice::m_pdcpStatsCalculator),
+                          MakePointerChecker<MmWaveBearerStatsCalculator>());
     return tid;
 }
 
@@ -295,6 +310,26 @@ MmWaveEnbNetDevice::BuildRicIndicationHeader(std::string plmId,
     return header;
 }
 
+std::string
+MmWaveEnbNetDevice::GetImsiString(uint64_t imsi)
+{
+    std::string ueImsi = std::to_string(imsi);
+    std::string ueImsiComplete{};
+    if (ueImsi.length() == 1)
+    {
+        ueImsiComplete = "0000" + ueImsi;
+    }
+    else if (ueImsi.length() == 2)
+    {
+        ueImsiComplete = "000" + ueImsi;
+    }
+    else
+    {
+        ueImsiComplete = "00" + ueImsi;
+    }
+    return ueImsiComplete;
+}
+
 void
 MmWaveEnbNetDevice::BuildAndSendReportMessage()
 {
@@ -305,6 +340,38 @@ MmWaveEnbNetDevice::BuildAndSendReportMessage()
     cJSON* msg = cJSON_CreateObject();
     cJSON_AddStringToObject(msg, "msgSource", "mmwaveEnbNetDev");
     cJSON_AddNumberToObject(msg, "cellId", m_cellId);
+
+    auto ueMap = m_rrc->GetUeMap();
+
+    uint32_t macPduCellSpecific = 0;
+    for (auto ue : ueMap)
+    {
+        uint64_t imsi = ue.second->GetImsi();
+        std::string ueImsiComplete = GetImsiString(imsi);
+        uint16_t rnti = ue.second->GetRnti();
+
+        uint32_t macPduUe = m_phyCalculator->GetMacPduUeSpecific(rnti, m_cellId);
+
+        macPduCellSpecific += macPduUe;
+
+        // Numerator = (Sum of number of symbols across all rows (TTIs) group by cell ID and UE ID
+        // within a given time window)
+        double macNumberOfSymbols =
+            m_phyCalculator->GetMacNumberOfSymbolsUeSpecific(rnti, m_cellId);
+
+        NS_LOG_DEBUG("UE " << imsi << " symbols " << +macNumberOfSymbols);
+
+        auto phyMac = GetMac()->GetConfigurationParameters();
+        // Denominator = (Periodicity of the report time window in ms*number of TTIs per ms*14)
+        Time reportingWindow = Simulator::Now() - m_phyCalculator->GetLastResetTime(rnti, m_cellId);
+        double denominatorPrb =
+            std::ceil(reportingWindow.GetNanoSeconds() / phyMac->GetSlotPeriod().GetNanoSeconds()) *
+            14;
+        m_phyCalculator->ResetPhyTracesForRntiCellId(rnti, m_cellId);
+        NS_LOG_DEBUG("macNumberOfSymbols " << macNumberOfSymbols << " denominatorPrb "
+                                           << denominatorPrb);
+    }
+
     std::string cellReportString = cJSON_PrintUnformatted(msg);
 
     Ptr<KpmIndicationHeader> header = BuildRicIndicationHeader(plmId, gnbId, m_cellId);
@@ -333,7 +400,10 @@ MmWaveEnbNetDevice::BuildAndSendReportMessage()
     m_e2term->SendE2Message(pdu_du_ue);
     delete pdu_du_ue;
 
-    Simulator::ScheduleWithContext(GetNode()->GetId(), MilliSeconds(500), &MmWaveEnbNetDevice::BuildAndSendReportMessage, this);
+    Simulator::ScheduleWithContext(GetNode()->GetId(),
+                                   MilliSeconds(500),
+                                   &MmWaveEnbNetDevice::BuildAndSendReportMessage,
+                                   this);
 }
 
 bool
