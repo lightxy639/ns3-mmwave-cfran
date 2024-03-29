@@ -99,10 +99,15 @@ MmWaveEnbNetDevice::GetTypeId()
                           PointerValue(),
                           MakePointerAccessor(&MmWaveEnbNetDevice::m_rlcStatsCalculator),
                           MakePointerChecker<MmWaveBearerStatsCalculator>())
-            .AddAttribute("DuCalculator",
+            .AddAttribute("UpLinkPhyCalculator",
                           "The DU calculator object for reporting",
                           PointerValue(),
-                          MakePointerAccessor(&MmWaveEnbNetDevice::m_phyCalculator),
+                          MakePointerAccessor(&MmWaveEnbNetDevice::m_upLinkPhyCalculator),
+                          MakePointerChecker<MmWavePhyTrace>())
+            .AddAttribute("DownLinkPhyCalculator",
+                          "The DU calculator object for reporting",
+                          PointerValue(),
+                          MakePointerAccessor(&MmWaveEnbNetDevice::m_downLinkPhyCalculator),
                           MakePointerChecker<MmWavePhyTrace>())
             .AddAttribute("PdcpCalculator",
                           "The PDCP calculator object for  reporting",
@@ -350,26 +355,56 @@ MmWaveEnbNetDevice::BuildAndSendReportMessage()
         std::string ueImsiComplete = GetImsiString(imsi);
         uint16_t rnti = ue.second->GetRnti();
 
-        uint32_t macPduUe = m_phyCalculator->GetMacPduUeSpecific(rnti, m_cellId);
+        uint32_t macPduUe = m_upLinkPhyCalculator->GetMacPduUeSpecific(rnti, m_cellId);
 
         macPduCellSpecific += macPduUe;
 
         // Numerator = (Sum of number of symbols across all rows (TTIs) group by cell ID and UE ID
         // within a given time window)
-        double macNumberOfSymbols =
-            m_phyCalculator->GetMacNumberOfSymbolsUeSpecific(rnti, m_cellId);
+        double macUplinkNumberOfSymbols =
+            m_upLinkPhyCalculator->GetMacNumberOfSymbolsUeSpecific(rnti, m_cellId);
+        double macDownlinkNumberOfSymbols =
+            m_downLinkPhyCalculator->GetMacNumberOfSymbolsUeSpecific(rnti, m_cellId);
 
-        NS_LOG_DEBUG("UE " << imsi << " symbols " << +macNumberOfSymbols);
+        NS_LOG_DEBUG("UE " << imsi << " uplink symbols " << +macUplinkNumberOfSymbols);
+        NS_LOG_DEBUG("UE " << imsi << " downlink symbols " << +macDownlinkNumberOfSymbols);
 
         auto phyMac = GetMac()->GetConfigurationParameters();
         // Denominator = (Periodicity of the report time window in ms*number of TTIs per ms*14)
-        Time reportingWindow = Simulator::Now() - m_phyCalculator->GetLastResetTime(rnti, m_cellId);
+        Time reportingWindow =
+            Simulator::Now() - m_upLinkPhyCalculator->GetLastResetTime(rnti, m_cellId);
         double denominatorPrb =
             std::ceil(reportingWindow.GetNanoSeconds() / phyMac->GetSlotPeriod().GetNanoSeconds()) *
             14;
-        m_phyCalculator->ResetPhyTracesForRntiCellId(rnti, m_cellId);
-        NS_LOG_DEBUG("macNumberOfSymbols " << macNumberOfSymbols << " denominatorPrb "
-                                           << denominatorPrb);
+        m_upLinkPhyCalculator->ResetPhyTracesForRntiCellId(rnti, m_cellId);
+        m_downLinkPhyCalculator->ResetPhyTracesForRntiCellId(rnti, m_cellId);
+        NS_LOG_DEBUG("macNumberOfSymbols " << macUplinkNumberOfSymbols + macDownlinkNumberOfSymbols
+                                           << " denominatorPrb " << denominatorPrb);
+
+        double uplinkRlcLatency = m_rlcStatsCalculator->GetUlDelay(imsi, 3) / 1e6;
+        double uplinkpduStats =
+            m_rlcStatsCalculator->GetUlRxData(imsi, 3) * 8.0 / 1e3; // unit kbit
+            // m_rlcStatsCalculator->GetUlPduSizeStats(imsi, 3)[0] * 8.0 / 1e3; // unit kbit
+        double uplinkRlcBitrate =
+            (uplinkRlcLatency == 0) ? 0 : uplinkpduStats / uplinkRlcLatency; // unit kbit/s
+        double uplinkThroughput = uplinkpduStats / 500;
+
+        double downlinkRlcLatency = m_rlcStatsCalculator->GetDlDelay(imsi, 3) / 1e6;
+        double downlinkpduStats =
+            m_rlcStatsCalculator->GetDlRxData(imsi, 3) * 8.0 / 1e3; // unit kbit
+        double downlinkRlcBitrate =
+            (downlinkRlcLatency == 0) ? 0 : downlinkpduStats / downlinkRlcLatency; // unit kbit/s
+        double downlinkThroughput = downlinkpduStats / 500;
+
+        // m_rlcStatsCalculator->ResetResultsForImsiLcid(imsi, 3);
+        NS_LOG_DEBUG("uplink RLC latency " << uplinkRlcLatency << "ms "
+                                           << " dataSize " << uplinkpduStats << "kbit "
+                                           << " dataRate " << uplinkRlcBitrate << "Mbps"
+                                           << " throughput " << uplinkThroughput << "Mbps");
+        NS_LOG_DEBUG("downlink RLC latency " << downlinkRlcLatency << "ms "
+                                             << " dataSize " << downlinkpduStats << "kbit "
+                                             << " dataRate " << downlinkRlcBitrate << "Mbps"
+                                             << " throughput " << downlinkThroughput << "Mbps");
     }
 
     std::string cellReportString = cJSON_PrintUnformatted(msg);

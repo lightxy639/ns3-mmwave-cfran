@@ -457,7 +457,8 @@ class MmWaveHelper : public Object
     uint64_t m_imsiCounter;
     uint16_t m_cellIdCounter;
 
-    Ptr<MmWavePhyTrace> m_phyStats;
+    Ptr<MmWavePhyTrace> m_upLinkPhyStats;
+    Ptr<MmWavePhyTrace> m_downLinkPhyStats;
     Ptr<MmWaveMacTrace> m_enbStats;
 
     ObjectFactory m_lteUeAntennaModelFactory;  /// Factory of antenna object for Lte UE.

@@ -462,6 +462,7 @@ MmWavePhyTrace::RxPacketTraceEnbCallback(Ptr<MmWavePhyTrace> phyStats,
                         << 10 * std::log10(params.m_sinr) << " \t" << params.m_corrupt << "\t"
                         << params.m_tbler << std::endl;
 
+    phyStats->UpdateTraces(params);
     if (params.m_corrupt)
     {
         NS_LOG_DEBUG("UL TB error\t"

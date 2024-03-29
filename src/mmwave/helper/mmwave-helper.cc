@@ -341,7 +341,8 @@ MmWaveHelper::DoInitialize()
 
     MmWaveChannelModelInitialization(); // channel initialization
 
-    m_phyStats = CreateObject<MmWavePhyTrace>();
+    m_upLinkPhyStats = CreateObject<MmWavePhyTrace>();
+    m_downLinkPhyStats = CreateObject<MmWavePhyTrace>();
     m_rlcStats = CreateObject<MmWaveBearerStatsCalculator>("RLC");
     m_pdcpStats = CreateObject<MmWaveBearerStatsCalculator>("PDCP");
     m_mcStats = CreateObject<McStatsCalculator>();
@@ -2188,7 +2189,8 @@ MmWaveHelper::InstallSingleEnbDevice(Ptr<Node> n)
 
     device->SetAttribute("PdcpCalculator", PointerValue(m_pdcpStats));
     device->SetAttribute("RlcCalculator", PointerValue(m_rlcStats));
-    device->SetAttribute("DuCalculator", PointerValue(m_phyStats));
+    device->SetAttribute("UpLinkPhyCalculator", PointerValue(m_upLinkPhyStats));
+    device->SetAttribute("DownLinkPhyCalculator", PointerValue(m_downLinkPhyStats));
 
     device->Initialize();
     n->AddDevice(device);
@@ -3094,18 +3096,18 @@ MmWaveHelper::EnableDlPhyTrace(void)
 
     Config::ConnectWithoutContextFailSafe(
         "/NodeList/*/DeviceList/*/ComponentCarrierMap/*/MmWaveEnbPhy/ReportDlPhyTransmission",
-        MakeBoundCallback(&MmWavePhyTrace::ReportDlPhyTransmissionCallback, m_phyStats));
+        MakeBoundCallback(&MmWavePhyTrace::ReportDlPhyTransmissionCallback, m_downLinkPhyStats));
 
     // regulare mmWave UE device
     Config::ConnectFailSafe(
         "/NodeList/*/DeviceList/*/ComponentCarrierMap/*/MmWaveUePhy/DlSpectrumPhy/RxPacketTraceUe",
-        MakeBoundCallback(&MmWavePhyTrace::RxPacketTraceUeCallback, m_phyStats));
+        MakeBoundCallback(&MmWavePhyTrace::RxPacketTraceUeCallback, m_downLinkPhyStats));
 
     // MC ue device
     Config::ConnectFailSafe(
         "/NodeList/*/DeviceList/*/MmWaveComponentCarrierMapUe/*/MmWaveUePhy/DlSpectrumPhy/"
         "RxPacketTraceUe",
-        MakeBoundCallback(&MmWavePhyTrace::RxPacketTraceUeCallback, m_phyStats));
+        MakeBoundCallback(&MmWavePhyTrace::RxPacketTraceUeCallback, m_downLinkPhyStats));
 }
 
 void
@@ -3114,12 +3116,12 @@ MmWaveHelper::EnableUlPhyTrace(void)
     NS_LOG_FUNCTION_NOARGS();
     Config::ConnectWithoutContextFailSafe(
         "/NodeList/*/DeviceList/*/ComponentCarrierMap/*/MmWaveUePhy/ReportUlPhyTransmission",
-        MakeBoundCallback(&MmWavePhyTrace::ReportUlPhyTransmissionCallback, m_phyStats));
+        MakeBoundCallback(&MmWavePhyTrace::ReportUlPhyTransmissionCallback, m_upLinkPhyStats));
 
     Config::ConnectFailSafe(
         "/NodeList/*/DeviceList/*/ComponentCarrierMap/*/MmWaveEnbPhy/DlSpectrumPhy/"
         "RxPacketTraceEnb",
-        MakeBoundCallback(&MmWavePhyTrace::RxPacketTraceEnbCallback, m_phyStats));
+        MakeBoundCallback(&MmWavePhyTrace::RxPacketTraceEnbCallback, m_upLinkPhyStats));
 }
 
 void
@@ -3128,7 +3130,7 @@ MmWaveHelper::EnableTransportBlockTrace()
     NS_LOG_FUNCTION_NOARGS();
     Config::ConnectFailSafe(
         "/NodeList/*/DeviceList/*/ComponentCarrierMapUe/*/MmWaveUePhy/ReportDownlinkTbSize",
-        MakeBoundCallback(&MmWavePhyTrace::ReportDownLinkTBSize, m_phyStats));
+        MakeBoundCallback(&MmWavePhyTrace::ReportDownLinkTBSize, m_downLinkPhyStats));
 }
 
 void

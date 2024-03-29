@@ -367,7 +367,7 @@ static ns3::GlobalValue g_noiseAndFilter(
     ns3::MakeBooleanChecker());
 static ns3::GlobalValue g_handoverMode("handoverMode",
                                        "Handover mode",
-                                       ns3::UintegerValue(4),
+                                       ns3::UintegerValue(2),
                                        ns3::MakeUintegerChecker<uint8_t>());
 static ns3::GlobalValue g_reportTablePeriodicity("reportTablePeriodicity",
                                                  "Periodicity of RTs",
@@ -386,12 +386,12 @@ int
 main(int argc, char* argv[])
 {
     // LogComponentEnable("McTwoEnbs", LOG_DEBUG);
-    LogComponentEnable("CfApplication", LOG_INFO);
-    LogComponentEnable("CfApplication", LOG_PREFIX_ALL);
+    // LogComponentEnable("CfApplication", LOG_INFO);
+    // LogComponentEnable("CfApplication", LOG_PREFIX_ALL);
     // LogComponentEnable("CfApplicationHelper", LOG_FUNCTION);
-    LogComponentEnable("UeCfApplication", LOG_INFO);
+    // LogComponentEnable("UeCfApplication", LOG_INFO);
     // LogComponentEnable("UeCfApplication", LOG_FUNCTION);
-    LogComponentEnable("UeCfApplication", LOG_PREFIX_ALL);
+    // LogComponentEnable("UeCfApplication", LOG_PREFIX_ALL);
 
     // LogComponentEnable("LteEnbRrc", LOG_INFO);
     // LogComponentEnable("LteEnbRrc", LOG_DEBUG);
@@ -402,9 +402,9 @@ main(int argc, char* argv[])
     LogComponentEnable("MmWaveEnbNetDevice", LOG_INFO);
     LogComponentEnable("MmWaveEnbNetDevice", LOG_DEBUG);
     LogComponentEnable("MmWaveEnbNetDevice", LOG_PREFIX_ALL);
-    LogComponentEnable("MmWavePhyTrace", LOG_INFO);
-    LogComponentEnable("MmWavePhyTrace", LOG_DEBUG);
-    LogComponentEnable("MmWavePhyTrace", LOG_PREFIX_ALL);
+    // LogComponentEnable("MmWaveBearerStatsCalculator", LOG_FUNCTION);
+    // LogComponentEnable("MmWaveBearerStatsCalculator", LOG_DEBUG);
+    // LogComponentEnable("MmWaveBearerStatsCalculator", LOG_PREFIX_ALL);
     // LogComponentEnable("MultiPacketManager", LOG_LEVEL_FUNCTION);
     // LogComponentEnable("MultiPacketManager", LOG_LEVEL_DEBUG);
     // LogComponentEnable("MultiPacketManager", LOG_PREFIX_ALL);
@@ -885,17 +885,17 @@ main(int argc, char* argv[])
     // Ptr<CfApplication> cfApp = DynamicCast<CfApplication> (serverApps.Get(0));
     // Simulator::Schedule(Seconds(transientDuration + 2), &CfApplication::MigrateUeService, cfApp,
     // 1, 3);
-    Simulator::Schedule(Seconds(1.5),
-                        &LteEnbRrc::PerformHandoverToTargetCell,
-                        DynamicCast<LteEnbNetDevice>(lteEnbDevs.Get(0))->GetRrc(),
-                        1,
-                        3);
+    // Simulator::Schedule(Seconds(1.5),
+    //                     &LteEnbRrc::PerformHandoverToTargetCell,
+    //                     DynamicCast<LteEnbNetDevice>(lteEnbDevs.Get(0))->GetRrc(),
+    //                     1,
+    //                     3);
 
-    Simulator::Schedule(Seconds(2.5),
-                        &LteEnbRrc::PerformHandoverToTargetCell,
-                        DynamicCast<LteEnbNetDevice>(lteEnbDevs.Get(0))->GetRrc(),
-                        1,
-                        2);
+    // Simulator::Schedule(Seconds(2.5),
+    //                     &LteEnbRrc::PerformHandoverToTargetCell,
+    //                     DynamicCast<LteEnbNetDevice>(lteEnbDevs.Get(0))->GetRrc(),
+    //                     1,
+    //                     2);
                         
     double numPrints = 0;
     for (int i = 0; i < numPrints; i++)

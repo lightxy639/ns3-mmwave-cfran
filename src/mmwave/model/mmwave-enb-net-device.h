@@ -130,7 +130,8 @@ class MmWaveEnbNetDevice : public MmWaveNetDevice
     std::string GetImsiString(uint64_t imsi);
     Ptr<MmWaveBearerStatsCalculator> m_pdcpStatsCalculator;
     Ptr<MmWaveBearerStatsCalculator> m_rlcStatsCalculator;
-    Ptr<MmWavePhyTrace> m_phyCalculator;
+    Ptr<MmWavePhyTrace> m_upLinkPhyCalculator;
+    Ptr<MmWavePhyTrace> m_downLinkPhyCalculator;
 };
 } // namespace mmwave
 } // namespace ns3
