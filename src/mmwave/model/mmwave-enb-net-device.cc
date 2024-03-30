@@ -381,28 +381,33 @@ MmWaveEnbNetDevice::BuildAndSendReportMessage()
         NS_LOG_DEBUG("macNumberOfSymbols " << macUplinkNumberOfSymbols + macDownlinkNumberOfSymbols
                                            << " denominatorPrb " << denominatorPrb);
 
+        double periodTime = (Simulator::Now() - m_rlcStatsCalculator->GetLastImsiLcidResetTime(imsi,3)).GetMilliSeconds();
         double uplinkRlcLatency = m_rlcStatsCalculator->GetUlDelay(imsi, 3) / 1e6;
         double uplinkpduStats =
-            m_rlcStatsCalculator->GetUlRxData(imsi, 3) * 8.0 / 1e3; // unit kbit
-            // m_rlcStatsCalculator->GetUlPduSizeStats(imsi, 3)[0] * 8.0 / 1e3; // unit kbit
+            // m_rlcStatsCalculator->GetUlRxData(imsi, 3) * 8.0 / 1e3; // unit kbit
+            m_rlcStatsCalculator->GetUlPduSizeStats(imsi, 3)[0] * 8.0 / 1e3; // unit kbit
+        double uplinkDataSize = m_rlcStatsCalculator->GetUlRxData(imsi, 3) * 8.0 / 1e3; // unit kbit
         double uplinkRlcBitrate =
             (uplinkRlcLatency == 0) ? 0 : uplinkpduStats / uplinkRlcLatency; // unit kbit/s
-        double uplinkThroughput = uplinkpduStats / 500;
+        double uplinkThroughput = uplinkDataSize / periodTime;
 
         double downlinkRlcLatency = m_rlcStatsCalculator->GetDlDelay(imsi, 3) / 1e6;
         double downlinkpduStats =
+            m_rlcStatsCalculator->GetDlPduSizeStats(imsi, 3)[0] * 8.0 / 1e3; // unit kbit
+        double downlinkDataSize =
             m_rlcStatsCalculator->GetDlRxData(imsi, 3) * 8.0 / 1e3; // unit kbit
         double downlinkRlcBitrate =
             (downlinkRlcLatency == 0) ? 0 : downlinkpduStats / downlinkRlcLatency; // unit kbit/s
-        double downlinkThroughput = downlinkpduStats / 500;
+        double downlinkThroughput = downlinkDataSize / periodTime;
 
-        // m_rlcStatsCalculator->ResetResultsForImsiLcid(imsi, 3);
+        m_rlcStatsCalculator->ResetResultsForImsiLcid(imsi, 3);
+        NS_LOG_DEBUG("Period Time: " << periodTime << "s");
         NS_LOG_DEBUG("uplink RLC latency " << uplinkRlcLatency << "ms "
-                                           << " dataSize " << uplinkpduStats << "kbit "
+                                           << " dataSize " << uplinkDataSize << "kbit "
                                            << " dataRate " << uplinkRlcBitrate << "Mbps"
                                            << " throughput " << uplinkThroughput << "Mbps");
         NS_LOG_DEBUG("downlink RLC latency " << downlinkRlcLatency << "ms "
-                                             << " dataSize " << downlinkpduStats << "kbit "
+                                             << " dataSize " << downlinkDataSize << "kbit "
                                              << " dataRate " << downlinkRlcBitrate << "Mbps"
                                              << " throughput " << downlinkThroughput << "Mbps");
     }

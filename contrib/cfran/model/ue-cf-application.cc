@@ -38,7 +38,7 @@ UeCfApplication::UeCfApplication()
       m_socket(0),
       m_minSize(1000),
       m_requestDataSize(50000),
-      m_uploadPacketSize(1200),
+      m_uploadPacketSize(1000),
       m_period(40)
 {
     NS_LOG_FUNCTION(this);
@@ -156,8 +156,11 @@ UeCfApplication::SendTaskRequest()
     }
 
     uint32_t packetNum = std::ceil(float(m_requestDataSize) / m_uploadPacketSize);
+    NS_LOG_UNCOND("m_requestDataSize: " << m_requestDataSize << " packetNum: " << packetNum);
     for (uint32_t n = 1; n <= packetNum; n++)
     {
+        // double packetInterval = 10; // us
+
         MultiPacketHeader mpHeader;
         mpHeader.SetPacketId(n);
         mpHeader.SetTotalpacketNum(packetNum);
@@ -171,12 +174,15 @@ UeCfApplication::SendTaskRequest()
         Ptr<Packet> p = Create<Packet>(m_minSize);
         p->AddHeader(mpHeader);
         p->AddHeader(cfRadioHeader);
+
+        // Simulator::Schedule(MicroSeconds((n-1) * packetInterval), &UeCfApplication::SendPacketToGnb, this, p);
         if (m_socket->Send(p) < 0)
         {
             NS_FATAL_ERROR("Error in sending task request.");
         }
     }
-    NS_LOG_INFO("UE " << m_ueId << " send task request " << m_taskId << " to cell " << m_offloadGnbId);
+    NS_LOG_INFO("UE " << m_ueId << " send task request " << m_taskId << " to cell "
+                      << m_offloadGnbId);
 
     m_taskId++;
     Simulator::Schedule(MilliSeconds(m_period), &UeCfApplication::SendTaskRequest, this);
@@ -223,11 +229,23 @@ UeCfApplication::RecvFromGnb(Ptr<Packet> p)
     }
     else if (cfRadioHeader.GetMessageType() == CfRadioHeader::TaskResult)
     {
-        NS_LOG_INFO("UE " << m_ueId << " Recv task result " << cfRadioHeader.GetTaskId() << " from gnb " << cfRadioHeader.GetGnbId());
+        NS_LOG_INFO("UE " << m_ueId << " Recv task result " << cfRadioHeader.GetTaskId()
+                          << " from gnb " << cfRadioHeader.GetGnbId());
     }
     else
     {
         NS_FATAL_ERROR("Unexecpted message type");
+    }
+}
+
+void
+UeCfApplication::SendPacketToGnb(Ptr<Packet> p)
+{
+    NS_LOG_FUNCTION(this);
+
+    if (m_socket->Send(p) < 0)
+    {
+        NS_FATAL_ERROR("Error in sending task request.");
     }
 }
 

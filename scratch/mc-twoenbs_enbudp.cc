@@ -563,8 +563,11 @@ main(int argc, char* argv[])
     Config::SetDefault("ns3::LteRlcUm::MaxTxBufferSize", UintegerValue(bufferSize * 1024 * 1024));
     Config::SetDefault("ns3::LteRlcUmLowLat::MaxTxBufferSize",
                        UintegerValue(bufferSize * 1024 * 1024));
-    Config::SetDefault("ns3::LteRlcAm::StatusProhibitTimer", TimeValue(MilliSeconds(10.0)));
+    // Config::SetDefault("ns3::LteRlcAm::StatusProhibitTimer", TimeValue(MilliSeconds(10.0)));
+    Config::SetDefault("ns3::LteRlcAm::StatusProhibitTimer", TimeValue(MilliSeconds(1)));
     Config::SetDefault("ns3::LteRlcAm::MaxTxBufferSize", UintegerValue(bufferSize * 1024 * 1024));
+
+    Config::SetDefault("ns3::MmWaveBearerStatsCalculator::ExternalReschedule", BooleanValue(false));
 
     // Config::SetDefault("ns3::PacketSink::RxWithAddresses", MakeCallback(&PacketSinkLog));
     // Config::Connect("ns3::PacketSink::RxWithAddresses", MakeCallback(&PacketSinkLog));
@@ -586,7 +589,7 @@ main(int argc, char* argv[])
         break;
     case 4:
         Config::SetDefault("ns3::LteEnbRrc::SecondaryCellHandoverMode",
-                            EnumValue(LteEnbRrc::NO_AUTO));
+                           EnumValue(LteEnbRrc::NO_AUTO));
     }
 
     Config::SetDefault("ns3::LteEnbRrc::FixedTttValue", UintegerValue(150));
@@ -626,7 +629,6 @@ main(int argc, char* argv[])
                        PointerValue(CreateObject<IsotropicAntennaModel>()));
 
     Config::SetDefault("ns3::MmWaveHelper::E2TermIp", StringValue("10.0.2.10"));
-
 
     Ptr<MmWaveHelper> mmwaveHelper = CreateObject<MmWaveHelper>();
     mmwaveHelper->SetPathlossModelType("ns3::ThreeGppUmiStreetCanyonPropagationLossModel");
@@ -737,12 +739,12 @@ main(int argc, char* argv[])
     uemobility.Install(ueNodes);
     BuildingsHelper::Install(ueNodes);
 
-    ueNodes.Get(0)->GetObject<MobilityModel>()->SetPosition(Vector(60, 70, 1.6));
+    ueNodes.Get(0)->GetObject<MobilityModel>()->SetPosition(Vector(60, 70, 0));
     ueNodes.Get(0)->GetObject<ConstantVelocityMobilityModel>()->SetVelocity(Vector(0, 0, 0));
 
-    // ueNodes.Get (0)->GetObject<MobilityModel> ()->SetPosition (Vector (ueInitialPosition,
-    // -5, 1.6)); ueNodes.Get(0)->GetObject<ConstantVelocityMobilityModel>()->SetVelocity(Vector(0,
-    // 0, 0)); ueNodes.Get(1)->GetObject<MobilityModel>()->SetPosition(
+    // ueNodes.Get(0)->GetObject<MobilityModel>()->SetPosition(Vector(ueInitialPosition, -5, 1.6));
+    // ueNodes.Get(0)->GetObject<ConstantVelocityMobilityModel>()->SetVelocity(Vector(0, 0, 0));
+    // ueNodes.Get(1)->GetObject<MobilityModel>()->SetPosition(
     //     Vector(60, 70, 1.6));
     // ueNodes.Get(1)->GetObject<ConstantVelocityMobilityModel>()->SetVelocity(Vector(0, 0, 0));
     // Install mmWave, lte, mc Devices to the nodes
@@ -875,8 +877,8 @@ main(int argc, char* argv[])
     Simulator::Schedule(Seconds(transientDuration),
                         &ChangeSpeed,
                         ueNodes.Get(0),
-                        Vector(0, 0, 0)); // start UE movement after Seconds(0.5)
-    // Vector(ueSpeed, 0, 0)); // start UE movement after Seconds(0.5)
+                        // Vector(0, 0, 0)); // start UE movement after Seconds(0.5)
+                        Vector(ueSpeed, 0, 0)); // start UE movement after Seconds(0.5)
     Simulator::Schedule(Seconds(simTime - 1),
                         &ChangeSpeed,
                         ueNodes.Get(0),
@@ -896,7 +898,7 @@ main(int argc, char* argv[])
     //                     DynamicCast<LteEnbNetDevice>(lteEnbDevs.Get(0))->GetRrc(),
     //                     1,
     //                     2);
-                        
+
     double numPrints = 0;
     for (int i = 0; i < numPrints; i++)
     {
