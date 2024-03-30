@@ -29,6 +29,8 @@ set(source_files
     helper/ue-cf-application-helper.cc
     helper/cf-application-helper.cc
     helper/multi-packet-manager.cc
+    helper/cf-e2e-calculator.cc
+    helper/cf-e2e-buffer.cc
 )
 
 set(header_files
@@ -52,6 +54,8 @@ set(header_files
     helper/ue-cf-application-helper.h
     helper/cf-application-helper.h
     helper/multi-packet-manager.h
+    helper/cf-e2e-calculator.h
+    helper/cf-e2e-buffer.h
 )
 
 
