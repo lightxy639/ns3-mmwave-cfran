@@ -80,6 +80,9 @@ class UeCfApplication : public Application
 
     virtual void StopApplication(); // Called at time specified by Stop
     uint32_t m_taskNow;
+
+    TracedCallback<uint64_t, uint64_t, uint64_t> m_txRequestTrace;
+    TracedCallback<uint64_t> m_rxResultTrace;
 };
 
 } // namespace ns3

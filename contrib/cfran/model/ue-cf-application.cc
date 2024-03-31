@@ -16,18 +16,23 @@ NS_OBJECT_ENSURE_REGISTERED(UeCfApplication);
 TypeId
 UeCfApplication::GetTypeId()
 {
-    static TypeId tid = TypeId("ns3::UeCfApplication")
-                            .SetParent<Application>()
-                            .AddAttribute("CfranSystemInfomation",
-                                          "Global user information in cfran scenario",
-                                          PointerValue(),
-                                          MakePointerAccessor(&UeCfApplication::m_cfranSystemInfo),
-                                          MakePointerChecker<CfranSystemInfo>())
-                            .AddAttribute("OffloadPort",
-                                          "Port on which we listen for incoming packets.",
-                                          UintegerValue(100),
-                                          MakeUintegerAccessor(&UeCfApplication::m_offloadPort),
-                                          MakeUintegerChecker<uint16_t>());
+    static TypeId tid =
+        TypeId("ns3::UeCfApplication")
+            .SetParent<Application>()
+            .AddAttribute("CfranSystemInfomation",
+                          "Global user information in cfran scenario",
+                          PointerValue(),
+                          MakePointerAccessor(&UeCfApplication::m_cfranSystemInfo),
+                          MakePointerChecker<CfranSystemInfo>())
+            .AddAttribute("OffloadPort",
+                          "Port on which we listen for incoming packets.",
+                          UintegerValue(100),
+                          MakeUintegerAccessor(&UeCfApplication::m_offloadPort),
+                          MakeUintegerChecker<uint16_t>())
+            .AddTraceSource("TxRequest",
+                            "Send task request through wireless channel",
+                            MakeTraceSourceAccessor(&UeCfApplication::m_txRequestTrace),
+                            "ns3::UlTaskTransmission::TracedCallback");
 
     return tid;
 }
@@ -156,7 +161,6 @@ UeCfApplication::SendTaskRequest()
     }
 
     uint32_t packetNum = std::ceil(float(m_requestDataSize) / m_uploadPacketSize);
-    NS_LOG_UNCOND("m_requestDataSize: " << m_requestDataSize << " packetNum: " << packetNum);
     for (uint32_t n = 1; n <= packetNum; n++)
     {
         // double packetInterval = 10; // us
@@ -175,12 +179,15 @@ UeCfApplication::SendTaskRequest()
         p->AddHeader(mpHeader);
         p->AddHeader(cfRadioHeader);
 
-        // Simulator::Schedule(MicroSeconds((n-1) * packetInterval), &UeCfApplication::SendPacketToGnb, this, p);
+        // Simulator::Schedule(MicroSeconds((n-1) * packetInterval),
+        // &UeCfApplication::SendPacketToGnb, this, p);
         if (m_socket->Send(p) < 0)
         {
             NS_FATAL_ERROR("Error in sending task request.");
         }
     }
+    m_txRequestTrace(m_ueId, m_taskId, Simulator::Now().GetTimeStep());
+
     NS_LOG_INFO("UE " << m_ueId << " send task request " << m_taskId << " to cell "
                       << m_offloadGnbId);
 

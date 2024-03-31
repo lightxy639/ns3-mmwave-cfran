@@ -63,7 +63,15 @@ CfApplication::GetTypeId()
                           "Global user information in cfran scenario",
                           PointerValue(),
                           MakePointerAccessor(&CfApplication::m_cfranSystemInfo),
-                          MakePointerChecker<CfranSystemInfo>());
+                          MakePointerChecker<CfranSystemInfo>())
+            .AddTraceSource("Queue",
+                            "Push task to queue of CfUnit",
+                            MakeTraceSourceAccessor(&CfApplication::m_queueTrace),
+                            "ns3::TaskQueue::TracedCallback")
+            .AddTraceSource("Downlink",
+                            "Push task to queue of CfUnit",
+                            MakeTraceSourceAccessor(&CfApplication::m_downlinkTrace),
+                            "ns3::DlResultTransmission::TracedCallback");
 
     return tid;
 }
@@ -272,6 +280,8 @@ CfApplication::RecvTaskResult(uint64_t ueId, UeTaskModel ueTask)
         resultPacket->AddHeader(echoHeader);
 
         SendPakcetToUe(ueId, resultPacket);
+
+        m_downlinkTrace(ueId, ueTask.m_taskId, Simulator::Now().GetTimeStep());
     }
     else
     {
@@ -381,6 +391,7 @@ CfApplication::RecvFromUe(Ptr<Socket> socket)
                     UeTaskModel ueTask = m_cfranSystemInfo->GetUeInfo(ueId).m_taskModel;
                     ueTask.m_taskId = cfRadioHeader.GetTaskId();
                     m_cfUnit->LoadUeTask(ueId, ueTask);
+                    m_queueTrace(ueId, taskId, Simulator::Now().GetTimeStep());
                 }
             }
             else
@@ -530,6 +541,9 @@ CfApplication::RecvFromOtherGnb(Ptr<Socket> socket)
             resultPacket->AddHeader(cfRadioHeader);
 
             SendPakcetToUe(cfX2Header.GetUeId(), resultPacket);
+            m_downlinkTrace(cfX2Header.GetUeId(),
+                            cfX2Header.GetTaskId(),
+                            Simulator::Now().GetTimeStep());
         }
         else if (cfX2Header.GetMessageType() == CfX2Header::MigrationData)
         {

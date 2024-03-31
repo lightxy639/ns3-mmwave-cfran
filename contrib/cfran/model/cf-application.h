@@ -158,6 +158,10 @@ class CfApplication : public Application
     virtual void StartApplication(); // Called at time specified by Start
 
     virtual void StopApplication(); // Called at time specified by Stop
+
+    TracedCallback<uint64_t, uint64_t, uint64_t> m_queueTrace;
+    TracedCallback<uint64_t, uint64_t, uint64_t> m_downlinkTrace;
+
 };
 
 } // namespace ns3

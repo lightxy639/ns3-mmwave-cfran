@@ -117,4 +117,41 @@ CfE2eCalculator::GetE2eDelayStats(uint64_t ueId)
 {
     return GetSpecificDelayStats(ueId, m_e2eDelay);
 }
+
+void
+CfE2eCalculator::ResetResultForUe(uint64_t ueId)
+{
+    NS_LOG_FUNCTION(this);
+
+    auto uplinkEntry = m_uplinkDelay.find(ueId);
+    if (uplinkEntry != m_uplinkDelay.end())
+    {
+        m_uplinkDelay.erase(uplinkEntry);
+    }
+
+    auto queueEntry = m_queueDelay.find(ueId);
+    if (queueEntry != m_queueDelay.end())
+    {
+        m_queueDelay.erase(queueEntry);
+    }
+
+    auto computingEntry = m_computingDelay.find(ueId);
+    if (computingEntry != m_computingDelay.end())
+    {
+        m_computingDelay.erase(computingEntry);
+    }
+
+    auto downlinkEntry = m_downlinkDelay.find(ueId);
+    if (downlinkEntry != m_downlinkDelay.end())
+    {
+        m_downlinkDelay.erase(downlinkEntry);
+    }
+
+    auto e2eEntry = m_e2eDelay.find(ueId);
+    if (e2eEntry != m_e2eDelay.end())
+    {
+        m_e2eDelay.erase(e2eEntry);
+    }
+}
+
 } // namespace ns3

@@ -389,19 +389,22 @@ main(int argc, char* argv[])
     // LogComponentEnable("CfApplication", LOG_INFO);
     // LogComponentEnable("CfApplication", LOG_PREFIX_ALL);
     // LogComponentEnable("CfApplicationHelper", LOG_FUNCTION);
-    // LogComponentEnable("UeCfApplication", LOG_INFO);
-    // LogComponentEnable("UeCfApplication", LOG_FUNCTION);
-    // LogComponentEnable("UeCfApplication", LOG_PREFIX_ALL);
+    LogComponentEnable("UeCfApplication", LOG_INFO);
+    LogComponentEnable("UeCfApplication", LOG_FUNCTION);
+    LogComponentEnable("UeCfApplication", LOG_PREFIX_ALL);
 
     // LogComponentEnable("LteEnbRrc", LOG_INFO);
     // LogComponentEnable("LteEnbRrc", LOG_DEBUG);
     // LogComponentEnable("LteEnbRrc", LOG_PREFIX_ALL);
-    LogComponentEnable("LteEnbNetDevice", LOG_INFO);
-    LogComponentEnable("LteEnbNetDevice", LOG_DEBUG);
-    LogComponentEnable("LteEnbNetDevice", LOG_PREFIX_ALL);
-    LogComponentEnable("MmWaveEnbNetDevice", LOG_INFO);
-    LogComponentEnable("MmWaveEnbNetDevice", LOG_DEBUG);
-    LogComponentEnable("MmWaveEnbNetDevice", LOG_PREFIX_ALL);
+    // LogComponentEnable("LteEnbNetDevice", LOG_INFO);
+    // LogComponentEnable("LteEnbNetDevice", LOG_DEBUG);
+    // LogComponentEnable("LteEnbNetDevice", LOG_PREFIX_ALL);
+    // LogComponentEnable("MmWaveEnbNetDevice", LOG_INFO);
+    // LogComponentEnable("MmWaveEnbNetDevice", LOG_DEBUG);
+    // LogComponentEnable("MmWaveEnbNetDevice", LOG_PREFIX_ALL);
+
+    LogComponentEnable("CfE2eBuffer", LOG_DEBUG);
+    LogComponentEnable("CfE2eBuffer", LOG_PREFIX_ALL);
     // LogComponentEnable("MmWaveBearerStatsCalculator", LOG_FUNCTION);
     // LogComponentEnable("MmWaveBearerStatsCalculator", LOG_DEBUG);
     // LogComponentEnable("MmWaveBearerStatsCalculator", LOG_PREFIX_ALL);
@@ -908,6 +911,7 @@ main(int argc, char* argv[])
     // Simulator::Schedule(Seconds(1), &TargetEnbTest);
 
     mmwaveHelper->EnableTraces();
+    cfRanHelper->EnableTraces();
 
     // set to true if you want to print the map of buildings, ues and enbs
     bool print = false;
