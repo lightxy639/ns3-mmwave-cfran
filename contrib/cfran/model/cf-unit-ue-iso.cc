@@ -86,7 +86,7 @@ CfUnitUeIso::DeleteUe(uint64_t ueId)
     m_ueTask.erase(itTask);
     m_cfAllocation.erase(itAllo);
     m_busy.erase(itBusy);
-    
+
     ReAllocateCf();
 }
 
@@ -106,8 +106,10 @@ CfUnitUeIso::ExecuteUeTask(uint64_t ueId, UeTaskModel ueTask)
                             ueId,
                             ueTask);
         m_busy[ueId] = true;
-        NS_LOG_DEBUG("The computing latency of (UE, Task) " << ueId << " " << ueTask.m_taskId << " is "
-                                                            << executeLatency << "ms");
+        NS_LOG_DEBUG("The computing latency of (UE, Task) " << ueId << " " << ueTask.m_taskId
+                                                            << " is " << executeLatency << "ms");
+
+        m_computingTaskTrace(ueId, ueTask.m_taskId, Simulator::Now().GetTimeStep());
     }
     else
     {
@@ -146,8 +148,14 @@ CfUnitUeIso::ReAllocateCf()
     for (auto it = m_cfAllocation.begin(); it != m_cfAllocation.end(); it++)
     {
         it->second = m_cf / ueNum;
-        NS_LOG_DEBUG("UE " << it->first << " get " << m_cf/ueNum << "TFLOPS");
+        NS_LOG_DEBUG("UE " << it->first << " get " << m_cf / ueNum << "TFLOPS");
     }
 }
+
+// void
+// CfUnitUeIso::InformTaskExecuting(uint64_t ueId, UeTaskModel ueTask)
+// {
+//     m_cfApplication->recvExecutingInform(ueId, ueTask);
+// }
 
 } // namespace ns3

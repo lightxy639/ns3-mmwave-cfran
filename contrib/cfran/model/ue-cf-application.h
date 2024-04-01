@@ -5,6 +5,8 @@
 #include <ns3/socket.h>
 #include <ns3/mc-ue-net-device.h>
 #include <ns3/system-info.h>
+#include <ns3/cf-e2e-calculator.h>
+#include <ns3/cf-e2e-buffer.h>
 
 namespace ns3
 {
@@ -48,6 +50,8 @@ class UeCfApplication : public Application
 
     void SendPacketToGnb(Ptr<Packet> p);
 
+    void E2eTrace(CfRadioHeader cfRHd);
+
   protected:
     void DoDispose();
 
@@ -81,8 +85,11 @@ class UeCfApplication : public Application
     virtual void StopApplication(); // Called at time specified by Stop
     uint32_t m_taskNow;
 
+    Ptr<CfE2eBuffer> m_cfE2eBuffer;
+    Ptr<CfE2eCalculator> m_cfE2eCalculator;
+
     TracedCallback<uint64_t, uint64_t, uint64_t> m_txRequestTrace;
-    TracedCallback<uint64_t> m_rxResultTrace;
+    TracedCallback<uint64_t, uint64_t, uint64_t> m_rxResultTrace;
 };
 
 } // namespace ns3

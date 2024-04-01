@@ -9,13 +9,18 @@ NS_OBJECT_ENSURE_REGISTERED(CfUnit);
 TypeId
 CfUnit::GetTypeId()
 {
-    static TypeId tid = TypeId("ns3::CfUnit")
-                            .SetParent<Object>()
-                            .AddAttribute("CfModel",
-                                          "The Computing force of the CfUnitSimple",
-                                          CfModelValue(CfModel()),
-                                          MakeCfModelAccessor(&CfUnit::m_cf),
-                                          MakeCfModelChecker());
+    static TypeId tid =
+        TypeId("ns3::CfUnit")
+            .SetParent<Object>()
+            .AddAttribute("CfModel",
+                          "The Computing force of the CfUnitSimple",
+                          CfModelValue(CfModel()),
+                          MakeCfModelAccessor(&CfUnit::m_cf),
+                          MakeCfModelChecker())
+            .AddTraceSource("ComputingTask",
+                            "Process UE task",
+                            MakeTraceSourceAccessor(&CfUnit::m_computingTaskTrace),
+                            "ns3::TaskComputing::TracedCallback");
 
     return tid;
 }

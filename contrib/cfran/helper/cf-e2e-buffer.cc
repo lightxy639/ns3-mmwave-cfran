@@ -33,120 +33,294 @@ CfE2eBuffer::~CfE2eBuffer()
 }
 
 uint64_t
-CfE2eBuffer::GetSpecificTimeBuffer(uint64_t ueId,
-                                   uint64_t taskId,
-                                   DetailedTimeStatsBuffer& timeBuffer,
-                                   bool erase)
+CfE2eBuffer::GetSpecificDelayBuffer(uint64_t ueId,
+                                    uint64_t taskId,
+                                    DetailedDelayStatsBuffer& delayBuffer,
+                                    bool erase)
 {
     UeTaskIdPair_t p(ueId, taskId);
-    auto it = timeBuffer.find(p);
+    auto it = delayBuffer.find(p);
 
-    if (it != timeBuffer.end())
+    if (it != delayBuffer.end())
     {
-        uint64_t time = it->second;
+        uint64_t delay = it->second;
         if (erase)
         {
-            timeBuffer.erase(it);
+            delayBuffer.erase(it);
         }
-        return time;
+        return delay;
     }
     else
     {
-        NS_FATAL_ERROR("Detailed time for " << ueId << " not found");
+        // NS_FATAL_ERROR("Detailed delay for " << ueId << " not found");
+        NS_LOG_DEBUG("Value don't exist, return 0");
+        return 0;
     }
 }
 
 void
-CfE2eBuffer::UpdateSpecificTimeBuffer(uint64_t ueId,
-                                      uint64_t taskId,
-                                      uint64_t time,
-                                      DetailedTimeStatsBuffer& timeBuffer)
+CfE2eBuffer::UpdateSpecificDelayBuffer(uint64_t ueId,
+                                       uint64_t taskId,
+                                       uint64_t delay,
+                                       DetailedDelayStatsBuffer& delayBuffer)
 {
     UeTaskIdPair_t p(ueId, taskId);
-    auto it = timeBuffer.find(p);
+    auto it = delayBuffer.find(p);
 
-    if (it == timeBuffer.end())
+    if (it == delayBuffer.end())
     {
-        timeBuffer[p] = time;
+        delayBuffer[p] = delay;
     }
     else
     {
-        NS_FATAL_ERROR("Time info exists,");
+        // Performing latency calculation at the same address.
+        delayBuffer[p] = delay;
+        NS_LOG_DEBUG("Update ");
     }
 }
 
 void
-CfE2eBuffer::UpdateUplinkTimeBuffer(uint64_t ueId, uint64_t taskId, uint64_t time)
+CfE2eBuffer::UpdateUplinkWirelessDelay(uint64_t ueId, uint64_t taskId, uint64_t delay)
 {
-    UpdateSpecificTimeBuffer(ueId, taskId, time, m_uplinkTime);
+    UpdateSpecificDelayBuffer(ueId, taskId, delay, m_uplinkWirelessDelay);
+}
+
+uint64_t
+CfE2eBuffer::GetUplinkWirelessDelay(uint64_t ueId, uint64_t taskId, bool erase)
+{
+    return GetSpecificDelayBuffer(ueId, taskId, m_uplinkWirelessDelay, erase);
 }
 
 void
-CfE2eBuffer::UpdateQueueTimeBuffer(uint64_t ueId, uint64_t taskId, uint64_t time)
+CfE2eBuffer::UpdateUplinkWiredDelay(uint64_t ueId, uint64_t taskId, uint64_t delay)
 {
-    UpdateSpecificTimeBuffer(ueId, taskId, time, m_queueTime);
+    UpdateSpecificDelayBuffer(ueId, taskId, delay, m_uplinkWiredDelay);
+}
+
+uint64_t
+CfE2eBuffer::GetUplinkWiredDelay(uint64_t ueId, uint64_t taskId, bool erase)
+{
+    return GetSpecificDelayBuffer(ueId, taskId, m_uplinkWiredDelay, erase);
 }
 
 void
-CfE2eBuffer::UpdateComputingTimeBuffer(uint64_t ueId, uint64_t taskId, uint64_t time)
+CfE2eBuffer::UpdateQueueDelay(uint64_t ueId, uint64_t taskId, uint64_t delay)
 {
-    UpdateSpecificTimeBuffer(ueId, taskId, time, m_computingTime);
+    UpdateSpecificDelayBuffer(ueId, taskId, delay, m_queueDelay);
+}
+
+uint64_t
+CfE2eBuffer::GetQueueDelay(uint64_t ueId, uint64_t taskId, bool erase)
+{
+    return GetSpecificDelayBuffer(ueId, taskId, m_queueDelay, erase);
 }
 
 void
-CfE2eBuffer::UpdateDownlinkTimeBuffer(uint64_t ueId, uint64_t taskId, uint64_t time)
+CfE2eBuffer::UpdateComputingDelay(uint64_t ueId, uint64_t taskId, uint64_t delay)
 {
-    UpdateSpecificTimeBuffer(ueId, taskId, time, m_downlinkTime);
+    UpdateSpecificDelayBuffer(ueId, taskId, delay, m_computingDelay);
+}
+
+uint64_t
+CfE2eBuffer::GetComputingDelay(uint64_t ueId, uint64_t taskId, bool erase)
+{
+    return GetSpecificDelayBuffer(ueId, taskId, m_computingDelay, erase);
 }
 
 void
-CfE2eBuffer::GetUplinkTimeBuffer(uint64_t ueId, uint64_t taskId, bool erase)
+CfE2eBuffer::UpdateDownlinkWiredDelay(uint64_t ueId, uint64_t taskId, uint64_t delay)
 {
-    GetSpecificTimeBuffer(ueId, taskId, m_uplinkTime, erase);
+    UpdateSpecificDelayBuffer(ueId, taskId, delay, m_downlinkWiredDelay);
+}
+
+uint64_t
+CfE2eBuffer::GetDownlinkWiredDelay(uint64_t ueId, uint64_t taskId, bool erase)
+{
+    return GetSpecificDelayBuffer(ueId, taskId, m_downlinkWiredDelay, erase);
 }
 
 void
-CfE2eBuffer::GetQueueTimeBuffer(uint64_t ueId, uint64_t taskId, bool erase)
+CfE2eBuffer::UpdateDownlinkWirelessDelay(uint64_t ueId, uint64_t taskId, uint64_t delay)
 {
-    GetSpecificTimeBuffer(ueId, taskId, m_queueTime, erase);
+    UpdateSpecificDelayBuffer(ueId, taskId, delay, m_downlinkWirelessDelay);
+}
+
+uint64_t
+CfE2eBuffer::GetDownlinkWirelessDelay(uint64_t ueId, uint64_t taskId, bool erase)
+{
+    return GetSpecificDelayBuffer(ueId, taskId, m_downlinkWirelessDelay, erase);
 }
 
 void
-CfE2eBuffer::GetComputingTimeBuffer(uint64_t ueId, uint64_t taskId, bool erase)
+CfE2eBuffer::UeSendRequestCallback(Ptr<CfE2eBuffer> stats,
+                                   uint64_t ueId,
+                                   uint64_t taskId,
+                                   uint64_t delay)
 {
-    GetSpecificTimeBuffer(ueId, taskId, m_computingTime, erase);
+    NS_LOG_DEBUG("CfE2eBuffer::UeSendRequestCallback");
+    stats->UpdateUplinkWirelessDelay(ueId, taskId, delay);
 }
 
 void
-CfE2eBuffer::GetDownlinkTimeBuffer(uint64_t ueId, uint64_t taskId, bool erase)
+CfE2eBuffer::GnbRecvUeRequestCallback(Ptr<CfE2eBuffer> stats,
+                                      uint64_t ueId,
+                                      uint64_t taskId,
+                                      uint64_t delay)
 {
-    GetSpecificTimeBuffer(ueId, taskId, m_downlinkTime, erase);
+    NS_LOG_DEBUG("CfE2eBuffer::GnbRecvUeRequestCallback");
+    uint64_t temp = stats->GetUplinkWirelessDelay(ueId, taskId);
+    if (temp != 0)
+    {
+        stats->UpdateUplinkWirelessDelay(ueId, taskId, delay - temp);
+        NS_LOG_DEBUG("(ueId, taskId) " << ueId << ", " << taskId << " upWl " << (delay - temp) / 1e6
+                                       << "ms");
+    }
+    else
+    {
+        NS_FATAL_ERROR("No temp value found");
+    }
 }
 
 void
-CfE2eBuffer::TxRequestCallback(Ptr<CfE2eBuffer> stats, uint64_t ueId, uint64_t taskId, uint64_t time)
+CfE2eBuffer::GnbForwardUeRequestCallback(Ptr<CfE2eBuffer> stats,
+                                         uint64_t ueId,
+                                         uint64_t taskId,
+                                         uint64_t delay)
 {
-    NS_LOG_DEBUG(ueId << taskId << time);
-    std::cout << "Hello" << std::endl;
-    stats->UpdateUplinkTimeBuffer(ueId, taskId, time);
+    NS_LOG_DEBUG("CfE2eBuffer::GnbForwardUeRequestCallback");
+    stats->UpdateUplinkWiredDelay(ueId, taskId, delay);
 }
 
 void
-CfE2eBuffer::QueueCallback(Ptr<CfE2eBuffer> stats, uint64_t ueId, uint64_t taskId, uint64_t time)
+CfE2eBuffer::GnbRecvForwardedUeRequestCallback(Ptr<CfE2eBuffer> stats,
+                                               uint64_t ueId,
+                                               uint64_t taskId,
+                                               uint64_t delay)
 {
-    stats->UpdateQueueTimeBuffer(ueId, taskId, time);
+    NS_LOG_DEBUG("CfE2eBuffer::GnbRecvForwardedUeRequestCallback");
+    uint64_t temp = stats->GetUplinkWiredDelay(ueId, taskId);
+    if (temp != 0)
+    {
+        stats->UpdateUplinkWiredDelay(ueId, taskId, delay - temp);
+        NS_LOG_DEBUG("(ueId, taskId) " << ueId << ", " << taskId << " upWd " << (delay - temp) / 1e6
+                                       << "ms");
+    }
+    else
+    {
+        NS_FATAL_ERROR("No temp value found");
+    }
 }
 
 void
-CfE2eBuffer::ComputingCallback(Ptr<CfE2eBuffer> stats, uint64_t ueId, uint64_t taskId, uint64_t time)
+CfE2eBuffer::CfAppAddTaskCallback(Ptr<CfE2eBuffer> stats,
+                                  uint64_t ueId,
+                                  uint64_t taskId,
+                                  uint64_t delay)
 {
-    stats->UpdateComputingTimeBuffer(ueId, taskId, time);
+    NS_LOG_DEBUG("CfE2eBuffer::CfAppAddTaskCallback");
+    stats->UpdateQueueDelay(ueId, taskId, delay);
 }
 
 void
-CfE2eBuffer::TxResultCallback(Ptr<CfE2eBuffer> stats, uint64_t ueId, uint64_t taskId, uint64_t time)
+CfE2eBuffer::CfUnitStartCompCallback(Ptr<CfE2eBuffer> stats,
+                                     uint64_t ueId,
+                                     uint64_t taskId,
+                                     uint64_t delay)
 {
-    stats->UpdateDownlinkTimeBuffer(ueId, taskId, time);
+    NS_LOG_DEBUG("CfE2eBuffer::CfUnitStartCompCallback");
+    uint64_t temp = stats->GetQueueDelay(ueId, taskId);
+    if (temp != 0)
+    {
+        stats->UpdateQueueDelay(ueId, taskId, delay - temp);
+        NS_LOG_DEBUG("(ueId, taskId) " << ueId << ", " << taskId << " queue "
+                                       << (delay - temp) / 1e6 << "ms");
+    }
+    else
+    {
+        NS_FATAL_ERROR("No temp value found");
+    }
+
+    stats->UpdateComputingDelay(ueId, taskId, delay);
+}
+
+void
+CfE2eBuffer::CfAppGetResultCallback(Ptr<CfE2eBuffer> stats,
+                                    uint64_t ueId,
+                                    uint64_t taskId,
+                                    uint64_t delay)
+{
+    NS_LOG_DEBUG("CfE2eBuffer::CfAppGetResultCallback");
+    uint64_t temp = stats->GetComputingDelay(ueId, taskId);
+    if (temp != 0)
+    {
+        stats->UpdateComputingDelay(ueId, taskId, delay - temp);
+        NS_LOG_DEBUG("(ueId, taskId) " << ueId << ", " << taskId << " comp " << (delay - temp) / 1e6
+                                       << "ms");
+    }
+    else
+    {
+        NS_FATAL_ERROR("No temp value found");
+    }
+}
+
+void
+CfE2eBuffer::GnbForwardResultCallback(Ptr<CfE2eBuffer> stats,
+                                      uint64_t ueId,
+                                      uint64_t taskId,
+                                      uint64_t delay)
+{
+    NS_LOG_DEBUG("CfE2eBuffer::GnbForwardResultCallback");
+    stats->UpdateDownlinkWiredDelay(ueId, taskId, delay);
+}
+
+void
+CfE2eBuffer::GnbGetForwardedResultCallback(Ptr<CfE2eBuffer> stats,
+                                           uint64_t ueId,
+                                           uint64_t taskId,
+                                           uint64_t delay)
+{
+    NS_LOG_DEBUG("CfE2eBuffer::GnbGetForwardedResultCallback");
+    uint64_t temp = stats->GetDownlinkWiredDelay(ueId, taskId);
+    if (temp != 0)
+    {
+        stats->UpdateDownlinkWiredDelay(ueId, taskId, delay - temp);
+        NS_LOG_DEBUG("(ueId, taskId) " << ueId << ", " << taskId << " dnWd " << (delay - temp) / 1e6
+                                       << "ms");
+    }
+    else
+    {
+        NS_FATAL_ERROR("No temp value found");
+    }
+}
+
+void
+CfE2eBuffer::GnbSendResultToUeCallback(Ptr<CfE2eBuffer> stats,
+                                       uint64_t ueId,
+                                       uint64_t taskId,
+                                       uint64_t delay)
+{
+    NS_LOG_DEBUG("CfE2eBuffer::GnbSendResultToUeCallback" << " ueId " << ueId << " taskId" << taskId <<" delay " << delay);
+    stats->UpdateDownlinkWirelessDelay(ueId, taskId, delay);
+}
+
+void
+CfE2eBuffer::UeRecvResultCallback(Ptr<CfE2eBuffer> stats,
+                                  uint64_t ueId,
+                                  uint64_t taskId,
+                                  uint64_t delay)
+{
+    NS_LOG_DEBUG("CfE2eBuffer::UeRecvResultCallback");
+    uint64_t temp = stats->GetDownlinkWirelessDelay(ueId, taskId);
+    if (temp != 0)
+    {
+        stats->UpdateDownlinkWirelessDelay(ueId, taskId, delay - temp);
+        NS_LOG_DEBUG("(ueId, taskId) " << ueId << ", " << taskId << " dnWl " << (delay - temp) / 1e6
+                                       << "ms");
+    }
+    else
+    {
+        NS_FATAL_ERROR("No temp value found");
+    }
 }
 
 } // namespace ns3

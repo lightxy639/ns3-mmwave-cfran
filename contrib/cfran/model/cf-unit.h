@@ -4,6 +4,7 @@
 #include <ns3/cf-application.h>
 #include <ns3/cf-model.h>
 #include <ns3/net-device.h>
+#include <ns3/traced-callback.h>
 
 /**
  * \defgroup cfran Models
@@ -55,11 +56,14 @@ class CfUnit : public Object
 
     virtual void EndUeTask(uint64_t ueId, UeTaskModel ueTask) = 0;
 
+    // virtual void InformTaskExecuting(uint64_t ueId, UeTaskModel) = 0;
+
   protected:
     Ptr<Node> m_node; ///< the node
     uint64_t m_id;    ///< the id of computing force unit
     CfModel m_cf;     ///< the total computing force of CfUnit
     Ptr<CfApplication> m_cfApplication;
+    TracedCallback<uint64_t, uint64_t, uint64_t> m_computingTaskTrace;
 };
 } // namespace ns3
 #endif

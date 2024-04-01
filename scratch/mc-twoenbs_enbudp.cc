@@ -386,8 +386,8 @@ int
 main(int argc, char* argv[])
 {
     // LogComponentEnable("McTwoEnbs", LOG_DEBUG);
-    // LogComponentEnable("CfApplication", LOG_INFO);
-    // LogComponentEnable("CfApplication", LOG_PREFIX_ALL);
+    LogComponentEnable("CfApplication", LOG_INFO);
+    LogComponentEnable("CfApplication", LOG_PREFIX_ALL);
     // LogComponentEnable("CfApplicationHelper", LOG_FUNCTION);
     LogComponentEnable("UeCfApplication", LOG_INFO);
     LogComponentEnable("UeCfApplication", LOG_FUNCTION);
@@ -412,7 +412,8 @@ main(int argc, char* argv[])
     // LogComponentEnable("MultiPacketManager", LOG_LEVEL_DEBUG);
     // LogComponentEnable("MultiPacketManager", LOG_PREFIX_ALL);
     // LogComponentEnable("CfUnitUeIso", LOG_FUNCTION);
-    // LogComponentEnable("CfUnitUeIso", LOG_FUNCTION);
+    // LogComponentEnable("CfUnitUeIso", LOG_DEBUG);
+    // LogComponentEnable("CfUnitUeIso", LOG_PREFIX_ALL);
     // LogComponentEnable("McUeNetDevice", LOG_LOGIC);
     // LogComponentEnable("MmWaveNetDevice", LOG_LOGIC);
     // LogComponentEnable("LteUeRrc", LOG_FUNCTION);
@@ -742,11 +743,11 @@ main(int argc, char* argv[])
     uemobility.Install(ueNodes);
     BuildingsHelper::Install(ueNodes);
 
-    ueNodes.Get(0)->GetObject<MobilityModel>()->SetPosition(Vector(60, 70, 0));
-    ueNodes.Get(0)->GetObject<ConstantVelocityMobilityModel>()->SetVelocity(Vector(0, 0, 0));
-
-    // ueNodes.Get(0)->GetObject<MobilityModel>()->SetPosition(Vector(ueInitialPosition, -5, 1.6));
+    // ueNodes.Get(0)->GetObject<MobilityModel>()->SetPosition(Vector(60, 70, 0));
     // ueNodes.Get(0)->GetObject<ConstantVelocityMobilityModel>()->SetVelocity(Vector(0, 0, 0));
+
+    ueNodes.Get(0)->GetObject<MobilityModel>()->SetPosition(Vector(ueInitialPosition, -5, 1.6));
+    ueNodes.Get(0)->GetObject<ConstantVelocityMobilityModel>()->SetVelocity(Vector(0, 0, 0));
     // ueNodes.Get(1)->GetObject<MobilityModel>()->SetPosition(
     //     Vector(60, 70, 1.6));
     // ueNodes.Get(1)->GetObject<ConstantVelocityMobilityModel>()->SetVelocity(Vector(0, 0, 0));

@@ -38,6 +38,8 @@ class CfUnitUeIso : public CfUnit
 
     void ReAllocateCf();
 
+    // void InformTaskExecuting(uint64_t ueId, UeTaskModel ueTask) override;
+
   private:
     std::map<uint64_t, std::queue<UeTaskModel>> m_ueTask;
 

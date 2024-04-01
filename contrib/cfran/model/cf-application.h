@@ -90,6 +90,8 @@ class CfApplication : public Application
 
     virtual void RecvTaskResult(uint64_t id, UeTaskModel ueTask);
 
+    // virtual void RecvExecutingInform(uint64_t id, UeTaskModel ueTask);
+
     virtual void SendInitSuccessToUserFromGnb(uint64_t id);
 
     virtual void SendInitSuccessToConnectedGnb(uint64_t ueId);
@@ -159,8 +161,24 @@ class CfApplication : public Application
 
     virtual void StopApplication(); // Called at time specified by Stop
 
-    TracedCallback<uint64_t, uint64_t, uint64_t> m_queueTrace;
-    TracedCallback<uint64_t, uint64_t, uint64_t> m_downlinkTrace;
+    // TracedCallback<uint64_t, uint64_t, uint64_t> m_queueTrace;
+    // TracedCallback<uint64_t, uint64_t, uint64_t> m_downlinkTrace;
+
+    TracedCallback<uint64_t, uint64_t, uint64_t> m_recvRequestTrace;
+
+    TracedCallback<uint64_t, uint64_t, uint64_t> m_forwardRequestTrace;
+    TracedCallback<uint64_t, uint64_t, uint64_t> m_recvForwardedRequestTrace;
+
+    TracedCallback<uint64_t, uint64_t, uint64_t> m_addTaskTrace;
+
+    TracedCallback<uint64_t, uint64_t, uint64_t> m_getResultTrace;
+
+    TracedCallback<uint64_t, uint64_t, uint64_t> m_forwardResultTrace;
+    TracedCallback<uint64_t, uint64_t, uint64_t> m_getForwardedResultTrace;
+
+    TracedCallback<uint64_t, uint64_t, uint64_t> m_sendResultTrace;
+    
+
 
 };
 

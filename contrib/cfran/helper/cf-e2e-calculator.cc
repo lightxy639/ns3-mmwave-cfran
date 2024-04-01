@@ -74,24 +74,36 @@ CfE2eCalculator::GetSpecificDelayStats(uint64_t ueId, DelayStatsMap& delayStatsM
 
 void
 CfE2eCalculator::UpdateDelayStats(uint64_t ueId,
-                                  uint64_t uplinkDelay,
+                                  uint64_t upWlDelay,
+                                  uint64_t upWdDelay,
                                   uint64_t queueDelay,
                                   uint64_t computingDelay,
-                                  uint64_t downlinkDelay)
+                                  uint64_t dnWdDelay,
+                                  uint64_t dnWlDelay)
 {
-    UpdateSpecificDelayStats(ueId, uplinkDelay, m_uplinkDelay);
+    UpdateSpecificDelayStats(ueId, upWlDelay, m_uplinkWirelessDelay);
+    UpdateSpecificDelayStats(ueId, upWdDelay, m_uplinkWiredDelay);
     UpdateSpecificDelayStats(ueId, queueDelay, m_queueDelay);
     UpdateSpecificDelayStats(ueId, computingDelay, m_computingDelay);
-    UpdateSpecificDelayStats(ueId, downlinkDelay, m_downlinkDelay);
+    UpdateSpecificDelayStats(ueId, dnWdDelay, m_downlinkWiredDelay);
+    UpdateSpecificDelayStats(ueId, dnWlDelay, m_downlinkWirelessDelay);
+
     UpdateSpecificDelayStats(ueId,
-                             uplinkDelay + queueDelay + computingDelay + downlinkDelay,
+                             upWlDelay + upWdDelay + queueDelay + computingDelay + dnWdDelay +
+                                 dnWlDelay,
                              m_e2eDelay);
 }
 
 std::vector<double>
-CfE2eCalculator::GetUplinkDelayStats(uint64_t ueId)
+CfE2eCalculator::GetUplinkWirelessDelayStats(uint64_t ueId)
 {
-    return GetSpecificDelayStats(ueId, m_uplinkDelay);
+    return GetSpecificDelayStats(ueId, m_uplinkWirelessDelay);
+}
+
+std::vector<double>
+CfE2eCalculator::GetUplinkWiredDelayStats(uint64_t ueId)
+{
+    return GetSpecificDelayStats(ueId, m_uplinkWiredDelay);
 }
 
 std::vector<double>
@@ -107,9 +119,15 @@ CfE2eCalculator::GetComputingDelayStats(uint64_t ueId)
 }
 
 std::vector<double>
-CfE2eCalculator::GetDownlinkDelayStats(uint64_t ueId)
+CfE2eCalculator::GetDownlinkWiredDelayStats(uint64_t ueId)
 {
-    return GetSpecificDelayStats(ueId, m_downlinkDelay);
+    return GetSpecificDelayStats(ueId, m_downlinkWiredDelay);
+}
+
+std::vector<double>
+CfE2eCalculator::GetDownlinkWirelessDelayStats(uint64_t ueId)
+{
+    return GetSpecificDelayStats(ueId, m_downlinkWirelessDelay);
 }
 
 std::vector<double>
@@ -123,10 +141,16 @@ CfE2eCalculator::ResetResultForUe(uint64_t ueId)
 {
     NS_LOG_FUNCTION(this);
 
-    auto uplinkEntry = m_uplinkDelay.find(ueId);
-    if (uplinkEntry != m_uplinkDelay.end())
+    auto uplinkWlEntry = m_uplinkWirelessDelay.find(ueId);
+    if (uplinkWlEntry != m_uplinkWirelessDelay.end())
     {
-        m_uplinkDelay.erase(uplinkEntry);
+        m_uplinkWirelessDelay.erase(uplinkWlEntry);
+    }
+
+    auto uplinkWdEntry = m_uplinkWiredDelay.find(ueId);
+    if (uplinkWdEntry != m_uplinkWiredDelay.end())
+    {
+        m_uplinkWiredDelay.erase(uplinkWdEntry);
     }
 
     auto queueEntry = m_queueDelay.find(ueId);
@@ -141,10 +165,16 @@ CfE2eCalculator::ResetResultForUe(uint64_t ueId)
         m_computingDelay.erase(computingEntry);
     }
 
-    auto downlinkEntry = m_downlinkDelay.find(ueId);
-    if (downlinkEntry != m_downlinkDelay.end())
+    auto downlinkWlEntry = m_downlinkWirelessDelay.find(ueId);
+    if (downlinkWlEntry != m_downlinkWirelessDelay.end())
     {
-        m_downlinkDelay.erase(downlinkEntry);
+        m_downlinkWirelessDelay.erase(downlinkWlEntry);
+    }
+
+    auto downlinkWdEntry = m_downlinkWiredDelay.find(ueId);
+    if (downlinkWdEntry != m_downlinkWiredDelay.end())
+    {
+        m_downlinkWiredDelay.erase(downlinkWdEntry);
     }
 
     auto e2eEntry = m_e2eDelay.find(ueId);

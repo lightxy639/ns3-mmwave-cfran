@@ -59,7 +59,8 @@ CfApplicationHelper::Install(NodeContainer c)
                 cfUnit->SetCfUnitId(mmWaveEnbNetDev->GetCellId());
                 if(cfUnit)
                 {
-                    DynamicCast<CfApplication>(app)->SetCfUnit(cfUnit);
+                    // DynamicCast<CfApplication>(app)->SetCfUnit(cfUnit);
+                    DynamicCast<CfApplication>(app)->SetAttribute("CfUnit", PointerValue(cfUnit));
                     cfUnit->SetCfApplication(DynamicCast<CfApplication>(app));
                 }
                 else

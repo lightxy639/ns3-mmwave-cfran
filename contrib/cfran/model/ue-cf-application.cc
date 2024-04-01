@@ -29,10 +29,24 @@ UeCfApplication::GetTypeId()
                           UintegerValue(100),
                           MakeUintegerAccessor(&UeCfApplication::m_offloadPort),
                           MakeUintegerChecker<uint16_t>())
+            .AddAttribute("CfE2eBuffer",
+                          "CfE2eBuffer instance",
+                          PointerValue(),
+                          MakePointerAccessor(&UeCfApplication::m_cfE2eBuffer),
+                          MakePointerChecker<CfE2eBuffer>())
+            .AddAttribute("CfE2eCalculator",
+                          "CfE2eCalculator instance",
+                          PointerValue(),
+                          MakePointerAccessor(&UeCfApplication::m_cfE2eCalculator),
+                          MakePointerChecker<CfE2eCalculator>())
             .AddTraceSource("TxRequest",
                             "Send task request through wireless channel",
                             MakeTraceSourceAccessor(&UeCfApplication::m_txRequestTrace),
-                            "ns3::UlTaskTransmission::TracedCallback");
+                            "ns3::UlTaskTransmission::TracedCallback")
+            .AddTraceSource("RxResult",
+                            "Recv task result through wireless channel",
+                            MakeTraceSourceAccessor(&UeCfApplication::m_rxResultTrace),
+                            "ns3::DlResultTransmission::TracedCallback");
 
     return tid;
 }
@@ -42,7 +56,7 @@ UeCfApplication::UeCfApplication()
       m_taskId(0),
       m_socket(0),
       m_minSize(1000),
-      m_requestDataSize(50000),
+      m_requestDataSize(500000),
       m_uploadPacketSize(1000),
       m_period(40)
 {
@@ -238,6 +252,11 @@ UeCfApplication::RecvFromGnb(Ptr<Packet> p)
     {
         NS_LOG_INFO("UE " << m_ueId << " Recv task result " << cfRadioHeader.GetTaskId()
                           << " from gnb " << cfRadioHeader.GetGnbId());
+        m_rxResultTrace(cfRadioHeader.GetUeId(),
+                        cfRadioHeader.GetTaskId(),
+                        Simulator::Now().GetTimeStep());
+        // m_rxResultTrace(m_ueId, cfRadioHeader.GetTaskId(), Simulator::Now().GetTimeStep());
+        E2eTrace(cfRadioHeader);
     }
     else
     {
@@ -274,6 +293,25 @@ void
 UeCfApplication::SetMcUeNetDevice(Ptr<mmwave::McUeNetDevice> mcUeNetDev)
 {
     m_mcUeNetDev = mcUeNetDev;
+}
+
+void
+UeCfApplication::E2eTrace(CfRadioHeader cfRHd)
+{
+    // uint64_t
+    NS_LOG_FUNCTION(this);
+
+    uint64_t ueId = cfRHd.GetUeId();
+    uint64_t taskId = cfRHd.GetTaskId();
+    uint64_t offloadGnbId = cfRHd.GetGnbId();
+    uint64_t connectingGnbId = m_mcUeNetDev->GetMmWaveTargetEnb()->GetCellId();
+
+    uint64_t upWlDelay = m_cfE2eBuffer->GetUplinkWirelessDelay(ueId, taskId, true);
+    uint64_t upWdDelay = m_cfE2eBuffer->GetUplinkWiredDelay(ueId, taskId, true);
+    uint64_t queueDelay = m_cfE2eBuffer->GetQueueDelay(ueId, taskId, true);
+    uint64_t computingDelay = m_cfE2eBuffer->GetComputingDelay(ueId, taskId, true);
+    uint64_t downWdDelay = m_cfE2eBuffer->GetDownlinkWiredDelay(ueId, taskId, true);
+    uint64_t downWlDelay = m_cfE2eBuffer->GetDownlinkWirelessDelay(ueId, taskId, true);
 }
 
 } // namespace ns3

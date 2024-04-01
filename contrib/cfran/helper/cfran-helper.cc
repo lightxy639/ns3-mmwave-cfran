@@ -48,9 +48,52 @@ void
 CfRanHelper::EnableTraces()
 {
     NS_LOG_FUNCTION(this);
+    // This statement will cause the TraceSource function of CfApplicaiton to be unavailable,
+    // implying that it will not be investigated further
+    // Config::ConnectWithoutContextFailSafe(
+    //     "/NodeList/*/$ns3::CfUnit/ComputingTask",
+    //     MakeBoundCallback(&CfE2eBuffer::CfUnitStartCompCallback, m_cfE2eBuffer));
 
-    Config::ConnectWithoutContextFailSafe("/NodeList/*/ApplicationList/*/$ns3::UeCfApplication/TxRequest",
-                            MakeBoundCallback(&CfE2eBuffer::TxRequestCallback, m_cfE2eBuffer));
+    Config::ConnectWithoutContextFailSafe(
+        "/NodeList/*/ApplicationList/*/TxRequest",
+        MakeBoundCallback(&CfE2eBuffer::UeSendRequestCallback, m_cfE2eBuffer));
+
+    Config::ConnectWithoutContextFailSafe(
+        "/NodeList/*/ApplicationList/*/RxResult",
+        MakeBoundCallback(&CfE2eBuffer::UeRecvResultCallback, m_cfE2eBuffer));
+
+    Config::ConnectWithoutContextFailSafe(
+        "/NodeList/*/ApplicationList/*/RecvRequest",
+        MakeBoundCallback(&CfE2eBuffer::GnbRecvUeRequestCallback, m_cfE2eBuffer));
+    Config::ConnectWithoutContextFailSafe(
+        "/NodeList/*/ApplicationList/*/ForwardRequest",
+        MakeBoundCallback(&CfE2eBuffer::GnbForwardUeRequestCallback, m_cfE2eBuffer));
+    Config::ConnectWithoutContextFailSafe(
+        "/NodeList/*/ApplicationList/*/RecvForwardedRequest",
+        MakeBoundCallback(&CfE2eBuffer::GnbRecvForwardedUeRequestCallback, m_cfE2eBuffer));
+    Config::ConnectWithoutContextFailSafe(
+        "/NodeList/*/ApplicationList/*/AddTask",
+        MakeBoundCallback(&CfE2eBuffer::CfAppAddTaskCallback, m_cfE2eBuffer));
+
+    Config::ConnectWithoutContext(
+        "/NodeList/*/ApplicationList/*/CfUnit/ComputingTask",
+        MakeBoundCallback(&CfE2eBuffer::CfUnitStartCompCallback, m_cfE2eBuffer));
+
+    Config::ConnectWithoutContextFailSafe(
+        "/NodeList/*/ApplicationList/*/GetResult",
+        MakeBoundCallback(&CfE2eBuffer::CfAppGetResultCallback, m_cfE2eBuffer));
+    Config::ConnectWithoutContextFailSafe(
+        "/NodeList/*/ApplicationList/*/ForwardResult",
+        MakeBoundCallback(&CfE2eBuffer::GnbForwardResultCallback, m_cfE2eBuffer));
+    Config::ConnectWithoutContextFailSafe(
+        "/NodeList/*/ApplicationList/*/GetForwardedResult",
+        MakeBoundCallback(&CfE2eBuffer::GnbGetForwardedResultCallback, m_cfE2eBuffer));
+    Config::ConnectWithoutContextFailSafe(
+        "/NodeList/*/ApplicationList/*/SendResult",
+        MakeBoundCallback(&CfE2eBuffer::GnbSendResultToUeCallback, m_cfE2eBuffer));
+
+    Config::SetDefault("ns3::UeCfApplication::CfE2eBuffer", PointerValue(m_cfE2eBuffer));
+    Config::SetDefault("ns3::UeCfApplication::CfE2eCalculator", PointerValue(m_cfE2eCalculator));
 }
 
 } // namespace ns3
