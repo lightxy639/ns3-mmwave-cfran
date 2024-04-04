@@ -2,6 +2,8 @@
 
 #include <ns3/config.h>
 #include <ns3/object-factory.h>
+#include <ns3/ue-cf-application.h>
+#include <ns3/cf-application.h>
 
 namespace ns3
 {
@@ -45,7 +47,7 @@ CfRanHelper::InstallCfUnit(NodeContainer c, ObjectFactory cfUnitObj)
 }
 
 void
-CfRanHelper::EnableTraces()
+CfRanHelper::EnableTraces(ApplicationContainer ueAppC, ApplicationContainer gnbAppC)
 {
     NS_LOG_FUNCTION(this);
     // This statement will cause the TraceSource function of CfApplicaiton to be unavailable,
@@ -92,8 +94,21 @@ CfRanHelper::EnableTraces()
         "/NodeList/*/ApplicationList/*/SendResult",
         MakeBoundCallback(&CfE2eBuffer::GnbSendResultToUeCallback, m_cfE2eBuffer));
 
-    Config::SetDefault("ns3::UeCfApplication::CfE2eBuffer", PointerValue(m_cfE2eBuffer));
-    Config::SetDefault("ns3::UeCfApplication::CfE2eCalculator", PointerValue(m_cfE2eCalculator));
+    // Config::SetDefault("ns3::UeCfApplication::CfE2eBuffer", PointerValue(m_cfE2eBuffer));
+    // Config::SetDefault("ns3::UeCfApplication::CfE2eCalculator", PointerValue(m_cfE2eCalculator));
+
+    for (uint32_t n = 0; n < ueAppC.GetN(); n++)
+    {
+        Ptr<UeCfApplication> ueApp = DynamicCast<UeCfApplication>(ueAppC.Get(n));
+        ueApp->SetAttribute("CfE2eBuffer", PointerValue(m_cfE2eBuffer));
+        ueApp->SetAttribute("CfE2eCalculator", PointerValue(m_cfE2eCalculator));
+    }
+
+    for (uint32_t n = 0; n < gnbAppC.GetN(); n++)
+    {
+        Ptr<CfApplication> gnbApp = DynamicCast<CfApplication>(gnbAppC.Get(n));
+        gnbApp->SetAttribute("CfE2eCalculator", PointerValue(m_cfE2eCalculator));
+    }
 }
 
 } // namespace ns3

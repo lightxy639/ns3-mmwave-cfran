@@ -64,7 +64,8 @@ E2Termination::E2Termination(const std::string ricAddress,
     m_ricPort (ricPort),
     m_clientPort (clientPort),
     m_gnbId (gnbId),
-    m_plmnId(plmnId)
+    m_plmnId(plmnId),
+    m_receivedSubscriptionReq(false)
 {
   NS_LOG_FUNCTION (this);
   m_e2sim = new E2Sim;

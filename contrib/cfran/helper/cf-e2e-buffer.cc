@@ -47,6 +47,7 @@ CfE2eBuffer::GetSpecificDelayBuffer(uint64_t ueId,
         if (erase)
         {
             delayBuffer.erase(it);
+            NS_LOG_DEBUG("Erase, size of map " << delayBuffer.size());
         }
         return delay;
     }

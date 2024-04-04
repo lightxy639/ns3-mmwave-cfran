@@ -2,6 +2,7 @@
 #define CF_APPLICATION_H
 
 #include <ns3/application.h>
+#include <ns3/cf-e2e-calculator.h>
 #include <ns3/cf-model.h>
 #include <ns3/cf-unit.h>
 #include <ns3/epc-x2.h>
@@ -157,12 +158,16 @@ class CfApplication : public Application
 
     void CompleteMigrationAtTarget(uint64_t ueId, uint64_t oldGnbId);
 
+    void BuildAndSendE2Report();
+
     virtual void StartApplication(); // Called at time specified by Start
 
     virtual void StopApplication(); // Called at time specified by Stop
 
     // TracedCallback<uint64_t, uint64_t, uint64_t> m_queueTrace;
     // TracedCallback<uint64_t, uint64_t, uint64_t> m_downlinkTrace;
+
+    Ptr<CfE2eCalculator> m_cfE2eCalaulator;
 
     TracedCallback<uint64_t, uint64_t, uint64_t> m_recvRequestTrace;
 

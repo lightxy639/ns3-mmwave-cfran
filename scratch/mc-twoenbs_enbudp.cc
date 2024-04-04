@@ -386,47 +386,14 @@ int
 main(int argc, char* argv[])
 {
     // LogComponentEnable("McTwoEnbs", LOG_DEBUG);
-    LogComponentEnable("CfApplication", LOG_INFO);
+    // LogComponentEnable("CfApplication", LOG_INFO);
+    LogComponentEnable("CfApplication", LOG_DEBUG);
+    // LogComponentEnable("CfApplication", LOG_FUNCTION);
     LogComponentEnable("CfApplication", LOG_PREFIX_ALL);
-    // LogComponentEnable("CfApplicationHelper", LOG_FUNCTION);
-    LogComponentEnable("UeCfApplication", LOG_INFO);
-    LogComponentEnable("UeCfApplication", LOG_FUNCTION);
-    LogComponentEnable("UeCfApplication", LOG_PREFIX_ALL);
 
-    // LogComponentEnable("LteEnbRrc", LOG_INFO);
-    // LogComponentEnable("LteEnbRrc", LOG_DEBUG);
-    // LogComponentEnable("LteEnbRrc", LOG_PREFIX_ALL);
-    // LogComponentEnable("LteEnbNetDevice", LOG_INFO);
-    // LogComponentEnable("LteEnbNetDevice", LOG_DEBUG);
-    // LogComponentEnable("LteEnbNetDevice", LOG_PREFIX_ALL);
-    // LogComponentEnable("MmWaveEnbNetDevice", LOG_INFO);
-    // LogComponentEnable("MmWaveEnbNetDevice", LOG_DEBUG);
-    // LogComponentEnable("MmWaveEnbNetDevice", LOG_PREFIX_ALL);
+    LogComponentEnable("MmWaveEnbNetDevice", LOG_DEBUG);
+    LogComponentEnable("MmWaveEnbNetDevice", LOG_PREFIX_ALL);
 
-    LogComponentEnable("CfE2eBuffer", LOG_DEBUG);
-    LogComponentEnable("CfE2eBuffer", LOG_PREFIX_ALL);
-    // LogComponentEnable("MmWaveBearerStatsCalculator", LOG_FUNCTION);
-    // LogComponentEnable("MmWaveBearerStatsCalculator", LOG_DEBUG);
-    // LogComponentEnable("MmWaveBearerStatsCalculator", LOG_PREFIX_ALL);
-    // LogComponentEnable("MultiPacketManager", LOG_LEVEL_FUNCTION);
-    // LogComponentEnable("MultiPacketManager", LOG_LEVEL_DEBUG);
-    // LogComponentEnable("MultiPacketManager", LOG_PREFIX_ALL);
-    // LogComponentEnable("CfUnitUeIso", LOG_FUNCTION);
-    // LogComponentEnable("CfUnitUeIso", LOG_DEBUG);
-    // LogComponentEnable("CfUnitUeIso", LOG_PREFIX_ALL);
-    // LogComponentEnable("McUeNetDevice", LOG_LOGIC);
-    // LogComponentEnable("MmWaveNetDevice", LOG_LOGIC);
-    // LogComponentEnable("LteUeRrc", LOG_FUNCTION);
-    // LogComponentEnable("LteUeRrc", LOG_INFO);
-    // LogComponentEnable("LteEnbRrc", LOG_INFO);
-    // LogComponentEnable("LteEnbRrc", LOG_FUNCTION);
-    // LogComponentEnable("LteRlcAm", LOG_FUNCTION);
-    // LogComponentEnable("LteNetDevice", LOG_FUNCTION);
-    // LogComponentEnable("LteNetDevice", LOG_DEBUG);
-    // LogComponentEnable("LteRlcAm", LOG_DEBUG);
-    // LogComponentEnable("MmWaveNetDevice", LOG_LOGIC);
-    // LogComponentEnable("MmWavePointToPointEpcHelper", LOG_LOGIC);
-    // LogComponentEnable("LteRlcAm", LOG_INFO);
     LogComponentEnable("McTwoEnbs", LOG_DEBUG);
 
     bool harqEnabled = true;
@@ -571,7 +538,7 @@ main(int argc, char* argv[])
     Config::SetDefault("ns3::LteRlcAm::StatusProhibitTimer", TimeValue(MilliSeconds(1)));
     Config::SetDefault("ns3::LteRlcAm::MaxTxBufferSize", UintegerValue(bufferSize * 1024 * 1024));
 
-    Config::SetDefault("ns3::MmWaveBearerStatsCalculator::ExternalReschedule", BooleanValue(false));
+    Config::SetDefault("ns3::MmWaveBearerStatsCalculator::ExternalReschedule", BooleanValue(true));
 
     // Config::SetDefault("ns3::PacketSink::RxWithAddresses", MakeCallback(&PacketSinkLog));
     // Config::Connect("ns3::PacketSink::RxWithAddresses", MakeCallback(&PacketSinkLog));
@@ -912,7 +879,7 @@ main(int argc, char* argv[])
     // Simulator::Schedule(Seconds(1), &TargetEnbTest);
 
     mmwaveHelper->EnableTraces();
-    cfRanHelper->EnableTraces();
+    cfRanHelper->EnableTraces(clientApps, serverApps);
 
     // set to true if you want to print the map of buildings, ues and enbs
     bool print = false;

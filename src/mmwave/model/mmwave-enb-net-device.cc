@@ -381,11 +381,13 @@ MmWaveEnbNetDevice::BuildAndSendReportMessage()
         NS_LOG_DEBUG("macNumberOfSymbols " << macUplinkNumberOfSymbols + macDownlinkNumberOfSymbols
                                            << " denominatorPrb " << denominatorPrb);
 
-        double periodTime = (Simulator::Now() - m_rlcStatsCalculator->GetLastImsiLcidResetTime(imsi,3)).GetMilliSeconds();
+        double periodTime =
+            (Simulator::Now() - m_rlcStatsCalculator->GetLastImsiLcidResetTime(imsi, 3))
+                .GetMilliSeconds();
         double uplinkRlcLatency = m_rlcStatsCalculator->GetUlDelay(imsi, 3) / 1e6;
         double uplinkpduStats =
             // m_rlcStatsCalculator->GetUlRxData(imsi, 3) * 8.0 / 1e3; // unit kbit
-            m_rlcStatsCalculator->GetUlPduSizeStats(imsi, 3)[0] * 8.0 / 1e3; // unit kbit
+            m_rlcStatsCalculator->GetUlPduSizeStats(imsi, 3)[0] * 8.0 / 1e3;            // unit kbit
         double uplinkDataSize = m_rlcStatsCalculator->GetUlRxData(imsi, 3) * 8.0 / 1e3; // unit kbit
         double uplinkRlcBitrate =
             (uplinkRlcLatency == 0) ? 0 : uplinkpduStats / uplinkRlcLatency; // unit kbit/s
@@ -424,6 +426,7 @@ MmWaveEnbNetDevice::BuildAndSendReportMessage()
 
     E2AP_PDU* pdu_du_ue = new E2AP_PDU;
     auto kpmPrams = m_e2term->GetSubscriptionPara();
+    NS_LOG_DEBUG("kpmPrams.ranFuncionId: " << kpmPrams.ranFuncionId);
     encoding::generate_e2apv1_indication_request_parameterized(
         pdu_du_ue,
         kpmPrams.requestorId,

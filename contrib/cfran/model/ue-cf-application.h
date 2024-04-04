@@ -5,6 +5,7 @@
 #include <ns3/socket.h>
 #include <ns3/mc-ue-net-device.h>
 #include <ns3/system-info.h>
+#include "cf-radio-header.h"
 #include <ns3/cf-e2e-calculator.h>
 #include <ns3/cf-e2e-buffer.h>
 

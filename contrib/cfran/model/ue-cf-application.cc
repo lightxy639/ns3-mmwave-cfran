@@ -1,6 +1,5 @@
 #include "ue-cf-application.h"
 
-#include "cf-radio-header.h"
 #include "multi-packet-header.h"
 #include "task-request-header.h"
 
@@ -310,8 +309,16 @@ UeCfApplication::E2eTrace(CfRadioHeader cfRHd)
     uint64_t upWdDelay = m_cfE2eBuffer->GetUplinkWiredDelay(ueId, taskId, true);
     uint64_t queueDelay = m_cfE2eBuffer->GetQueueDelay(ueId, taskId, true);
     uint64_t computingDelay = m_cfE2eBuffer->GetComputingDelay(ueId, taskId, true);
-    uint64_t downWdDelay = m_cfE2eBuffer->GetDownlinkWiredDelay(ueId, taskId, true);
-    uint64_t downWlDelay = m_cfE2eBuffer->GetDownlinkWirelessDelay(ueId, taskId, true);
+    uint64_t dnWdDelay = m_cfE2eBuffer->GetDownlinkWiredDelay(ueId, taskId, true);
+    uint64_t dnWlDelay = m_cfE2eBuffer->GetDownlinkWirelessDelay(ueId, taskId, true);
+
+    m_cfE2eCalculator->UpdateDelayStats(ueId,
+                                        upWlDelay,
+                                        upWdDelay,
+                                        queueDelay,
+                                        computingDelay,
+                                        dnWdDelay,
+                                        dnWlDelay);
 }
 
 } // namespace ns3

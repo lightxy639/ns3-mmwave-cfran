@@ -1,5 +1,8 @@
 #include "cf-application.h"
 
+#include "encode_e2apv1.hpp"
+
+#include <ns3/cJSON.h>
 #include <ns3/cf-radio-header.h>
 #include <ns3/cf-x2-header.h>
 #include <ns3/epc-x2.h>
@@ -69,6 +72,11 @@ CfApplication::GetTypeId()
                           PointerValue(),
                           MakePointerAccessor(&CfApplication::m_cfUnit),
                           MakePointerChecker<CfUnit>())
+            .AddAttribute("CfE2eCalculator",
+                          "CfE2eCalculator instance",
+                          PointerValue(),
+                          MakePointerAccessor(&CfApplication::m_cfE2eCalaulator),
+                          MakePointerChecker<CfE2eCalculator>())
             .AddTraceSource("RecvRequest",
                             "Recv UE task request of any UE directly",
                             MakeTraceSourceAccessor(&CfApplication::m_recvRequestTrace),
@@ -268,6 +276,7 @@ CfApplication::StartApplication()
     m_socket->SetRecvCallback(MakeCallback(&CfApplication::RecvFromUe, this));
 
     InitX2Info();
+    Simulator::Schedule(Seconds(1.5), &CfApplication::BuildAndSendE2Report, this);
 }
 
 void
@@ -302,9 +311,7 @@ CfApplication::RecvTaskResult(uint64_t ueId, UeTaskModel ueTask)
     if (ueConnectedGnbId == appGnbId)
     {
         // SendTaskResultToUserFromGnb(ueId);
-        m_sendResultTrace(ueId,
-                          ueTask.m_taskId,
-                          Simulator::Now().GetTimeStep());
+        m_sendResultTrace(ueId, ueTask.m_taskId, Simulator::Now().GetTimeStep());
 
         Ptr<Packet> resultPacket = Create<Packet>(500);
 
@@ -726,6 +733,104 @@ CfApplication::UpdateUeState(uint64_t id, UeState state)
     {
         NS_FATAL_ERROR("Unvalid state.");
     }
+}
+
+void
+CfApplication::BuildAndSendE2Report()
+{
+    NS_LOG_FUNCTION(this);
+
+    NS_LOG_DEBUG(this << m_e2term->GetSubscriptionState());
+    if (!m_e2term->GetSubscriptionState())
+    {
+        Simulator::Schedule(MilliSeconds(500), &CfApplication::BuildAndSendE2Report, this);
+        return;
+    }
+
+    E2Termination::RicSubscriptionRequest_rval_s params = m_e2term->GetSubscriptionPara();
+
+    std::string plmId = "111";
+    std::string gnbId = std::to_string(m_mmWaveEnbNetDevice->GetCellId());
+    uint16_t cellId = m_mmWaveEnbNetDevice->GetCellId();
+
+    Ptr<KpmIndicationHeader> header =
+        m_mmWaveEnbNetDevice->BuildRicIndicationHeader(plmId, gnbId, cellId);
+
+    for (auto it = m_ueState.begin(); it != m_ueState.end(); it++)
+    {
+        uint64_t ueId = it->first;
+
+        std::vector<double> upWlDelay = m_cfE2eCalaulator->GetUplinkWirelessDelayStats(ueId);
+        std::vector<double> upWdDelay = m_cfE2eCalaulator->GetUplinkWiredDelayStats(ueId);
+        std::vector<double> queueDelay = m_cfE2eCalaulator->GetQueueDelayStats(ueId);
+        std::vector<double> compDelay = m_cfE2eCalaulator->GetComputingDelayStats(ueId);
+        std::vector<double> dnWdDelay = m_cfE2eCalaulator->GetDownlinkWiredDelayStats(ueId);
+        std::vector<double> dnWlDelay = m_cfE2eCalaulator->GetDownlinkWirelessDelayStats(ueId);
+        m_cfE2eCalaulator->ResetResultForUe(ueId);
+
+        cJSON* ueStatsMsg = cJSON_CreateObject();
+        cJSON_AddNumberToObject(ueStatsMsg, "Id", ueId);
+
+        cJSON_AddNumberToObject(ueStatsMsg, "upWlMea", upWlDelay[0] / 1e6);
+        cJSON_AddNumberToObject(ueStatsMsg, "upWlStd", upWlDelay[1] / 1e6);
+        cJSON_AddNumberToObject(ueStatsMsg, "upWlMin", upWlDelay[2] / 1e6);
+        cJSON_AddNumberToObject(ueStatsMsg, "upWlMax", upWlDelay[3] / 1e6);
+
+        cJSON_AddNumberToObject(ueStatsMsg, "upWdMea", upWdDelay[0] / 1e6);
+        cJSON_AddNumberToObject(ueStatsMsg, "upWdStd", upWdDelay[1] / 1e6);
+        cJSON_AddNumberToObject(ueStatsMsg, "upWdMin", upWdDelay[2] / 1e6);
+        cJSON_AddNumberToObject(ueStatsMsg, "upWdMax", upWdDelay[3] / 1e6);
+
+        cJSON_AddNumberToObject(ueStatsMsg, "queMea", queueDelay[0] / 1e6);
+        cJSON_AddNumberToObject(ueStatsMsg, "queStd", queueDelay[1] / 1e6);
+        cJSON_AddNumberToObject(ueStatsMsg, "queMin", queueDelay[2] / 1e6);
+        cJSON_AddNumberToObject(ueStatsMsg, "queMax", queueDelay[3] / 1e6);
+
+        cJSON_AddNumberToObject(ueStatsMsg, "compMea", compDelay[0] / 1e6);
+        cJSON_AddNumberToObject(ueStatsMsg, "compStd", compDelay[1] / 1e6);
+        cJSON_AddNumberToObject(ueStatsMsg, "compMin", compDelay[2] / 1e6);
+        cJSON_AddNumberToObject(ueStatsMsg, "compMax", compDelay[3] / 1e6);
+
+        cJSON_AddNumberToObject(ueStatsMsg, "dnWdMea", dnWdDelay[0] / 1e6);
+        cJSON_AddNumberToObject(ueStatsMsg, "dnWdStd", dnWdDelay[1] / 1e6);
+        cJSON_AddNumberToObject(ueStatsMsg, "dnWdMin", dnWdDelay[2] / 1e6);
+        cJSON_AddNumberToObject(ueStatsMsg, "dnWdMax", dnWdDelay[3] / 1e6);
+
+        cJSON_AddNumberToObject(ueStatsMsg, "dnWlMea", dnWlDelay[0] / 1e6);
+        cJSON_AddNumberToObject(ueStatsMsg, "dnWlStd", dnWlDelay[1] / 1e6);
+        cJSON_AddNumberToObject(ueStatsMsg, "dnWlMin", dnWlDelay[2] / 1e6);
+        cJSON_AddNumberToObject(ueStatsMsg, "dnWlMax", dnWlDelay[3] / 1e6);
+
+        std::string testString = cJSON_PrintUnformatted(ueStatsMsg);
+        // const char* testString = cJSON_PrintUnformatted(ueStatsMsg).c_str();
+        NS_LOG_DEBUG(testString.c_str());
+
+        E2AP_PDU* pdu_du_ue = new E2AP_PDU;
+        auto kpmPrams = m_e2term->GetSubscriptionPara();
+        NS_LOG_DEBUG("kpmPrams.ranFuncionId: " << kpmPrams.ranFuncionId);
+        encoding::generate_e2apv1_indication_request_parameterized(
+            pdu_du_ue,
+            kpmPrams.requestorId,
+            kpmPrams.instanceId,
+            kpmPrams.ranFuncionId,
+            kpmPrams.actionId,
+            1,                          // TODO sequence number
+            (uint8_t*)header->m_buffer, // buffer containing the encoded header
+            header->m_size,             // size of the encoded header
+            //  (uint8_t*) duMsg->m_buffer, // buffer containing the encoded message
+            (uint8_t*)(testString.c_str()),
+            //  duMsg->m_size
+            strlen(testString.c_str())); // size of the encoded message
+        m_e2term->SendE2Message(pdu_du_ue);
+        delete pdu_du_ue;
+
+        // Simulator::ScheduleWithContext(GetNode()->GetId(),
+        //                                MilliSeconds(500),
+        //                                &CfApplication::BuildAndSendE2Report,
+        //                                this);
+    }
+
+    Simulator::Schedule(MilliSeconds(500), &CfApplication::BuildAndSendE2Report, this);
 }
 
 } // namespace ns3

@@ -1,6 +1,7 @@
 #ifndef CFRAN_HELPER_H
 #define CFRAN_HELPER_H
 
+#include <ns3/application-container.h>
 #include <ns3/cf-unit.h>
 #include <ns3/cf-e2e-calculator.h>
 #include <ns3/cf-e2e-buffer.h>
@@ -39,7 +40,7 @@ class CfRanHelper : public Object
      */
     void InstallCfUnit(NodeContainer c, ObjectFactory cfUnitObj);
 
-    void EnableTraces();
+    void EnableTraces(ApplicationContainer ueAppC, ApplicationContainer gnbAppC);
 
     // void InstallCfApplication(NodeContainer)
 
