@@ -760,6 +760,12 @@ CfApplication::BuildAndSendE2Report()
     {
         uint64_t ueId = it->first;
 
+        CfranSystemInfo::UeInfo ueInfo = m_cfranSystemInfo->GetUeInfo(ueId);
+        uint64_t assoCellId = ueInfo.m_mcUeNetDevice->GetMmWaveTargetEnb()->GetCellId();
+        uint64_t compCellId = cellId;
+        
+        m_cfE2eCalaulator->BackupUeE2eResults(ueId, assoCellId, compCellId);
+
         std::vector<double> upWlDelay = m_cfE2eCalaulator->GetUplinkWirelessDelayStats(ueId);
         std::vector<double> upWdDelay = m_cfE2eCalaulator->GetUplinkWiredDelayStats(ueId);
         std::vector<double> queueDelay = m_cfE2eCalaulator->GetQueueDelayStats(ueId);

@@ -182,9 +182,9 @@ class CfApplication : public Application
     TracedCallback<uint64_t, uint64_t, uint64_t> m_getForwardedResultTrace;
 
     TracedCallback<uint64_t, uint64_t, uint64_t> m_sendResultTrace;
-    
 
-
+    std::string m_ueE2eOutFile;
+    bool m_firstWrite;
 };
 
 } // namespace ns3

@@ -394,6 +394,11 @@ main(int argc, char* argv[])
     LogComponentEnable("MmWaveEnbNetDevice", LOG_DEBUG);
     LogComponentEnable("MmWaveEnbNetDevice", LOG_PREFIX_ALL);
 
+    LogComponentEnable("CfE2eCalculator", LOG_FUNCTION);
+    LogComponentEnable("CfE2eCalculator", LOG_DEBUG);
+    LogComponentEnable("CfE2eCalculator", LOG_ERROR);
+    LogComponentEnable("CfE2eCalculator", LOG_PREFIX_ALL);
+
     LogComponentEnable("McTwoEnbs", LOG_DEBUG);
 
     bool harqEnabled = true;
@@ -710,11 +715,11 @@ main(int argc, char* argv[])
     uemobility.Install(ueNodes);
     BuildingsHelper::Install(ueNodes);
 
-    // ueNodes.Get(0)->GetObject<MobilityModel>()->SetPosition(Vector(60, 70, 0));
-    // ueNodes.Get(0)->GetObject<ConstantVelocityMobilityModel>()->SetVelocity(Vector(0, 0, 0));
-
-    ueNodes.Get(0)->GetObject<MobilityModel>()->SetPosition(Vector(ueInitialPosition, -5, 1.6));
+    ueNodes.Get(0)->GetObject<MobilityModel>()->SetPosition(Vector(60, 70, 0));
     ueNodes.Get(0)->GetObject<ConstantVelocityMobilityModel>()->SetVelocity(Vector(0, 0, 0));
+
+    // ueNodes.Get(0)->GetObject<MobilityModel>()->SetPosition(Vector(ueInitialPosition, -5, 1.6));
+    // ueNodes.Get(0)->GetObject<ConstantVelocityMobilityModel>()->SetVelocity(Vector(0, 0, 0));
     // ueNodes.Get(1)->GetObject<MobilityModel>()->SetPosition(
     //     Vector(60, 70, 1.6));
     // ueNodes.Get(1)->GetObject<ConstantVelocityMobilityModel>()->SetVelocity(Vector(0, 0, 0));

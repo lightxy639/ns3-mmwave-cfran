@@ -44,7 +44,15 @@ class CfE2eCalculator : public Object
 
     void ResetResultForUe(uint64_t ueId);
 
+    void SetUeE2eOutFileName(std::string UeE2eOutFileName);
+    std::string GetUeE2eOutFileName();
+    
+    void BackupUeE2eResults(uint64_t ueId, uint64_t assoCellId, uint64_t compCellId);
+
   private:
+    // void ShowResults();
+    // void WriteUeE2eResults(std::ofstream& outFile);
+
     DelayStatsMap m_uplinkWirelessDelay;
     DelayStatsMap m_uplinkWiredDelay;
     DelayStatsMap m_queueDelay;
@@ -52,6 +60,9 @@ class CfE2eCalculator : public Object
     DelayStatsMap m_downlinkWiredDelay;
     DelayStatsMap m_downlinkWirelessDelay;
     DelayStatsMap m_e2eDelay;
+
+    std::string m_ueE2eOutFileName;
+    bool m_firstWrite;
 };
 } // namespace ns3
 

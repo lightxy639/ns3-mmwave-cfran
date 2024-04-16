@@ -17,8 +17,8 @@ CfRanHelper::CfRanHelper()
 {
     NS_LOG_FUNCTION(this);
 
-    m_cfE2eCalculator = Create<CfE2eCalculator>();
-    m_cfE2eBuffer = Create<CfE2eBuffer>();
+    m_cfE2eCalculator = CreateObject<CfE2eCalculator>();
+    m_cfE2eBuffer = CreateObject<CfE2eBuffer>();
 }
 
 CfRanHelper::~CfRanHelper()
