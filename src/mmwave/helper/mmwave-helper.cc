@@ -278,12 +278,12 @@ MmWaveHelper::GetTypeId(void)
                           MakePointerChecker<E2Termination>())
             .AddAttribute("E2ModeNr",
                           "If true, enable reporting over E2 for NR cells.",
-                          BooleanValue(true),
+                          BooleanValue(false),
                           MakeBooleanAccessor(&MmWaveHelper::m_e2mode_nr),
                           MakeBooleanChecker())
             .AddAttribute("E2ModeLte",
                           "If true, enable reporting over E2 for LTE cells.",
-                          BooleanValue(true),
+                          BooleanValue(false),
                           MakeBooleanAccessor(&MmWaveHelper::m_e2mode_lte),
                           MakeBooleanChecker())
             .AddAttribute("E2TermIp",

@@ -5,8 +5,7 @@
 
 namespace ns3
 {
-namespace mmwave
-{
+
 class InterceptTag : public Tag
 {
   public:
@@ -14,6 +13,7 @@ class InterceptTag : public Tag
     virtual TypeId GetInstanceTypeId(void) const;
 
     InterceptTag();
+    InterceptTag(bool intrercept);
 
     virtual void Serialize(TagBuffer i) const;
     virtual void Deserialize(TagBuffer i);
@@ -21,8 +21,7 @@ class InterceptTag : public Tag
     virtual void Print(std::ostream& os) const;
 
   private:
-    bool 
+    bool m_intercept;
 };
-} // namespace mmwave
 } // namespace ns3
 #endif

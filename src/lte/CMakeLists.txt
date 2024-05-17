@@ -156,6 +156,7 @@ set(source_files
     model/mc-enb-pdcp.cc
     model/mc-ue-pdcp.cc
     model/enb-server-tag.cc
+    model/intercept-tag.cc
     helper/retx-stats-calculator.cc
     helper/mac-tx-stats-calculator.cc
 )
@@ -356,6 +357,7 @@ set(header_files
     model/component-carrier-ue.h
     model/component-carrier-enb.h
     model/enb-server-tag.h
+    model/intercept-tag.h
 )
 
 build_lib(

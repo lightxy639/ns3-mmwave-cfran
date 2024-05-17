@@ -3,6 +3,7 @@
 #include "multi-packet-header.h"
 #include "task-request-header.h"
 
+#include <ns3/intercept-tag.h>
 #include <ns3/log.h>
 #include <ns3/simulator.h>
 
@@ -154,6 +155,13 @@ UeCfApplication::SendInitRequest()
 
     Ptr<Packet> p = Create<Packet>(m_minSize);
     p->AddHeader(cfRadioHeader);
+
+    InterceptTag interceptTag;
+    // p->AddPacketTag(interceptTag);
+    p->AddByteTag(interceptTag);
+
+    // std::ofstream out_file("PacketTag.txt");
+    // p->PrintPacketTags(out_file);
     if (m_socket->Send(p) >= 0)
     {
         NS_LOG_DEBUG("UE " << m_ueId << " send init request to cell " << gnbId);
@@ -194,6 +202,8 @@ UeCfApplication::SendTaskRequest()
 
         // Simulator::Schedule(MicroSeconds((n-1) * packetInterval),
         // &UeCfApplication::SendPacketToGnb, this, p);
+        InterceptTag interceptTag;
+        p->AddByteTag(interceptTag);
         if (m_socket->Send(p) < 0)
         {
             NS_FATAL_ERROR("Error in sending task request.");

@@ -28,18 +28,20 @@
 
 #include "ns3/lte-rlc-am.h"
 
+#include "intercept-tag.h"
+
+#include "ns3/ipv4-header.h"
 #include "ns3/ipv4-packet-filter.h"
 #include "ns3/ipv4-queue-disc-item.h"
+#include "ns3/ipv6-header.h"
 #include "ns3/log.h"
+#include "ns3/lte-pdcp-header.h"
+#include "ns3/lte-pdcp-tag.h"
 #include "ns3/lte-rlc-am-header.h"
 #include "ns3/lte-rlc-sdu-status-tag.h"
 #include "ns3/lte-rlc-tag.h"
 #include "ns3/simulator.h"
 #include "ns3/string.h"
-
-#include "ns3/lte-pdcp-header.h"
-#include "ns3/ipv4-header.h"
-#include "ns3/ipv6-header.h"
 
 namespace ns3
 {
@@ -2786,27 +2788,58 @@ LteRlcAm::TriggerReceivePdcpPdu(Ptr<Packet> p)
     }
     else
     {
-        // TODO The complete RLC layer functionality has not been implemented yet.
-        LtePdcpHeader pdcpHeader;
-        p->RemoveHeader(pdcpHeader);
-        p->RemoveAllByteTags();
+        InterceptTag interceptTag;
+        PdcpTag pdcpTag;
 
         Ipv4Header ipv4Header;
-        // p->PeekHeader(ipv4Header);
-            // m_forwardUpCallback(p);
-
         Ipv6Header ipv6Header;
-        NS_ASSERT(p->PeekHeader(ipv4Header) != 0 || p->PeekHeader(ipv6Header) != 0);
-        if(p->PeekHeader(ipv4Header) != 0 || p->PeekHeader(ipv6Header) != 0)
+        LtePdcpHeader pdcpHeader;
+        p->RemoveHeader(pdcpHeader);
+
+        if (p->FindFirstMatchingByteTag(interceptTag))
         {
-            m_forwardUpCallback(p);
+            if (p->PeekHeader(ipv4Header) != 0 || p->PeekHeader(ipv6Header) != 0)
+            {
+                m_forwardUpCallback(p);
+                NS_LOG_DEBUG("InterceptTag Detected.");
+            }
         }
+        else
+        {
+            p->AddHeader(pdcpHeader);
+            m_ueDataParams.ueData = p;
+            m_epcX2RlcProvider->ReceiveMcPdcpSdu(m_ueDataParams);
+            NS_LOG_DEBUG("No InterceptTag Detected.");
+        }
+
+        // if (p->PeekPacketTag(interceptTag))
+        // {
+        //     NS_LOG_INFO("InterceptTag Detected.");
+        //     m_forwardUpCallback(p);
+        // }
+        // else
+        // {
+        //     m_ueDataParams.ueData = p;
+        //     m_epcX2RlcProvider->ReceiveMcPdcpSdu(m_ueDataParams);
+        // }
+        // TODO The complete RLC layer functionality has not been implemented yet.
+        // LtePdcpHeader pdcpHeader;
+        // p->RemoveHeader(pdcpHeader);
+        // // p->RemoveAllByteTags();
+
+        // Ipv4Header ipv4Header;
+        // Ipv6Header ipv6Header;
+        // NS_ASSERT(p->PeekHeader(ipv4Header) != 0 || p->PeekHeader(ipv6Header) != 0);
+        // if (p->PeekHeader(ipv4Header) != 0 || p->PeekHeader(ipv6Header) != 0)
+        // {
+        //     m_forwardUpCallback(p);
+        // }
 
         // // p->PeekHeader(ipv6Header);
 
-        // NS_LOG_DEBUG("ipv4Header " << p->PeekHeader(ipv4Header) << " " << "ipv6Header " << p->PeekHeader(ipv6Header));
+        // NS_LOG_DEBUG("ipv4Header " << p->PeekHeader(ipv4Header) << " " << "ipv6Header " <<
+        // p->PeekHeader(ipv6Header));
 
-        
         // // p->PeekHeader(pdcpHeader);
         // uint8_t ipType;
 

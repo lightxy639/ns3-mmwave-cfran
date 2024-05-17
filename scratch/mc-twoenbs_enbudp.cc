@@ -386,10 +386,19 @@ int
 main(int argc, char* argv[])
 {
     // LogComponentEnable("McTwoEnbs", LOG_DEBUG);
-    // LogComponentEnable("CfApplication", LOG_INFO);
+    LogComponentEnable("CfApplication", LOG_INFO);
     LogComponentEnable("CfApplication", LOG_DEBUG);
     // LogComponentEnable("CfApplication", LOG_FUNCTION);
     LogComponentEnable("CfApplication", LOG_PREFIX_ALL);
+
+    LogComponentEnable("UeCfApplication", LOG_INFO);
+    LogComponentEnable("UeCfApplication", LOG_FUNCTION);
+    LogComponentEnable("UeCfApplication", LOG_DEBUG);
+    LogComponentEnable("UeCfApplication", LOG_PREFIX_ALL);
+
+    // LogComponentEnable("LteRlcAm", LOG_LEVEL_INFO);
+    LogComponentEnable("LteRlcAm", LOG_DEBUG);
+    LogComponentEnable("LteRlcAm", LOG_PREFIX_ALL);
 
     LogComponentEnable("MmWaveEnbNetDevice", LOG_DEBUG);
     LogComponentEnable("MmWaveEnbNetDevice", LOG_PREFIX_ALL);
