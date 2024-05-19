@@ -51,6 +51,15 @@ CfranSystemInfo::GetCellInfo(uint64_t cellId)
     return it->second;
 }
 
+CfranSystemInfo::RemoteInfo
+CfranSystemInfo::GetRemoteInfo(uint64_t remoteId)
+{
+    auto it = m_remoteInfo.find(remoteId);
+    NS_ASSERT(it != m_remoteInfo.end());
+
+    return it->second;
+}
+
 void
 CfranSystemInfo::AddUeInfo(uint64_t imsi, UeInfo ueInfo)
 {
@@ -58,9 +67,15 @@ CfranSystemInfo::AddUeInfo(uint64_t imsi, UeInfo ueInfo)
 }
 
 void
-CfranSystemInfo::AddCellInfo(uint64_t imsi, CellInfo cellInfo)
+CfranSystemInfo::AddCellInfo(uint64_t cellId, CellInfo cellInfo)
 {
-    m_cellInfo.insert(std::pair<uint64_t, CellInfo>(imsi, cellInfo));
+    m_cellInfo.insert(std::pair<uint64_t, CellInfo>(cellId, cellInfo));
 }
 
+void
+CfranSystemInfo::AddRemoteInfo(uint64_t remoteId, RemoteInfo remoteInfo)
+{
+    NS_LOG_FUNCTION(this << remoteId);
+    m_remoteInfo.insert(std::pair<uint64_t, RemoteInfo>(remoteId, remoteInfo));
+}
 } // namespace ns3

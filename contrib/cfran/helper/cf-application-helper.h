@@ -31,7 +31,8 @@ class CfApplicationHelper : public Object
      * \param c The nodes on which to create the Applications.  The nodes
      *          are specified by a NodeContainer.
      */
-    ApplicationContainer Install(NodeContainer c);
+    ApplicationContainer Install(NodeContainer c, bool isGnb = true);
+
 };
 } // namespace ns3
 

@@ -22,6 +22,8 @@ class CfranSystemInfo : public Object
     struct UeInfo
     {
         uint64_t m_imsi;       // imsi
+        Ipv4Address m_ipAddr;
+        uint16_t m_port;
         float m_taskPeriodity; // ms
         Ptr<mmwave::McUeNetDevice> m_mcUeNetDevice;
         UeTaskModel m_taskModel;
@@ -32,6 +34,13 @@ class CfranSystemInfo : public Object
         uint64_t m_id;
         Ptr<mmwave::MmWaveEnbNetDevice> m_mmwaveEnbNetDevice;
         Ipv4Address m_ipAddrToUe;
+    };
+
+    struct RemoteInfo
+    {
+      uint64_t m_id;
+      Ipv4Address m_ipAddr;
+      uint16_t m_port;
     };
     
     CfranSystemInfo();
@@ -45,9 +54,13 @@ class CfranSystemInfo : public Object
 
     UeInfo GetUeInfo(uint64_t imsi);
     CellInfo GetCellInfo(uint64_t cellId);
+    RemoteInfo GetRemoteInfo(uint64_t remoteId);
 
     void AddUeInfo(uint64_t imsi, UeInfo ueInfo);
     void AddCellInfo(uint64_t cellId, CellInfo cellInfo);
+    void AddRemoteInfo(uint64_t remoteId, RemoteInfo remoteInfo);
+
+
 
   protected:
     // inherited from Object
@@ -56,6 +69,7 @@ class CfranSystemInfo : public Object
   private:
     std::map<uint64_t, UeInfo> m_ueInfo;
     std::map<uint64_t, CellInfo> m_cellInfo;
+    std::map<uint64_t, RemoteInfo> m_remoteInfo;
 };
 } // namespace ns3
 

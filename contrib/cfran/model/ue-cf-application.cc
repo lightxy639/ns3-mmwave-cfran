@@ -29,6 +29,11 @@ UeCfApplication::GetTypeId()
                           UintegerValue(100),
                           MakeUintegerAccessor(&UeCfApplication::m_offloadPort),
                           MakeUintegerChecker<uint16_t>())
+            .AddAttribute("UePort",
+                          "The port used by the user terminal in the cfran scenario",
+                          UintegerValue(1234),
+                          MakeUintegerAccessor(&UeCfApplication::m_uePort),
+                          MakeUintegerChecker<uint16_t>())
             .AddAttribute("CfE2eBuffer",
                           "CfE2eBuffer instance",
                           PointerValue(),
@@ -96,16 +101,22 @@ UeCfApplication::InitSocket()
 
     uint16_t gnbId = m_mcUeNetDev->GetMmWaveTargetEnb()->GetCellId();
     Ipv4Address gnbIp = m_cfranSystemInfo->GetCellInfo(gnbId).m_ipAddrToUe;
-    m_offloadAddress = gnbIp;
+    // m_offloadAddress = gnbIp;
+
+    m_offloadPointId = 101;
+
+    Ipv4Address remoteIp = m_cfranSystemInfo->GetRemoteInfo(m_offloadPointId).m_ipAddr;
+    m_offloadAddress = remoteIp;
 
     TypeId tid = TypeId::LookupByName("ns3::UdpSocketFactory");
     m_socket = Socket::CreateSocket(GetNode(), tid);
-    if (m_socket->Bind() == -1)
+    InetSocketAddress local = InetSocketAddress(Ipv4Address::GetAny(), m_uePort);
+    if (m_socket->Bind(local) == -1)
     {
         NS_FATAL_ERROR("Failed to bind socket");
     }
 
-    m_socket->Connect(InetSocketAddress(gnbIp, m_offloadPort));
+    m_socket->Connect(InetSocketAddress(m_offloadAddress, m_offloadPort));
 }
 
 void
@@ -143,10 +154,10 @@ UeCfApplication::SendInitRequest()
     uint16_t gnbId = m_mcUeNetDev->GetMmWaveTargetEnb()->GetCellId();
     Ipv4Address gnbIp = m_cfranSystemInfo->GetCellInfo(gnbId).m_ipAddrToUe;
 
-    if (gnbIp != m_offloadAddress)
-    {
-        SwitchOffloadAddress(gnbIp, m_offloadPort);
-    }
+    // if (gnbIp != m_offloadAddress)
+    // {
+    //     SwitchOffloadAddress(gnbIp, m_offloadPort);
+    // }
 
     CfRadioHeader cfRadioHeader;
     cfRadioHeader.SetMessageType(CfRadioHeader::InitRequest);
@@ -156,15 +167,14 @@ UeCfApplication::SendInitRequest()
     Ptr<Packet> p = Create<Packet>(m_minSize);
     p->AddHeader(cfRadioHeader);
 
-    InterceptTag interceptTag;
-    // p->AddPacketTag(interceptTag);
-    p->AddByteTag(interceptTag);
+    // InterceptTag interceptTag;
+    // p->AddByteTag(interceptTag);
 
     // std::ofstream out_file("PacketTag.txt");
     // p->PrintPacketTags(out_file);
     if (m_socket->Send(p) >= 0)
     {
-        NS_LOG_DEBUG("UE " << m_ueId << " send init request to cell " << gnbId);
+        NS_LOG_DEBUG("UE " << m_ueId << " send init request to cell " << m_offloadPointId);
     }
 }
 
@@ -194,7 +204,7 @@ UeCfApplication::SendTaskRequest()
         cfRadioHeader.SetMessageType(CfRadioHeader::TaskRequest);
         cfRadioHeader.SetUeId(m_ueId);
         cfRadioHeader.SetTaskId(m_taskId);
-        cfRadioHeader.SetGnbId(m_offloadGnbId);
+        cfRadioHeader.SetGnbId(m_offloadPointId);
 
         Ptr<Packet> p = Create<Packet>(m_minSize);
         p->AddHeader(mpHeader);
@@ -212,7 +222,7 @@ UeCfApplication::SendTaskRequest()
     m_txRequestTrace(m_ueId, m_taskId, Simulator::Now().GetTimeStep());
 
     NS_LOG_INFO("UE " << m_ueId << " send task request " << m_taskId << " to cell "
-                      << m_offloadGnbId);
+                      << m_offloadPointId);
 
     m_taskId++;
     Simulator::Schedule(MilliSeconds(m_period), &UeCfApplication::SendTaskRequest, this);
@@ -254,7 +264,7 @@ UeCfApplication::RecvFromGnb(Ptr<Packet> p)
     if (cfRadioHeader.GetMessageType() == CfRadioHeader::InitSuccess)
     {
         NS_LOG_INFO("Init Success in gNB " << cfRadioHeader.GetGnbId());
-        m_offloadGnbId = cfRadioHeader.GetGnbId();
+        m_offloadPointId = cfRadioHeader.GetGnbId();
         Simulator::Schedule(Seconds(0), &UeCfApplication::SendTaskRequest, this);
     }
     else if (cfRadioHeader.GetMessageType() == CfRadioHeader::TaskResult)

@@ -56,13 +56,15 @@ class UeCfApplication : public Application
   protected:
     void DoDispose();
 
+    uint64_t m_ueId;
+
+    uint64_t m_offloadPointId;
+
     Ipv4Address m_offloadAddress;
 
     uint16_t m_offloadPort;
 
-    uint64_t m_ueId;
-
-    uint64_t m_offloadGnbId;
+    uint64_t m_uePort;
 
     uint64_t m_taskId;
 

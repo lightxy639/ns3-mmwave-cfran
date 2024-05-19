@@ -34,6 +34,7 @@
 #include <ns3/cfran-helper.h>
 #include <ns3/lte-ue-net-device.h>
 #include <ns3/random-variable-stream.h>
+#include <ns3/remote-cf-application.h>
 #include <ns3/ue-cf-application-helper.h>
 
 #include <ctime>
@@ -386,10 +387,26 @@ int
 main(int argc, char* argv[])
 {
     // LogComponentEnable("McTwoEnbs", LOG_DEBUG);
-    LogComponentEnable("CfApplication", LOG_INFO);
-    LogComponentEnable("CfApplication", LOG_DEBUG);
+    LogComponentEnable("GnbCfApplication", LOG_INFO);
+    LogComponentEnable("GnbCfApplication", LOG_DEBUG);
     // LogComponentEnable("CfApplication", LOG_FUNCTION);
-    LogComponentEnable("CfApplication", LOG_PREFIX_ALL);
+    LogComponentEnable("GnbCfApplication", LOG_PREFIX_ALL);
+
+    // LogComponentEnable("LteRlcAm", LOG_INFO);
+    LogComponentEnable("LteRlcAm", LOG_DEBUG);
+    LogComponentEnable("LteRlcAm", LOG_PREFIX_ALL);
+
+    LogComponentEnable("RemoteCfApplication", LOG_INFO);
+    LogComponentEnable("RemoteCfApplication", LOG_FUNCTION);
+    LogComponentEnable("RemoteCfApplication", LOG_DEBUG);
+    LogComponentEnable("RemoteCfApplication", LOG_PREFIX_ALL);
+
+    // LogComponentEnable("CfranSystemInfo", LOG_INFO);
+    LogComponentEnable("CfranSystemInfo", LOG_FUNCTION);
+    LogComponentEnable("CfranSystemInfo", LOG_PREFIX_ALL);
+    
+    LogComponentEnable("CfApplicationHelper", LOG_DEBUG);
+    LogComponentEnable("CfApplicationHelper", LOG_PREFIX_ALL);
 
     LogComponentEnable("UeCfApplication", LOG_INFO);
     LogComponentEnable("UeCfApplication", LOG_FUNCTION);
@@ -397,8 +414,8 @@ main(int argc, char* argv[])
     LogComponentEnable("UeCfApplication", LOG_PREFIX_ALL);
 
     // LogComponentEnable("LteRlcAm", LOG_LEVEL_INFO);
-    LogComponentEnable("LteRlcAm", LOG_DEBUG);
-    LogComponentEnable("LteRlcAm", LOG_PREFIX_ALL);
+    // LogComponentEnable("LteRlcAm", LOG_DEBUG);
+    // LogComponentEnable("LteRlcAm", LOG_PREFIX_ALL);
 
     LogComponentEnable("MmWaveEnbNetDevice", LOG_DEBUG);
     LogComponentEnable("MmWaveEnbNetDevice", LOG_PREFIX_ALL);
@@ -639,32 +656,40 @@ main(int argc, char* argv[])
     // Get SGW/PGW and create a single RemoteHost
     Ptr<Node> pgw = epcHelper->GetPgwNode();
     NodeContainer remoteHostContainer;
-    remoteHostContainer.Create(1);
-    Ptr<Node> remoteHost = remoteHostContainer.Get(0);
+
+    remoteHostContainer.Create(2);
     InternetStackHelper internet;
     internet.Install(remoteHostContainer);
-
-    // Create the Internet by connecting remoteHost to pgw. Setup routing too
-    PointToPointHelper p2ph;
-    p2ph.SetDeviceAttribute("DataRate", DataRateValue(DataRate("100Gb/s")));
-    p2ph.SetDeviceAttribute("Mtu", UintegerValue(2500));
-    p2ph.SetChannelAttribute("Delay", TimeValue(Seconds(0.010)));
-    NetDeviceContainer internetDevices = p2ph.Install(pgw, remoteHost);
     Ipv4AddressHelper ipv4h;
     ipv4h.SetBase("1.0.0.0", "255.0.0.0");
-    Ipv4InterfaceContainer internetIpIfaces = ipv4h.Assign(internetDevices);
-    // interface 0 is localhost, 1 is the p2p device
-    Ipv4Address remoteHostAddr = internetIpIfaces.GetAddress(1);
+
     Ipv4StaticRoutingHelper ipv4RoutingHelper;
-    Ptr<Ipv4StaticRouting> remoteHostStaticRouting =
-        ipv4RoutingHelper.GetStaticRouting(remoteHost->GetObject<Ipv4>());
-    remoteHostStaticRouting->AddNetworkRouteTo(Ipv4Address("7.0.0.0"), Ipv4Mask("255.0.0.0"), 1);
+
+    Ipv4InterfaceContainer remoteIpIfaces;
+    for (uint32_t n = 0; n < remoteHostContainer.GetN(); n++)
+    {
+        Ptr<Node> remoteHost = remoteHostContainer.Get(n);
+        PointToPointHelper p2ph;
+        p2ph.SetDeviceAttribute("DataRate", DataRateValue(DataRate("100Gb/s")));
+        p2ph.SetDeviceAttribute("Mtu", UintegerValue(2500));
+        p2ph.SetChannelAttribute("Delay", TimeValue(Seconds(0.010)));
+        NetDeviceContainer internetDevices = p2ph.Install(pgw, remoteHost);
+
+        Ipv4InterfaceContainer internetIpIfaces = ipv4h.Assign(internetDevices);
+        Ptr<Ipv4StaticRouting> remoteHostStaticRouting =
+            ipv4RoutingHelper.GetStaticRouting(remoteHost->GetObject<Ipv4>());
+        remoteHostStaticRouting->AddNetworkRouteTo(Ipv4Address("7.0.0.0"),
+                                                   Ipv4Mask("255.0.0.0"),
+                                                   1);
+        remoteIpIfaces.Add(internetIpIfaces.Get(1));
+    }
 
     // create LTE, mmWave eNB nodes and UE node
     NodeContainer ueNodes;
     NodeContainer mmWaveEnbNodes;
     NodeContainer lteEnbNodes;
     NodeContainer allEnbNodes;
+
     mmWaveEnbNodes.Create(2);
     lteEnbNodes.Create(1);
     ueNodes.Create(1);
@@ -812,11 +837,14 @@ main(int argc, char* argv[])
 
     Ptr<CfRanHelper> cfRanHelper = CreateObject<CfRanHelper>();
     cfRanHelper->InstallCfUnit(mmWaveEnbNodes, cfUnitObj);
+    cfRanHelper->InstallCfUnit(remoteHostContainer, cfUnitObj);
 
     for (uint32_t u = 0; u < mcUeDevs.GetN(); ++u)
     {
         Ptr<McUeNetDevice> mcUeDev = DynamicCast<McUeNetDevice>(mcUeDevs.Get(u));
         uint64_t imsi = mcUeDev->GetImsi();
+
+        Ipv4Address ueAddr = ueIpIface.GetAddress(u);
 
         CfranSystemInfo::UeInfo ueInfo;
         UeTaskModel ueTaskModel;
@@ -825,6 +853,8 @@ main(int argc, char* argv[])
         ueTaskModel.m_deadline = 10;
 
         ueInfo.m_imsi = imsi;
+        ueInfo.m_ipAddr = ueAddr;
+        ueInfo.m_port = 100;
         ueInfo.m_taskModel = ueTaskModel;
         ueInfo.m_taskPeriodity = 16;
         ueInfo.m_mcUeNetDevice = mcUeDev;
@@ -849,9 +879,24 @@ main(int argc, char* argv[])
 
     CfApplicationHelper cfAppHelper;
     serverApps.Add(cfAppHelper.Install(mmWaveEnbNodes));
+    ApplicationContainer remoteApps = cfAppHelper.Install(remoteHostContainer, false);
+    serverApps.Add(remoteApps);
 
     UeCfApplicationHelper ueCfAppHelper;
     clientApps.Add(ueCfAppHelper.Install(ueNodes));
+
+    for (uint32_t n = 0; n < remoteApps.GetN(); n++)
+    {
+        Ptr<RemoteCfApplication> remoteCfApp = DynamicCast<RemoteCfApplication>(remoteApps.Get(n));
+        CfranSystemInfo::RemoteInfo remoteInfo;
+        remoteInfo.m_id = remoteCfApp->GetServerId();
+        remoteInfo.m_ipAddr = remoteIpIfaces.GetAddress(n);
+        remoteInfo.m_port = ulPort;
+
+        cfranSystemInfo->AddRemoteInfo(remoteCfApp->GetServerId(), remoteInfo);
+
+        NS_LOG_DEBUG("Remote " << remoteInfo.m_id << " IP " << remoteInfo.m_ipAddr << " PORT " <<   remoteInfo.m_port);
+    }
 
     // Start applications
     NS_LOG_UNCOND("transientDuration " << transientDuration << " simTime " << simTime);

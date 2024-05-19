@@ -15,6 +15,8 @@ set(source_files
     model/cf-unit-ue-iso.cc
     model/cf-model.cc
     model/cf-application.cc
+    model/gnb-cf-application.cc
+    model/remote-cf-application.cc
     # helper/vr-server-helper.cc
     # helper/vr-client-helper.cc
     # model/cf-unit-simple.cc
@@ -45,6 +47,8 @@ set(header_files
     # model/vr-client.h
     model/cf-model.h
     model/cf-application.h
+    model/gnb-cf-application.h
+    model/remote-cf-application.h
     model/ue-cf-application.h
     model/task-request-header.h
     model/cf-radio-header.h
