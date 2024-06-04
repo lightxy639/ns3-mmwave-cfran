@@ -35,7 +35,7 @@
 #include <ns3/lte-ue-net-device.h>
 #include <ns3/random-variable-stream.h>
 #include <ns3/remote-cf-application.h>
-#include <ns3/ue-cf-application-helper.h>
+#include <ns3/cf-model.h>
 
 #include <ctime>
 #include <iostream>
@@ -291,14 +291,6 @@ TargetEnbTest()
     }
 }
 
-void
-PacketSinkLog(Ptr<const Packet>, const Address& from, const Address& local)
-{
-    NS_LOG_UNCOND("Recv packet "
-                  << "from " << InetSocketAddress::ConvertFrom(from).GetIpv4() << " at "
-                  << InetSocketAddress::ConvertFrom(local).GetIpv4());
-}
-
 static ns3::GlobalValue g_mmw1DistFromMainStreet(
     "mmw1Dist",
     "Distance from the main street of the first MmWaveEnb",
@@ -321,7 +313,7 @@ static ns3::GlobalValue g_mmWaveDistance("mmWaveDist",
 static ns3::GlobalValue g_numBuildingsBetweenMmWaveEnb(
     "numBlocks",
     "Number of buildings between MmWave eNB 1 and 2",
-    ns3::UintegerValue(0),
+    ns3::UintegerValue(8),
     ns3::MakeUintegerChecker<uint32_t>());
 static ns3::GlobalValue g_interPckInterval("interPckInterval",
                                            "Interarrival time of UDP packets (us)",
@@ -368,7 +360,7 @@ static ns3::GlobalValue g_noiseAndFilter(
     ns3::MakeBooleanChecker());
 static ns3::GlobalValue g_handoverMode("handoverMode",
                                        "Handover mode",
-                                       ns3::UintegerValue(2),
+                                       ns3::UintegerValue(3),
                                        ns3::MakeUintegerChecker<uint8_t>());
 static ns3::GlobalValue g_reportTablePeriodicity("reportTablePeriodicity",
                                                  "Periodicity of RTs",
@@ -387,53 +379,25 @@ int
 main(int argc, char* argv[])
 {
     // LogComponentEnable("McTwoEnbs", LOG_DEBUG);
-    // LogComponentEnable("GnbCfApplication", LOG_INFO);
-    LogComponentEnable("GnbCfApplication", LOG_DEBUG);
-    // // LogComponentEnable("CfApplication", LOG_FUNCTION);
-    LogComponentEnable("GnbCfApplication", LOG_PREFIX_ALL);
-
-    // LogComponentEnable("LteRlcAm", LOG_INFO);
+    LogComponentEnable("PacketSink", LOG_INFO);
+    // LogComponentEnable("LteUeRrc", LOG_FUNCTION);
+    // LogComponentEnable("LteUeRrc", LOG_INFO);
+    // LogComponentEnable("LteEnbRrc", LOG_INFO);
+    // LogComponentEnable("LteEnbRrc", LOG_FUNCTION);
+    // LogComponentEnable("LteRlcAm", LOG_FUNCTION);
+    // LogComponentEnable("LteNetDevice", LOG_FUNCTION);
+    // LogComponentEnable("LteNetDevice", LOG_DEBUG);
     // LogComponentEnable("LteRlcAm", LOG_DEBUG);
-    // LogComponentEnable("LteRlcAm", LOG_PREFIX_ALL);
+    // LogComponentEnable("MmWaveNetDevice", LOG_LOGIC);
+    // LogComponentEnable("MmWaveNetDevice", LOG_FUNCTION);
+    // LogComponentEnable("EpcEnbApplication", LOG_FUNCTION);
+    // LogComponentEnable("EpcEnbApplication", LOG_LOGIC);
+    // LogComponentEnable("LteRlcAm", LOG_INFO);
 
     LogComponentEnable("RemoteCfApplication", LOG_INFO);
-    // LogComponentEnable("RemoteCfApplication", LOG_FUNCTION);
+    LogComponentEnable("RemoteCfApplication", LOG_FUNCTION);
     LogComponentEnable("RemoteCfApplication", LOG_DEBUG);
     LogComponentEnable("RemoteCfApplication", LOG_PREFIX_ALL);
-
-    // LogComponentEnable("CfranSystemInfo", LOG_INFO);
-    LogComponentEnable("CfranSystemInfo", LOG_FUNCTION);
-    LogComponentEnable("CfranSystemInfo", LOG_PREFIX_ALL);
-
-    LogComponentEnable("CfApplicationHelper", LOG_DEBUG);
-    LogComponentEnable("CfApplicationHelper", LOG_PREFIX_ALL);
-
-    // LogComponentEnable("UeCfApplication", LOG_INFO);
-    // LogComponentEnable("UeCfApplication", LOG_FUNCTION);
-    // LogComponentEnable("UeCfApplication", LOG_DEBUG);
-    // LogComponentEnable("UeCfApplication", LOG_PREFIX_ALL);
-
-    // LogComponentEnable("LteRlcAm", LOG_LEVEL_INFO);
-    // LogComponentEnable("LteRlcAm", LOG_DEBUG);
-    // LogComponentEnable("LteRlcAm", LOG_PREFIX_ALL);
-
-    LogComponentEnable("MmWaveEnbNetDevice", LOG_DEBUG);
-    // LogComponentEnable("MmWaveEnbNetDevice", LOG_FUNCTION);
-    LogComponentEnable("MmWaveEnbNetDevice", LOG_PREFIX_ALL);
-
-    // LogComponentEnable("LteEnbNetDevice", LOG_DEBUG);
-    // LogComponentEnable("MmWaveEnbNetDevice", LOG_FUNCTION);
-    // LogComponentEnable("LteEnbNetDevice", LOG_PREFIX_ALL);
-
-    // LogComponentEnable("LteEnbNetDevice", LOG_FUNCTION);
-    // LogComponentEnable("LteEnbNetDevice", LOG_PREFIX_ALL);
-
-    LogComponentEnable("CfE2eCalculator", LOG_FUNCTION);
-    LogComponentEnable("CfE2eCalculator", LOG_DEBUG);
-    LogComponentEnable("CfE2eCalculator", LOG_ERROR);
-    LogComponentEnable("CfE2eCalculator", LOG_PREFIX_ALL);
-
-    LogComponentEnable("McTwoEnbs", LOG_DEBUG);
 
     bool harqEnabled = true;
     bool fixedTti = false;
@@ -573,14 +537,8 @@ main(int argc, char* argv[])
     Config::SetDefault("ns3::LteRlcUm::MaxTxBufferSize", UintegerValue(bufferSize * 1024 * 1024));
     Config::SetDefault("ns3::LteRlcUmLowLat::MaxTxBufferSize",
                        UintegerValue(bufferSize * 1024 * 1024));
-    // Config::SetDefault("ns3::LteRlcAm::StatusProhibitTimer", TimeValue(MilliSeconds(10.0)));
-    Config::SetDefault("ns3::LteRlcAm::StatusProhibitTimer", TimeValue(MilliSeconds(1)));
+    Config::SetDefault("ns3::LteRlcAm::StatusProhibitTimer", TimeValue(MilliSeconds(10.0)));
     Config::SetDefault("ns3::LteRlcAm::MaxTxBufferSize", UintegerValue(bufferSize * 1024 * 1024));
-
-    Config::SetDefault("ns3::MmWaveBearerStatsCalculator::ExternalReschedule", BooleanValue(true));
-
-    // Config::SetDefault("ns3::PacketSink::RxWithAddresses", MakeCallback(&PacketSinkLog));
-    // Config::Connect("ns3::PacketSink::RxWithAddresses", MakeCallback(&PacketSinkLog));
 
     // handover and RT related params
     switch (hoMode)
@@ -597,9 +555,6 @@ main(int argc, char* argv[])
         Config::SetDefault("ns3::LteEnbRrc::SecondaryCellHandoverMode",
                            EnumValue(LteEnbRrc::DYNAMIC_TTT));
         break;
-    case 4:
-        Config::SetDefault("ns3::LteEnbRrc::SecondaryCellHandoverMode",
-                           EnumValue(LteEnbRrc::NO_AUTO));
     }
 
     Config::SetDefault("ns3::LteEnbRrc::FixedTttValue", UintegerValue(150));
@@ -638,9 +593,6 @@ main(int argc, char* argv[])
     Config::SetDefault("ns3::PhasedArrayModel::AntennaElement",
                        PointerValue(CreateObject<IsotropicAntennaModel>()));
 
-    Config::SetDefault("ns3::MmWaveHelper::E2TermIp", StringValue("10.0.2.10"));
-    Config::SetDefault("ns3::CfApplicationHelper::E2TermIp", StringValue("10.0.2.10"));
-
     Ptr<MmWaveHelper> mmwaveHelper = CreateObject<MmWaveHelper>();
     mmwaveHelper->SetPathlossModelType("ns3::ThreeGppUmiStreetCanyonPropagationLossModel");
     mmwaveHelper->SetChannelConditionModelType("ns3::BuildingsChannelConditionModel");
@@ -664,53 +616,36 @@ main(int argc, char* argv[])
 
     // Get SGW/PGW and create a single RemoteHost
     Ptr<Node> pgw = epcHelper->GetPgwNode();
-
     NodeContainer remoteHostContainer;
     remoteHostContainer.Create(1);
+    Ptr<Node> remoteHost = remoteHostContainer.Get(0);
     InternetStackHelper internet;
     internet.Install(remoteHostContainer);
+
+    // Create the Internet by connecting remoteHost to pgw. Setup routing too
+    PointToPointHelper p2ph;
+    p2ph.SetDeviceAttribute("DataRate", DataRateValue(DataRate("100Gb/s")));
+    p2ph.SetDeviceAttribute("Mtu", UintegerValue(2500));
+    p2ph.SetChannelAttribute("Delay", TimeValue(Seconds(0.010)));
+    NetDeviceContainer internetDevices = p2ph.Install(pgw, remoteHost);
     Ipv4AddressHelper ipv4h;
     ipv4h.SetBase("1.0.0.0", "255.0.0.0");
-
+    Ipv4InterfaceContainer internetIpIfaces = ipv4h.Assign(internetDevices);
+    // interface 0 is localhost, 1 is the p2p device
+    Ipv4Address remoteHostAddr = internetIpIfaces.GetAddress(1);
     Ipv4StaticRoutingHelper ipv4RoutingHelper;
-
-    Ipv4InterfaceContainer remoteIpIfaces;
-    for (uint32_t n = 0; n < remoteHostContainer.GetN(); n++)
-    {
-        Ptr<Node> remoteHost = remoteHostContainer.Get(n);
-        PointToPointHelper p2ph;
-        p2ph.SetDeviceAttribute("DataRate", DataRateValue(DataRate("100Gb/s")));
-        p2ph.SetDeviceAttribute("Mtu", UintegerValue(2500));
-        p2ph.SetChannelAttribute("Delay", TimeValue(Seconds(0.010)));
-        NetDeviceContainer internetDevices = p2ph.Install(pgw, remoteHost);
-
-        Ipv4InterfaceContainer internetIpIfaces = ipv4h.Assign(internetDevices);
-        Ptr<Ipv4StaticRouting> remoteHostStaticRouting =
-            ipv4RoutingHelper.GetStaticRouting(remoteHost->GetObject<Ipv4>());
-        remoteHostStaticRouting->AddNetworkRouteTo(Ipv4Address("7.0.0.0"),
-                                                   Ipv4Mask("255.0.0.0"),
-                                                   1);
-        Ptr<Ipv4StaticRouting> pgwStaticRouting =
-            ipv4RoutingHelper.GetStaticRouting(pgw->GetObject<Ipv4>());
-        // pgwStaticRouting->AddNetworkRouteTo(internetIpIfaces.GetAddress(1),
-        //                                     Ipv4Mask("255.0.0.0"),
-        //                                     internetDevices.Get(0)->GetIfIndex());
-        pgwStaticRouting->AddHostRouteTo(internetIpIfaces.GetAddress(1),
-                                         internetDevices.Get(0)->GetIfIndex());
-        NS_LOG_DEBUG("Add New route to " << internetIpIfaces.GetAddress(1) << " with interface "
-                                         << internetDevices.Get(0)->GetIfIndex());
-        remoteIpIfaces.Add(internetIpIfaces.Get(1));
-    }
+    Ptr<Ipv4StaticRouting> remoteHostStaticRouting =
+        ipv4RoutingHelper.GetStaticRouting(remoteHost->GetObject<Ipv4>());
+    remoteHostStaticRouting->AddNetworkRouteTo(Ipv4Address("7.0.0.0"), Ipv4Mask("255.0.0.0"), 1);
 
     // create LTE, mmWave eNB nodes and UE node
     NodeContainer ueNodes;
     NodeContainer mmWaveEnbNodes;
     NodeContainer lteEnbNodes;
     NodeContainer allEnbNodes;
-
     mmWaveEnbNodes.Create(2);
     lteEnbNodes.Create(1);
-    ueNodes.Create(2);
+    ueNodes.Create(1);
     allEnbNodes.Add(lteEnbNodes);
     allEnbNodes.Add(mmWaveEnbNodes);
 
@@ -767,70 +702,21 @@ main(int argc, char* argv[])
     uemobility.Install(ueNodes);
     BuildingsHelper::Install(ueNodes);
 
-    ueNodes.Get(0)->GetObject<MobilityModel>()->SetPosition(Vector(60, 70, 0));
+    // ueNodes.Get (0)->GetObject<MobilityModel> ()->SetPosition (Vector (ueInitialPosition, -5,
+    // 0));
+    ueNodes.Get(0)->GetObject<MobilityModel>()->SetPosition(Vector(ueInitialPosition, -5, 1.6));
     ueNodes.Get(0)->GetObject<ConstantVelocityMobilityModel>()->SetVelocity(Vector(0, 0, 0));
-    ueNodes.Get(1)->GetObject<MobilityModel>()->SetPosition(Vector(65, 70, 0));
-    ueNodes.Get(1)->GetObject<ConstantVelocityMobilityModel>()->SetVelocity(Vector(0, 0, 0));
 
-    // ueNodes.Get(0)->GetObject<MobilityModel>()->SetPosition(Vector(ueInitialPosition, -5, 1.6));
-    // ueNodes.Get(0)->GetObject<ConstantVelocityMobilityModel>()->SetVelocity(Vector(0, 0, 0));
-    // ueNodes.Get(1)->GetObject<MobilityModel>()->SetPosition(
-    //     Vector(60, 70, 1.6));
-    // ueNodes.Get(1)->GetObject<ConstantVelocityMobilityModel>()->SetVelocity(Vector(0, 0, 0));
     // Install mmWave, lte, mc Devices to the nodes
     NetDeviceContainer lteEnbDevs = mmwaveHelper->InstallLteEnbDevice(lteEnbNodes);
     NetDeviceContainer mmWaveEnbDevs = mmwaveHelper->InstallEnbDevice(mmWaveEnbNodes);
     NetDeviceContainer mcUeDevs;
     mcUeDevs = mmwaveHelper->InstallMcUeDevice(ueNodes);
 
-    // Assign custom IP addresses to enb to facilitate the use of custom applications
-    Ipv4AddressHelper enbIpv4h;
-    enbIpv4h.SetBase("2.0.0.0", "255.0.0.0");
-    Ipv4InterfaceContainer enbIpIfaces = enbIpv4h.Assign(mmWaveEnbDevs);
-
-    Ptr<CfranSystemInfo> cfranSystemInfo = CreateObject<CfranSystemInfo>();
-
-    for (uint32_t n = 0; n < mmWaveEnbDevs.GetN(); n++)
-    {
-        Ptr<NetDevice> tempMmNetDev = mmWaveEnbDevs.Get(n);
-        Ptr<MmWaveEnbNetDevice> mmNetDev = DynamicCast<MmWaveEnbNetDevice>(tempMmNetDev);
-        Ipv4Address gnbAddr = enbIpIfaces.GetAddress(n);
-
-        CfranSystemInfo::CellInfo cellInfo;
-        cellInfo.m_id = mmNetDev->GetCellId();
-        cellInfo.m_mmwaveEnbNetDevice = mmNetDev;
-        cellInfo.m_ipAddrToUe = gnbAddr;
-        cellInfo.m_portToUe = 2000;
-
-        cfranSystemInfo->AddCellInfo(cellInfo.m_id, cellInfo);
-        NS_LOG_DEBUG("Add CellInfo " << mmNetDev->GetCellId());
-    }
-
-    // interface 0 is localhost, 1 is the p2p device
-    // Ipv4Address remoteHostAddr = internetIpIfaces.GetAddress(1);
-    for (uint32_t n = 0; n < mmWaveEnbNodes.GetN(); ++n)
-    {
-        Ptr<Node> enbNode = mmWaveEnbNodes.Get(n);
-        Ptr<Ipv4> enbIpv4 = enbNode->GetObject<Ipv4>();
-
-        Ptr<NetDevice> enbNetDev = mmWaveEnbDevs.Get(n);
-
-        Ptr<Ipv4StaticRouting> enbStaticRouting = ipv4RoutingHelper.GetStaticRouting(enbIpv4);
-        enbStaticRouting->AddNetworkRouteTo(Ipv4Address("7.0.0.0"),
-                                            Ipv4Mask("255.0.0.0"),
-                                            enbIpv4->GetInterfaceForDevice(enbNetDev));
-        NS_LOG_DEBUG("Add Interface " << enbIpv4->GetInterfaceForDevice(enbNetDev));
-    }
-
     // Install the IP stack on the UEs
     internet.Install(ueNodes);
     Ipv4InterfaceContainer ueIpIface;
     ueIpIface = epcHelper->AssignUeIpv4Address(NetDeviceContainer(mcUeDevs));
-    for (uint32_t u = 0; u < ueNodes.GetN(); ++u)
-    {
-        Ipv4Address ueAddr = ueIpIface.GetAddress(u);
-        NS_LOG_DEBUG("The ip addr of ue " << u << " is " << ueAddr);
-    }
     // Assign IP address to UEs, and install applications
     for (uint32_t u = 0; u < ueNodes.GetN(); ++u)
     {
@@ -839,119 +725,81 @@ main(int argc, char* argv[])
         Ptr<Ipv4StaticRouting> ueStaticRouting =
             ipv4RoutingHelper.GetStaticRouting(ueNode->GetObject<Ipv4>());
         ueStaticRouting->SetDefaultRoute(epcHelper->GetUeDefaultGatewayAddress(), 1);
-
-        ueStaticRouting->AddNetworkRouteTo(Ipv4Address("2.0.0.0"), Ipv4Mask("255.0.0.0"), 1);
     }
 
     // Add X2 interfaces
     mmwaveHelper->AddX2Interface(lteEnbNodes, mmWaveEnbNodes);
 
     // Manual attachment
-
     mmwaveHelper->AttachToClosestEnb(mcUeDevs, mmWaveEnbDevs, lteEnbDevs);
-
-    ObjectFactory cfUnitObj;
-    cfUnitObj.SetTypeId("ns3::CfUnitUeIso");
-    CfModel cfModel("GPU", 82.6);
-    // cfUnitObj.Set("EnableAutoSchedule", BooleanVaslue(false));
-    cfUnitObj.Set("CfModel", CfModelValue(cfModel));
-
-    Ptr<CfRanHelper> cfRanHelper = CreateObject<CfRanHelper>();
-    cfRanHelper->InstallCfUnit(mmWaveEnbNodes, cfUnitObj);
-    cfRanHelper->InstallCfUnit(remoteHostContainer, cfUnitObj);
-
-    for (uint32_t u = 0; u < mcUeDevs.GetN(); ++u)
-    {
-        Ptr<McUeNetDevice> mcUeDev = DynamicCast<McUeNetDevice>(mcUeDevs.Get(u));
-        uint64_t imsi = mcUeDev->GetImsi();
-
-        Ipv4Address ueAddr = ueIpIface.GetAddress(u);
-
-        CfranSystemInfo::UeInfo ueInfo;
-        UeTaskModel ueTaskModel;
-        // ueTaskModel.m_cfRequired = CfModel("GPU", 10);
-        ueTaskModel.m_cfLoad = 0.2;
-        ueTaskModel.m_deadline = 10;
-
-        ueInfo.m_imsi = imsi;
-        ueInfo.m_ipAddr = ueAddr;
-        ueInfo.m_port = 2345;
-        ueInfo.m_taskModel = ueTaskModel;
-        ueInfo.m_taskPeriodity = 16;
-        ueInfo.m_mcUeNetDevice = mcUeDev;
-
-        cfranSystemInfo->AddUeInfo(imsi, ueInfo);
-    }
-    Config::SetDefault("ns3::CfApplication::CfranSystemInfomation", PointerValue(cfranSystemInfo));
-    Config::SetDefault("ns3::UeCfApplication::CfranSystemInfomation",
-                       PointerValue(cfranSystemInfo));
 
     // Install and start applications on UEs and remote host
     uint16_t dlPort = 1234;
     uint16_t ulPort = 2000;
     ApplicationContainer clientApps;
     ApplicationContainer serverApps;
-
-    ApplicationContainer gnbApps;
     bool dl = 0;
     bool ul = 1;
-    Config::SetDefault("ns3::CfApplication::Port", UintegerValue(ulPort));
-    // Config::SetDefault("ns3::UeCfApplication::OffloadPort", UintegerValue(ulPort));
 
-    // CfApplicationHelper cfAppHelper;
-    Ptr<CfApplicationHelper> cfAppHelper = CreateObject<CfApplicationHelper>();
-    cfAppHelper->SetRemoteIdOffset(mmWaveEnbNodes.GetN() + lteEnbNodes.GetN());
-    serverApps.Add(cfAppHelper->Install(mmWaveEnbNodes));
-    ApplicationContainer remoteApps = cfAppHelper->Install(remoteHostContainer, false);
-    serverApps.Add(remoteApps);
+    ObjectFactory cfUnitObj;
+    cfUnitObj.SetTypeId("ns3::CfUnitUeIso");
+    CfModel cfModel("GPU", 82.6);
+    // cfUnitObj.Set("EnableAutoSchedule", BooleanVaslue(false));
+    cfUnitObj.Set("CfModel", CfModelValue(cfModel));
+    Ptr<CfRanHelper> cfRanHelper = CreateObject<CfRanHelper>();
+    cfRanHelper->InstallCfUnit(remoteHostContainer, cfUnitObj);
 
-    UeCfApplicationHelper ueCfAppHelper;
-    clientApps.Add(ueCfAppHelper.Install(ueNodes));
-
-    for (uint32_t n = 0; n < remoteApps.GetN(); n++)
+    for (uint32_t u = 0; u < ueNodes.GetN(); ++u)
     {
-        Ptr<RemoteCfApplication> remoteCfApp = DynamicCast<RemoteCfApplication>(remoteApps.Get(n));
-        CfranSystemInfo::RemoteInfo remoteInfo;
-        remoteInfo.m_id = remoteCfApp->GetServerId();
-        remoteInfo.m_ipAddr = remoteIpIfaces.GetAddress(n);
-        remoteInfo.m_port = ulPort;
+        if (dl)
+        {
+            UdpServerHelper dlPacketSinkHelper(dlPort);
+            dlPacketSinkHelper.SetAttribute("PacketWindowSize", UintegerValue(256));
+            serverApps.Add(dlPacketSinkHelper.Install(ueNodes.Get(u)));
 
-        cfranSystemInfo->AddRemoteInfo(remoteCfApp->GetServerId(), remoteInfo);
+            // Simulator::Schedule(MilliSeconds(20), &PrintLostUdpPackets,
+            // DynamicCast<UdpServer>(serverApps.Get(serverApps.GetN()-1)), lostFilename);
 
-        NS_LOG_DEBUG("Remote " << remoteInfo.m_id << " IP " << remoteInfo.m_ipAddr << " PORT "
-                               << remoteInfo.m_port);
+            UdpClientHelper dlClient(ueIpIface.GetAddress(u), dlPort);
+            dlClient.SetAttribute("Interval", TimeValue(MicroSeconds(interPacketInterval)));
+            dlClient.SetAttribute("MaxPackets", UintegerValue(0xFFFFFFFF));
+            clientApps.Add(dlClient.Install(remoteHost));
+        }
+        if (ul)
+        {
+            // ++ulPort;
+            // PacketSinkHelper ulPacketSinkHelper("ns3::UdpSocketFactory",
+            //                                     InetSocketAddress(Ipv4Address::GetAny(),
+            //                                     ulPort));
+            // // ulPacketSinkHelper.SetAttribute("PacketWindowSize", UintegerValue(256));
+            // serverApps.Add(ulPacketSinkHelper.Install(remoteHost));
+
+            Config::SetDefault("ns3::CfApplication::Port", UintegerValue(ulPort));
+            CfApplicationHelper cfAppHelper;
+            ApplicationContainer remoteApps = cfAppHelper.Install(remoteHostContainer, false);
+            serverApps.Add(remoteApps);
+
+            UdpClientHelper ulClient(remoteHostAddr, ulPort);
+            ulClient.SetAttribute("Interval", TimeValue(MicroSeconds(interPacketInterval)));
+            ulClient.SetAttribute("MaxPackets", UintegerValue(0xFFFFFFFF));
+            clientApps.Add(ulClient.Install(ueNodes.Get(u)));
+        }
     }
 
     // Start applications
     NS_LOG_UNCOND("transientDuration " << transientDuration << " simTime " << simTime);
     serverApps.Start(Seconds(transientDuration));
-    clientApps.Start(Seconds(transientDuration + 1));
+    clientApps.Start(Seconds(transientDuration));
     clientApps.Stop(Seconds(simTime - 1));
 
     Simulator::Schedule(Seconds(transientDuration),
                         &ChangeSpeed,
                         ueNodes.Get(0),
-                        // Vector(0, 0, 0)); // start UE movement after Seconds(0.5)
                         Vector(ueSpeed, 0, 0)); // start UE movement after Seconds(0.5)
     Simulator::Schedule(Seconds(simTime - 1),
                         &ChangeSpeed,
                         ueNodes.Get(0),
                         Vector(0, 0, 0)); // start UE movement after Seconds(0.5)
-    // Hasty test
-    // Ptr<CfApplication> cfApp = DynamicCast<CfApplication> (serverApps.Get(0));
-    // Simulator::Schedule(Seconds(transientDuration + 2), &CfApplication::MigrateUeService, cfApp,
-    // 1, 3);
-    // Simulator::Schedule(Seconds(1.5),
-    //                     &LteEnbRrc::PerformHandoverToTargetCell,
-    //                     DynamicCast<LteEnbNetDevice>(lteEnbDevs.Get(0))->GetRrc(),
-    //                     1,
-    //                     3);
-
-    // Simulator::Schedule(Seconds(2.5),
-    //                     &LteEnbRrc::PerformHandoverToTargetCell,
-    //                     DynamicCast<LteEnbNetDevice>(lteEnbDevs.Get(0))->GetRrc(),
-    //                     1,
-    //                     2);
 
     double numPrints = 0;
     for (int i = 0; i < numPrints; i++)
@@ -959,10 +807,9 @@ main(int argc, char* argv[])
         Simulator::Schedule(Seconds(i * simTime / numPrints), &PrintPosition, ueNodes.Get(0));
     }
 
-    // Simulator::Schedule(Seconds(1), &TargetEnbTest);
+    Simulator::Schedule(Seconds(1), &TargetEnbTest);
 
     mmwaveHelper->EnableTraces();
-    cfRanHelper->EnableTraces(clientApps, serverApps);
 
     // set to true if you want to print the map of buildings, ues and enbs
     bool print = false;

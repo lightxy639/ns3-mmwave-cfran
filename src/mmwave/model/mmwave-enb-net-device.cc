@@ -34,8 +34,10 @@
 #include "encode_e2apv1.hpp"
 #include "mmwave-net-device.h"
 #include "mmwave-ue-net-device.h"
+#include "zlib.h"
 
 #include <ns3/abort.h>
+#include <ns3/base64.h>
 #include <ns3/cJSON.h>
 #include <ns3/callback.h>
 #include <ns3/enum.h>
@@ -348,7 +350,11 @@ MmWaveEnbNetDevice::BuildAndSendReportMessage()
 
     auto ueMap = m_rrc->GetUeMap();
 
+    NS_LOG_DEBUG("Cell " << m_cellId << " UeMap size " << ueMap.size());
     uint32_t macPduCellSpecific = 0;
+
+    cJSON* ueMsgArray = cJSON_AddArrayToObject(msg, "UeMsgArray");
+
     for (auto ue : ueMap)
     {
         uint64_t imsi = ue.second->GetImsi();
@@ -412,18 +418,54 @@ MmWaveEnbNetDevice::BuildAndSendReportMessage()
                                              << " dataSize " << downlinkDataSize << "kbit "
                                              << " dataRate " << downlinkRlcBitrate << "Mbps"
                                              << " throughput " << downlinkThroughput << "Mbps");
+
+        cJSON* ueMsg = cJSON_CreateObject();
+        cJSON_AddNumberToObject(ueMsg, "imsi", imsi);
+        cJSON_AddNumberToObject(ueMsg, "upPrb", macUplinkNumberOfSymbols);
+        cJSON_AddNumberToObject(ueMsg, "downPrb", macDownlinkNumberOfSymbols);
+        cJSON_AddNumberToObject(ueMsg, "upRlcLatency", uplinkRlcLatency);
+        cJSON_AddNumberToObject(ueMsg, "upThroughput", uplinkThroughput);
+        cJSON_AddNumberToObject(ueMsg, "upRlcSize", uplinkDataSize);
+        cJSON_AddNumberToObject(ueMsg, "downRlcLatency", downlinkRlcLatency);
+        cJSON_AddNumberToObject(ueMsg, "downRlcSize", downlinkDataSize);
+        cJSON_AddNumberToObject(ueMsg, "downThroughput", downlinkThroughput);
+
+        cJSON_AddItemToArray(ueMsgArray, ueMsg);
     }
 
-    std::string cellReportString = cJSON_PrintUnformatted(msg);
+    std::string cJsonPrint = cJSON_PrintUnformatted(msg);
+    const char* reportString = cJsonPrint.c_str();
+    // const char* testString = cJSON_PrintUnformatted(ueStatsMsg).c_str();
+    // NS_LOG_DEBUG(testString.c_str());
+    char b[2048];
+
+    z_stream defstream;
+    defstream.zalloc = Z_NULL;
+    defstream.zfree = Z_NULL;
+    defstream.opaque = Z_NULL;
+    // setup "a" as the input and "b" as the compressed output
+    defstream.avail_in = (uInt)strlen(reportString) + 1; // size of input, string + terminator
+    defstream.next_in = (Bytef*)reportString;            // input char array
+    defstream.avail_out = (uInt)sizeof(b);               // size of output
+    defstream.next_out = (Bytef*)b;                      // output char array
+
+    // the actual compression work.
+    deflateInit(&defstream, Z_BEST_COMPRESSION);
+    deflate(&defstream, Z_FINISH);
+    deflateEnd(&defstream);
+
+    NS_LOG_DEBUG("Original len: " << strlen(reportString));
+    // This is one way of getting the size of the output
+    printf("Compressed size is: %lu\n", defstream.total_out);
+    printf("Compressed size(wrong) is: %lu\n", strlen(b));
+    printf("Compressed string is: %s\n", b);
+
+    std::string base64String = base64_encode((const unsigned char*)b, defstream.total_out);
+    NS_LOG_DEBUG("base64String: " << base64String);
+    NS_LOG_DEBUG("base64String size: " << base64String.length());
+
 
     Ptr<KpmIndicationHeader> header = BuildRicIndicationHeader(plmId, gnbId, m_cellId);
-    NS_LOG_DEBUG("Send NR DU");
-    const char* vrReportingMsg = cellReportString.c_str();
-    NS_LOG_DEBUG("vrReportingMsg:\n" << vrReportingMsg);
-    // NS_LOG_DEBUG("SIZE: " << sizeof(vrReportingMsg));
-    std::cout << "The size of MmWaveEnbNetDevice vrReportingMsg is " << strlen(vrReportingMsg)
-              << std::endl;
-
     E2AP_PDU* pdu_du_ue = new E2AP_PDU;
     auto kpmPrams = m_e2term->GetSubscriptionPara();
     NS_LOG_DEBUG("kpmPrams.ranFuncionId: " << kpmPrams.ranFuncionId);
@@ -437,9 +479,11 @@ MmWaveEnbNetDevice::BuildAndSendReportMessage()
         (uint8_t*)header->m_buffer, // buffer containing the encoded header
         header->m_size,             // size of the encoded header
         //  (uint8_t*) duMsg->m_buffer, // buffer containing the encoded message
-        (uint8_t*)(vrReportingMsg),
+        // (uint8_t*)(reportString),
+        (uint8_t*)base64String.c_str(),
         //  duMsg->m_size
-        strlen(vrReportingMsg)); // size of the encoded message
+        base64String.length());
+    // defstream.total_out); // size of the encoded message
     m_e2term->SendE2Message(pdu_du_ue);
     delete pdu_du_ue;
 

@@ -25,7 +25,11 @@
  *          Dual Connectivity functionalities
  */
 
+#include "encode_e2apv1.hpp"
+
 #include <ns3/abort.h>
+#include <ns3/cJSON.h>
+#include <ns3/base64.h>
 #include <ns3/callback.h>
 #include <ns3/enum.h>
 #include <ns3/ff-mac-scheduler.h>
@@ -53,6 +57,9 @@
 #include <ns3/simulator.h>
 #include <ns3/trace-source-accessor.h>
 #include <ns3/uinteger.h>
+
+#include <iostream>
+#include "zlib.h"
 
 namespace ns3
 {
@@ -482,12 +489,132 @@ LteEnbNetDevice::KpmSubscriptionCallback(E2AP_PDU_t* sub_req_pdu)
     NS_LOG_DEBUG("requestorId " << +params.requestorId << ", instanceId " << +params.instanceId
                                 << ", ranFuncionId " << +params.ranFuncionId << ", actionId "
                                 << +params.actionId);
+    BuildAndSendReportMessage();
 
     // if (!m_isReportingEnabled)
     // {
     //     BuildAndSendReportMessage(params);
     //     m_isReportingEnabled = true;
     // }
+}
+
+void
+LteEnbNetDevice::BuildAndSendReportMessage()
+{
+    NS_LOG_FUNCTION(this);
+    std::string plmId = "111";
+    std::string gnbId = std::to_string(m_cellId);
+
+    cJSON* msg = cJSON_CreateObject();
+    cJSON_AddStringToObject(msg, "msgSource", "LteEnbNetDev");
+    cJSON_AddNumberToObject(msg, "cellId", m_cellId);
+
+    auto mmwaveImsiCellSinrMap = m_rrc->GetMmwaveImsiCellSinrMap();
+
+    cJSON* ueMsgArray = cJSON_AddArrayToObject(msg, "UeMsgArray");
+    for (auto ue : mmwaveImsiCellSinrMap)
+    {
+        uint64_t imsi = ue.first;
+        auto cellSinrMap = ue.second;
+        cJSON* ueMsg = cJSON_CreateObject();
+        cJSON_AddNumberToObject(ueMsg, "imsi", imsi);
+
+        // cJSON* ueSinr = cJSON_AddArrayToObject(ueMsg, "SINR");
+        cJSON* ueSinr = cJSON_AddObjectToObject(ueMsg, "SINR");
+
+        for (auto cell : cellSinrMap)
+        {
+            uint16_t cellId = cell.first;
+            if(cellId == 0)
+            {
+                continue;
+            }
+            double sinr = 10 * std::log10(cell.second);
+            cJSON_AddNumberToObject(ueSinr, std::to_string(cellId).c_str(), sinr);
+            NS_LOG_DEBUG("imsi " << imsi << " cell " << cellId << " sinr " << sinr << "dB");
+        }
+        cJSON_AddItemToArray(ueMsgArray, ueMsg);
+    }
+
+    std::string cJsonPrint = cJSON_PrintUnformatted(msg);
+    const char* reportString = cJsonPrint.c_str();
+    // const char* testString = cJSON_PrintUnformatted(ueStatsMsg).c_str();
+    // NS_LOG_DEBUG(testString.c_str());
+    char b[2048];
+
+    z_stream defstream;
+    defstream.zalloc = Z_NULL;
+    defstream.zfree = Z_NULL;
+    defstream.opaque = Z_NULL;
+    // setup "a" as the input and "b" as the compressed output
+    defstream.avail_in = (uInt)strlen(reportString) + 1; // size of input, string + terminator
+    defstream.next_in = (Bytef*)reportString;            // input char array
+    defstream.avail_out = (uInt)sizeof(b);               // size of output
+    defstream.next_out = (Bytef*)b;                      // output char array
+
+    // the actual compression work.
+    deflateInit(&defstream, Z_BEST_COMPRESSION);
+    deflate(&defstream, Z_FINISH);
+    deflateEnd(&defstream);
+
+    NS_LOG_DEBUG("Original len: " << strlen(reportString));
+    // This is one way of getting the size of the output
+    printf("Compressed size is: %lu\n", defstream.total_out);
+    printf("Compressed size(wrong) is: %lu\n", strlen(b));
+    printf("Compressed string is: %s\n", b);
+
+    std::string base64String = base64_encode((const unsigned char*)b, defstream.total_out);
+    NS_LOG_DEBUG("base64String: " << base64String);
+    NS_LOG_DEBUG("base64String size: " << base64String.length());
+
+
+    Ptr<KpmIndicationHeader> header = BuildRicIndicationHeader(plmId, gnbId, m_cellId);
+    E2AP_PDU* pdu_du_ue = new E2AP_PDU;
+    auto kpmPrams = m_e2term->GetSubscriptionPara();
+    NS_LOG_DEBUG("kpmPrams.ranFuncionId: " << kpmPrams.ranFuncionId);
+    encoding::generate_e2apv1_indication_request_parameterized(
+        pdu_du_ue,
+        kpmPrams.requestorId,
+        kpmPrams.instanceId,
+        kpmPrams.ranFuncionId,
+        kpmPrams.actionId,
+        1,                          // TODO sequence number
+        (uint8_t*)header->m_buffer, // buffer containing the encoded header
+        header->m_size,             // size of the encoded header
+        //  (uint8_t*) duMsg->m_buffer, // buffer containing the encoded message
+        // (uint8_t*)(reportString),
+        (uint8_t*)base64String.c_str(),
+        //  duMsg->m_size
+        base64String.length());
+    // defstream.total_out); // size of the encoded message
+    m_e2term->SendE2Message(pdu_du_ue);
+    delete pdu_du_ue;
+
+
+    Simulator::ScheduleWithContext(GetNode()->GetId(),
+                                   MilliSeconds(500),
+                                   &LteEnbNetDevice::BuildAndSendReportMessage,
+                                   this);
+}
+
+Ptr<KpmIndicationHeader>
+LteEnbNetDevice::BuildRicIndicationHeader(std::string plmId, std::string gnbId, uint16_t nrCellId)
+{
+    KpmIndicationHeader::KpmRicIndicationHeaderValues headerValues;
+    headerValues.m_plmId = plmId;
+    headerValues.m_gnbId = gnbId;
+    headerValues.m_nrCellId = nrCellId;
+    auto time = Simulator::Now();
+    // uint64_t timestamp = m_startTime + (uint64_t)time.GetMilliSeconds();
+    uint64_t timestamp = (uint64_t)time.GetMilliSeconds();
+    NS_LOG_DEBUG("NR plmid " << plmId << " gnbId " << gnbId << " nrCellId " << nrCellId);
+    NS_LOG_DEBUG("Timestamp " << timestamp);
+    headerValues.m_timestamp = timestamp;
+
+    Ptr<KpmIndicationHeader> header =
+        Create<KpmIndicationHeader>(KpmIndicationHeader::GlobalE2nodeType::gNB, headerValues);
+
+    return header;
 }
 
 } // namespace ns3

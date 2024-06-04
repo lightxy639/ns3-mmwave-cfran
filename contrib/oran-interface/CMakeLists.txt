@@ -14,6 +14,7 @@ build_lib(
     model/ric-control-message.cc
     model/ric-control-function-description.cc
     model/cJSON.cc
+    model/base64.cc
     helper/oran-interface-helper.cc
     helper/indication-message-helper.cc
     helper/lte-indication-message-helper.cc
@@ -27,6 +28,7 @@ build_lib(
     model/ric-control-message.h
     model/ric-control-function-description.h
     model/cJSON.h
+    model/base64.h
     helper/oran-interface-helper.h
     helper/indication-message-helper.h
     helper/lte-indication-message-helper.h

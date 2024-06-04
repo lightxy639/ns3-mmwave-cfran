@@ -37,17 +37,21 @@ class UeCfApplication : public Application
 
     virtual void RecvTaskResult(Ptr<Packet> p);
 
-    void SetOffloadAddress(Ipv4Address address, uint32_t port);
+    // void SetOffloadAddress(Ipv4Address address, uint32_t port);
 
-    void SwitchOffloadAddress(Ipv4Address newAddress, uint32_t newPort);
+    // void SwitchOffloadAddress(Ipv4Address newAddress, uint32_t newPort);
 
-    void InitSocket();
+    // void InitSocket();
+
+    void InitGnbSocket();
+
+    void InitRemoteSocket();
 
     void HandleRead(Ptr<Socket> socket);
 
     void HandlePacket(Ptr<Packet> p);
 
-    void RecvFromGnb(Ptr<Packet> p);
+    void RecvFromNetwork(Ptr<Packet> p);
 
     void SendPacketToGnb(Ptr<Packet> p);
 
@@ -58,17 +62,25 @@ class UeCfApplication : public Application
 
     uint64_t m_ueId;
 
+    uint64_t m_accessGnbId;
+
     uint64_t m_offloadPointId;
 
-    Ipv4Address m_offloadAddress;
+    // Ipv4Address m_offloadAddress;
 
-    uint16_t m_offloadPort;
+    // uint16_t m_offloadPort;
 
-    uint64_t m_uePort;
+    uint16_t m_ueGnbPort;
+
+    uint16_t m_ueRemotePort;
 
     uint64_t m_taskId;
 
     Ptr<Socket> m_socket;
+
+    Ptr<Socket> m_gnbSocket;
+
+    Ptr<Socket> m_remoteSocket;
 
     uint16_t m_minSize;
 

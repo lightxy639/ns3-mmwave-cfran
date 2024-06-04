@@ -41,7 +41,7 @@ CfNonIpPacketRx(Ptr<NetDevice> netDev, Ptr<Packet> packet)
         if (app)
         {
             // std::cout << "OK" << std::endl;
-            app->RecvFromGnb(packet);
+            app->RecvFromNetwork(packet);
             break;
         }
 

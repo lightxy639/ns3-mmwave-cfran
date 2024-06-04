@@ -60,6 +60,22 @@ CfranSystemInfo::GetRemoteInfo(uint64_t remoteId)
     return it->second;
 }
 
+CfranSystemInfo::OffloadPointType
+CfranSystemInfo::GetOffladPointType(uint64_t id)
+{
+    auto it_gnb = m_cellInfo.find(id);
+    auto it_remote = m_remoteInfo.find(id);
+
+    if(it_gnb != m_cellInfo.end())
+    {
+        return OffloadPointType::Gnb;
+    }
+    else if(it_remote != m_remoteInfo.end())
+    {
+        return OffloadPointType::Remote;
+    }
+}
+
 void
 CfranSystemInfo::AddUeInfo(uint64_t imsi, UeInfo ueInfo)
 {

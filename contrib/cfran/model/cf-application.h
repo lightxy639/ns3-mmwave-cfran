@@ -5,6 +5,7 @@
 #include <ns3/cf-e2e-calculator.h>
 #include <ns3/cf-unit.h>
 #include <ns3/multi-packet-manager.h>
+#include <ns3/oran-interface.h>
 #include <ns3/socket.h>
 #include <ns3/system-info.h>
 
@@ -36,6 +37,10 @@ class CfApplication : public Application
 
     void SetCfUnit(Ptr<CfUnit> cfUnit);
 
+    virtual void SetE2Termination(Ptr<E2Termination> e2term);
+
+    Ptr<E2Termination> GetE2Termination() const;
+
     void UpdateUeState(uint64_t id, UeState state);
 
     virtual void RecvFromUe(Ptr<Socket> socket) = 0;
@@ -49,6 +54,7 @@ class CfApplication : public Application
     Ptr<CfranSystemInfo> m_cfranSystemInfo;
     Ptr<Socket> m_socket;
     Ptr<MultiPacketManager> m_multiPacketManager;
+    Ptr<E2Termination> m_e2term;
 
     std::map<uint64_t, UeState> m_ueState;
 

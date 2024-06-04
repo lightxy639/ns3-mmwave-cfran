@@ -19,6 +19,11 @@ class CfranSystemInfo : public Object
 {
 
   public:
+    enum OffloadPointType
+    {
+      Gnb = 0,
+      Remote = 1
+    };
     struct UeInfo
     {
         uint64_t m_imsi;       // imsi
@@ -34,6 +39,7 @@ class CfranSystemInfo : public Object
         uint64_t m_id;
         Ptr<mmwave::MmWaveEnbNetDevice> m_mmwaveEnbNetDevice;
         Ipv4Address m_ipAddrToUe;
+        uint16_t m_portToUe;
     };
 
     struct RemoteInfo
@@ -55,6 +61,7 @@ class CfranSystemInfo : public Object
     UeInfo GetUeInfo(uint64_t imsi);
     CellInfo GetCellInfo(uint64_t cellId);
     RemoteInfo GetRemoteInfo(uint64_t remoteId);
+    OffloadPointType GetOffladPointType(uint64_t offloadId);
 
     void AddUeInfo(uint64_t imsi, UeInfo ueInfo);
     void AddCellInfo(uint64_t cellId, CellInfo cellInfo);

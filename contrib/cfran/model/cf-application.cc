@@ -81,6 +81,18 @@ CfApplication::SetCfUnit(Ptr<CfUnit> cfUnit)
     // this->SetAttribute("CfUnit", PointerValue(cfUnit));
 }
 
+Ptr<E2Termination>
+CfApplication::GetE2Termination() const
+{
+    return m_e2term;
+}
+
+void
+CfApplication::SetE2Termination(Ptr<E2Termination> e2term)
+{
+    m_e2term = e2term;
+}
+
 void
 CfApplication::UpdateUeState(uint64_t id, UeState state)
 {

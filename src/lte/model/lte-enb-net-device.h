@@ -223,6 +223,12 @@ class LteEnbNetDevice : public LteNetDevice
 
     void KpmSubscriptionCallback(E2AP_PDU_t* sub_req_pdu);
 
+    void BuildAndSendReportMessage();
+
+    Ptr<KpmIndicationHeader> BuildRicIndicationHeader(std::string plmId,
+                                                      std::string gnbId,
+                                                      uint16_t nrCellId);
+
   protected:
     // inherited from Object
     virtual void DoInitialize(void);

@@ -13,7 +13,7 @@ NS_LOG_COMPONENT_DEFINE("CfApplicationHelper");
 
 NS_OBJECT_ENSURE_REGISTERED(CfApplicationHelper);
 
-CfApplicationHelper::CfApplicationHelper()
+CfApplicationHelper::CfApplicationHelper() : m_remoteIdOffset(0)
 {
     NS_LOG_FUNCTION(this);
 }
@@ -28,8 +28,34 @@ CfApplicationHelper::GetTypeId()
 {
     static TypeId tid = TypeId("ns3::CfApplicationHelper")
                             .SetParent<Object>()
-                            .AddConstructor<CfApplicationHelper>();
+                            .AddConstructor<CfApplicationHelper>()
+                            .AddAttribute("E2ModeCfApp",
+                                          "If true, enable reporting over E2 for NR cells.",
+                                          BooleanValue(true),
+                                          MakeBooleanAccessor(&CfApplicationHelper::m_e2ModeCfApp),
+                                          MakeBooleanChecker())
+                            .AddAttribute("E2TermIp",
+                                          "The IP address of the RIC E2 termination",
+                                          StringValue("10.244.0.240"),
+                                          MakeStringAccessor(&CfApplicationHelper::m_e2ip),
+                                          MakeStringChecker())
+                            .AddAttribute("E2Port",
+                                          "Port number for E2",
+                                          UintegerValue(36422),
+                                          MakeUintegerAccessor(&CfApplicationHelper::m_e2port),
+                                          MakeUintegerChecker<uint16_t>())
+                            .AddAttribute("E2LocalPort",
+                                          "The first port number for the local bind",
+                                          UintegerValue(38470),
+                                          MakeUintegerAccessor(&CfApplicationHelper::m_e2localPort),
+                                          MakeUintegerChecker<uint16_t>());
     return tid;
+}
+
+void
+CfApplicationHelper::SetRemoteIdOffset(uint16_t remoteIdOffset)
+{
+    m_remoteIdOffset = remoteIdOffset;
 }
 
 ApplicationContainer
@@ -52,18 +78,25 @@ CfApplicationHelper::Install(NodeContainer c, bool isGnb)
             apps.Add(app);
 
             Ptr<CfUnit> cfUnit = node->GetObject<CfUnit>();
-            cfUnit->SetCfUnitId(100 + index);
+            NS_ASSERT(cfUnit != nullptr);
 
-            if (cfUnit)
+            uint16_t serverId = m_remoteIdOffset + index;
+
+            cfUnit->SetCfUnitId(serverId);
+            // DynamicCast<GnbCfApplication>(app)->SetCfUnit(cfUnit);
+            DynamicCast<RemoteCfApplication>(app)->SetAttribute("CfUnit", PointerValue(cfUnit));
+            DynamicCast<RemoteCfApplication>(app)->SetServerId(serverId);
+            cfUnit->SetCfApplication(DynamicCast<RemoteCfApplication>(app));
+
+            if (m_e2ModeCfApp)
             {
-                // DynamicCast<GnbCfApplication>(app)->SetCfUnit(cfUnit);
-                DynamicCast<RemoteCfApplication>(app)->SetAttribute("CfUnit", PointerValue(cfUnit));
-                DynamicCast<RemoteCfApplication>(app)->SetServerId(100 + index);
-                cfUnit->SetCfApplication(DynamicCast<RemoteCfApplication>(app));
-            }
-            else
-            {
-                NS_FATAL_ERROR("No available cfunit on node.");
+                const uint16_t local_port = m_e2localPort + (uint16_t)serverId;
+                const std::string gnb_id{std::to_string(serverId)};
+
+                std::string plmnId = "111";
+                Ptr<E2Termination> e2term =
+                    CreateObject<E2Termination>(m_e2ip, m_e2port, local_port, gnb_id, plmnId);
+                DynamicCast<RemoteCfApplication>(app)->SetE2Termination(e2term);
             }
         }
         else
@@ -101,7 +134,7 @@ CfApplicationHelper::Install(NodeContainer c, bool isGnb)
                         NS_FATAL_ERROR("No available cfunit on node.");
                     }
 
-                    if (mmWaveEnbNetDev->GetE2Termination() != nullptr)
+                    if (m_e2ModeCfApp && mmWaveEnbNetDev->GetE2Termination() != nullptr)
                     {
                         NS_LOG_DEBUG("CfApplicationHelper SetE2Termination");
                         DynamicCast<GnbCfApplication>(app)->SetE2Termination(
@@ -111,7 +144,7 @@ CfApplicationHelper::Install(NodeContainer c, bool isGnb)
                 }
             }
         }
-    
+
         index++;
     }
 

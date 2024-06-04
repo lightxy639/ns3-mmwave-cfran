@@ -1622,6 +1622,8 @@ class LteEnbRrc : public Object
      */
     void SetCsgId(uint32_t csgId, bool csgIndication);
 
+    std::map<uint64_t, CellSinrMap> GetMmwaveImsiCellSinrMap();
+
   private:
     /**
      * Allocate a new SRS configuration index for a new UE.

@@ -24,7 +24,8 @@ class CfRadioHeader : public Header
         InitRequest = 0,
         InitSuccess = 1,
         TaskRequest = 2,
-        TaskResult = 3
+        TaskResult = 3,
+        OffloadCommand = 4
     };
 
     CfRadioHeader();

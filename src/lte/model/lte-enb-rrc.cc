@@ -5904,6 +5904,12 @@ LteEnbRrc::GetLogicalChannelPriority(EpsBearer bearer)
     return bearer.qci;
 }
 
+std::map<uint64_t, CellSinrMap> 
+LteEnbRrc::GetMmwaveImsiCellSinrMap()
+{
+    return m_imsiCellSinrMap;
+}
+
 void
 LteEnbRrc::SendSystemInformation()
 {

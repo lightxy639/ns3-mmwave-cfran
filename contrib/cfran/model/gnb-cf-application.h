@@ -8,7 +8,6 @@
 #include <ns3/epc-x2.h>
 #include <ns3/multi-packet-header.h>
 #include <ns3/multi-packet-manager.h>
-#include <ns3/oran-interface.h>
 #include <ns3/packet.h>
 #include <ns3/socket.h>
 #include <ns3/system-info.h>
@@ -61,6 +60,11 @@ class GnbCfApplication : public CfApplication
     //     Migrating = 2,
     //     Over = 3
     // };
+    enum PolicyMode
+    {
+      Local = 0, // Process locally
+      E2 = 1 // Report to RIC and wait for instruction
+    };
 
     /**
      * \brief Get the type ID.
@@ -75,10 +79,6 @@ class GnbCfApplication : public CfApplication
     // void SetCfUnit(Ptr<CfUnit> cfUnit);
 
     void SetMmWaveEnbNetDevice(Ptr<mmwave::MmWaveEnbNetDevice> mmwaveEnbNetDev);
-
-    void SetE2Termination(Ptr<E2Termination> e2term);
-
-    Ptr<E2Termination> GetE2Termination() const;
 
     void InitX2Info();
 
@@ -107,8 +107,6 @@ class GnbCfApplication : public CfApplication
 
 
     Ptr<mmwave::MmWaveEnbNetDevice> m_mmWaveEnbNetDevice;
-
-    Ptr<E2Termination> m_e2term;
 
     uint16_t m_cfX2Port;
 
@@ -139,6 +137,10 @@ class GnbCfApplication : public CfApplication
 
     void CompleteMigrationAtTarget(uint64_t ueId, uint64_t oldGnbId);
 
+    void SendNewUeReport(uint64_t ueId);
+
+    void AssignUe(uint64_t ueId, uint64_t offloadPointId);
+
     void BuildAndSendE2Report();
 
     virtual void StartApplication(); // Called at time specified by Start
@@ -154,6 +156,8 @@ class GnbCfApplication : public CfApplication
 
     std::string m_ueE2eOutFile;
     bool m_firstWrite;
+
+    PolicyMode m_policyMode;
 };
 
 } // namespace ns3
