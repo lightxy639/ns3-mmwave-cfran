@@ -520,7 +520,7 @@ LteEnbNetDevice::BuildAndSendReportMessage()
         cJSON_AddNumberToObject(ueMsg, "imsi", imsi);
 
         // cJSON* ueSinr = cJSON_AddArrayToObject(ueMsg, "SINR");
-        cJSON* ueSinr = cJSON_AddObjectToObject(ueMsg, "SINR");
+        cJSON* ueSinr = cJSON_AddObjectToObject(ueMsg, "sinr");
 
         for (auto cell : cellSinrMap)
         {

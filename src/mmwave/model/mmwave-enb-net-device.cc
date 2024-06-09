@@ -345,7 +345,7 @@ MmWaveEnbNetDevice::BuildAndSendReportMessage()
     std::string gnbId = std::to_string(m_cellId);
 
     cJSON* msg = cJSON_CreateObject();
-    cJSON_AddStringToObject(msg, "msgSource", "mmwaveEnbNetDev");
+    cJSON_AddStringToObject(msg, "msgSource", "MmwaveEnbNetDev");
     cJSON_AddNumberToObject(msg, "cellId", m_cellId);
 
     auto ueMap = m_rrc->GetUeMap();

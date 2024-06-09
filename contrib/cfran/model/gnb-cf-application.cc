@@ -721,7 +721,7 @@ GnbCfApplication::BuildAndSendE2Report()
     uint16_t cellId = m_mmWaveEnbNetDevice->GetCellId();
 
     cJSON* msg = cJSON_CreateObject();
-    cJSON_AddStringToObject(msg, "msgSource", "gnbCfApp");
+    cJSON_AddStringToObject(msg, "msgSource", "GnbCfApp");
     cJSON_AddNumberToObject(msg, "cfAppId", m_mmWaveEnbNetDevice->GetCellId());
 
     cJSON* ueMsgArray = cJSON_AddArrayToObject(msg, "UeMsgArray");
