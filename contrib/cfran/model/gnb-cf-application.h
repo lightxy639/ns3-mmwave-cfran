@@ -65,6 +65,11 @@ class GnbCfApplication : public CfApplication
       Local = 0, // Process locally
       E2 = 1 // Report to RIC and wait for instruction
     };
+    struct Policy
+    {
+      uint64_t m_ueId;
+      uint64_t m_offloadPointId;
+    };
 
     /**
      * \brief Get the type ID.
@@ -79,6 +84,8 @@ class GnbCfApplication : public CfApplication
     // void SetCfUnit(Ptr<CfUnit> cfUnit);
 
     void SetMmWaveEnbNetDevice(Ptr<mmwave::MmWaveEnbNetDevice> mmwaveEnbNetDev);
+
+    virtual void SetClientFd(int clientFd) override;
 
     void InitX2Info();
 
@@ -143,6 +150,10 @@ class GnbCfApplication : public CfApplication
 
     void BuildAndSendE2Report();
 
+    void ControlMessageReceivedCallback(E2AP_PDU_t *pdu);
+
+    void ExecuteCommands();
+
     virtual void StartApplication(); // Called at time specified by Start
 
     virtual void StopApplication(); // Called at time specified by Stop
@@ -158,6 +169,7 @@ class GnbCfApplication : public CfApplication
     bool m_firstWrite;
 
     PolicyMode m_policyMode;
+    std::queue<Policy> m_policy;
 };
 
 } // namespace ns3

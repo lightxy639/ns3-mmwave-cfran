@@ -41,6 +41,8 @@ class CfApplication : public Application
 
     Ptr<E2Termination> GetE2Termination() const;
 
+    virtual void SetClientFd (int clientFd);
+
     void UpdateUeState(uint64_t id, UeState state);
 
     virtual void RecvFromUe(Ptr<Socket> socket) = 0;
@@ -55,6 +57,7 @@ class CfApplication : public Application
     Ptr<Socket> m_socket;
     Ptr<MultiPacketManager> m_multiPacketManager;
     Ptr<E2Termination> m_e2term;
+    int m_clientFd;
 
     std::map<uint64_t, UeState> m_ueState;
 

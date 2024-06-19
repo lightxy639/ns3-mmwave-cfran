@@ -221,10 +221,14 @@ class LteEnbNetDevice : public LteNetDevice
 
     Ptr<E2Termination> GetE2Termination() const;
 
+    void SetClientFd(int clientFd);
+
     void KpmSubscriptionCallback(E2AP_PDU_t* sub_req_pdu);
 
     void BuildAndSendReportMessage();
 
+    void ControlMessageReceivedCallback(E2AP_PDU_t *pdu);
+    
     Ptr<KpmIndicationHeader> BuildRicIndicationHeader(std::string plmId,
                                                       std::string gnbId,
                                                       uint16_t nrCellId);
@@ -279,6 +283,8 @@ class LteEnbNetDevice : public LteNetDevice
         m_componentCarrierManager; ///< the component carrier manager of this eNb
 
     Ptr<E2Termination> m_e2term;
+
+    int m_clientFd;
 
 }; // end of class LteEnbNetDevice
 

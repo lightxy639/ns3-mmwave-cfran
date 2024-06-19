@@ -188,8 +188,7 @@ UeCfApplication::SendInitRequest()
         InitRemoteSocket();
         reqSocket = m_remoteSocket;
         rlcIntercept = false;
-        NS_LOG_DEBUG("UE " << m_ueId << " send init request to remote server "
-                           << m_offloadPointId);
+        NS_LOG_DEBUG("UE " << m_ueId << " send init request to remote server " << m_offloadPointId);
     }
 
     CfRadioHeader cfRadioHeader;
@@ -331,10 +330,14 @@ UeCfApplication::RecvFromNetwork(Ptr<Packet> p)
         uint64_t offloadPointId = cfRadioHeader.GetGnbId();
         NS_ASSERT(m_cfranSystemInfo->GetOffladPointType(offloadPointId) == CfranSystemInfo::Remote);
 
-        NS_LOG_DEBUG("UE recv decision offloading to remote server");
+        NS_LOG_DEBUG("UE recv decision offloading to remote server " << offloadPointId);
 
-        m_offloadPointId = offloadPointId;
-        Simulator::Schedule(Seconds(0), &UeCfApplication::SendInitRequest, this);
+        if (m_offloadPointId != offloadPointId)
+        {
+            NS_LOG_DEBUG("Old offload id is " << m_offloadPointId);
+            m_offloadPointId = offloadPointId;
+            Simulator::Schedule(Seconds(0), &UeCfApplication::SendInitRequest, this);
+        }
     }
 
     else if (cfRadioHeader.GetMessageType() == CfRadioHeader::TaskResult)

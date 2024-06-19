@@ -2,14 +2,13 @@
 
 #include "cf-radio-header.h"
 #include "multi-packet-header.h"
+#include "zlib.h"
 
-#include <ns3/cJSON.h>
 #include <ns3/base64.h>
+#include <ns3/cJSON.h>
 #include <ns3/log.h>
 
 #include <encode_e2apv1.hpp>
-
-#include "zlib.h"
 
 namespace ns3
 {
@@ -60,6 +59,16 @@ RemoteCfApplication::SetE2Termination(Ptr<E2Termination> e2term)
         200,
         kpmFd,
         std::bind(&RemoteCfApplication::KpmSubscriptionCallback, this, std::placeholders::_1));
+}
+
+void
+RemoteCfApplication::SetClientFd(int clientFd)
+{
+    m_clientFd = clientFd;
+    Simulator::ScheduleWithContext(GetNode()->GetId(),
+                                   MilliSeconds(500),
+                                   &RemoteCfApplication::BuildAndSendE2Report,
+                                   this);
 }
 
 void
@@ -188,7 +197,19 @@ RemoteCfApplication::StartApplication()
     if (m_e2term != nullptr)
     {
         NS_LOG_DEBUG("E2sim start in cell " << m_serverId);
-        Simulator::Schedule(Seconds(0), &E2Termination::Start, m_e2term);
+        // Simulator::Schedule(Seconds(0), &E2Termination::Start, m_e2term);
+        Simulator::ScheduleWithContext(GetNode()->GetId(),
+                                       MicroSeconds(0),
+                                       &E2Termination::Start,
+                                       m_e2term);
+
+        Ptr<RicControlFunctionDescription> ricCtrlFd = Create<RicControlFunctionDescription>();
+        m_e2term->RegisterSmCallbackToE2Sm(
+            300,
+            ricCtrlFd,
+            std::bind(&RemoteCfApplication::ControlMessageReceivedCallback,
+                      this,
+                      std::placeholders::_1));
     }
 }
 
@@ -203,21 +224,22 @@ RemoteCfApplication::BuildAndSendE2Report()
 {
     NS_LOG_FUNCTION(this);
 
-    NS_LOG_DEBUG(this << "m_e2term->GetSubscriptionState(): " << m_e2term->GetSubscriptionState());
-    if (!m_e2term->GetSubscriptionState())
+    // NS_LOG_DEBUG(this << "m_e2term->GetSubscriptionState(): " <<
+    // m_e2term->GetSubscriptionState());
+    if (m_e2term != nullptr && !m_e2term->GetSubscriptionState())
     {
         Simulator::Schedule(MilliSeconds(500), &RemoteCfApplication::BuildAndSendE2Report, this);
         return;
     }
 
-    E2Termination::RicSubscriptionRequest_rval_s params = m_e2term->GetSubscriptionPara();
+    // E2Termination::RicSubscriptionRequest_rval_s params = m_e2term->GetSubscriptionPara();
     std::string plmId = "111";
     std::string gnbId = std::to_string(this->GetServerId());
     uint16_t cellId = this->GetServerId();
 
     cJSON* msg = cJSON_CreateObject();
     cJSON_AddStringToObject(msg, "msgSource", "RemoteCfApp");
-    cJSON_AddNumberToObject(msg, "ServerId", this->GetServerId());
+    cJSON_AddNumberToObject(msg, "serverId", this->GetServerId());
 
     cJSON* ueMsgArray = cJSON_AddArrayToObject(msg, "UeMsgArray");
 
@@ -239,40 +261,52 @@ RemoteCfApplication::BuildAndSendE2Report()
         std::vector<double> dnWlDelay = m_cfE2eCalaulator->GetDownlinkWirelessDelayStats(ueId);
         m_cfE2eCalaulator->ResetResultForUe(ueId);
 
-        cJSON* ueMsg = cJSON_CreateObject();
-        cJSON_AddNumberToObject(ueMsg, "Id", ueId);
+        cJSON* ueStatsMsg = cJSON_CreateObject();
+        cJSON_AddNumberToObject(ueStatsMsg, "Id", ueId);
 
-        cJSON_AddNumberToObject(ueMsg, "upWlMea", upWlDelay[0] / 1e6);
-        cJSON_AddNumberToObject(ueMsg, "upWlStd", upWlDelay[1] / 1e6);
-        cJSON_AddNumberToObject(ueMsg, "upWlMin", upWlDelay[2] / 1e6);
-        cJSON_AddNumberToObject(ueMsg, "upWlMax", upWlDelay[3] / 1e6);
+        cJSON* uePos = cJSON_AddObjectToObject(ueStatsMsg, "pos");
 
-        cJSON_AddNumberToObject(ueMsg, "upWdMea", upWdDelay[0] / 1e6);
-        cJSON_AddNumberToObject(ueMsg, "upWdStd", upWdDelay[1] / 1e6);
-        cJSON_AddNumberToObject(ueMsg, "upWdMin", upWdDelay[2] / 1e6);
-        cJSON_AddNumberToObject(ueMsg, "upWdMax", upWdDelay[3] / 1e6);
+        Vector pos = m_cfranSystemInfo->GetUeInfo(ueId)
+                         .m_mcUeNetDevice->GetNode()
+                         ->GetObject<MobilityModel>()
+                         ->GetPosition();
+        cJSON_AddNumberToObject(uePos, "x", pos.x);
+        cJSON_AddNumberToObject(uePos, "y", pos.y);
+        cJSON_AddNumberToObject(uePos, "z", pos.z);
 
-        cJSON_AddNumberToObject(ueMsg, "queMea", queueDelay[0] / 1e6);
-        cJSON_AddNumberToObject(ueMsg, "queStd", queueDelay[1] / 1e6);
-        cJSON_AddNumberToObject(ueMsg, "queMin", queueDelay[2] / 1e6);
-        cJSON_AddNumberToObject(ueMsg, "queMax", queueDelay[3] / 1e6);
+        cJSON* latencyInfo = cJSON_AddObjectToObject(ueStatsMsg, "latency");
 
-        cJSON_AddNumberToObject(ueMsg, "compMea", compDelay[0] / 1e6);
-        cJSON_AddNumberToObject(ueMsg, "compStd", compDelay[1] / 1e6);
-        cJSON_AddNumberToObject(ueMsg, "compMin", compDelay[2] / 1e6);
-        cJSON_AddNumberToObject(ueMsg, "compMax", compDelay[3] / 1e6);
+        cJSON_AddNumberToObject(latencyInfo, "upWlMea", upWlDelay[0] / 1e6);
+        cJSON_AddNumberToObject(latencyInfo, "upWlStd", upWlDelay[1] / 1e6);
+        cJSON_AddNumberToObject(latencyInfo, "upWlMin", upWlDelay[2] / 1e6);
+        cJSON_AddNumberToObject(latencyInfo, "upWlMax", upWlDelay[3] / 1e6);
 
-        cJSON_AddNumberToObject(ueMsg, "dnWdMea", dnWdDelay[0] / 1e6);
-        cJSON_AddNumberToObject(ueMsg, "dnWdStd", dnWdDelay[1] / 1e6);
-        cJSON_AddNumberToObject(ueMsg, "dnWdMin", dnWdDelay[2] / 1e6);
-        cJSON_AddNumberToObject(ueMsg, "dnWdMax", dnWdDelay[3] / 1e6);
+        cJSON_AddNumberToObject(latencyInfo, "upWdMea", upWdDelay[0] / 1e6);
+        cJSON_AddNumberToObject(latencyInfo, "upWdStd", upWdDelay[1] / 1e6);
+        cJSON_AddNumberToObject(latencyInfo, "upWdMin", upWdDelay[2] / 1e6);
+        cJSON_AddNumberToObject(latencyInfo, "upWdMax", upWdDelay[3] / 1e6);
 
-        cJSON_AddNumberToObject(ueMsg, "dnWlMea", dnWlDelay[0] / 1e6);
-        cJSON_AddNumberToObject(ueMsg, "dnWlStd", dnWlDelay[1] / 1e6);
-        cJSON_AddNumberToObject(ueMsg, "dnWlMin", dnWlDelay[2] / 1e6);
-        cJSON_AddNumberToObject(ueMsg, "dnWlMax", dnWlDelay[3] / 1e6);
+        cJSON_AddNumberToObject(latencyInfo, "queMea", queueDelay[0] / 1e6);
+        cJSON_AddNumberToObject(latencyInfo, "queStd", queueDelay[1] / 1e6);
+        cJSON_AddNumberToObject(latencyInfo, "queMin", queueDelay[2] / 1e6);
+        cJSON_AddNumberToObject(latencyInfo, "queMax", queueDelay[3] / 1e6);
 
-        cJSON_AddItemToArray(ueMsgArray, ueMsg);
+        cJSON_AddNumberToObject(latencyInfo, "compMea", compDelay[0] / 1e6);
+        cJSON_AddNumberToObject(latencyInfo, "compStd", compDelay[1] / 1e6);
+        cJSON_AddNumberToObject(latencyInfo, "compMin", compDelay[2] / 1e6);
+        cJSON_AddNumberToObject(latencyInfo, "compMax", compDelay[3] / 1e6);
+
+        cJSON_AddNumberToObject(latencyInfo, "dnWdMea", dnWdDelay[0] / 1e6);
+        cJSON_AddNumberToObject(latencyInfo, "dnWdStd", dnWdDelay[1] / 1e6);
+        cJSON_AddNumberToObject(latencyInfo, "dnWdMin", dnWdDelay[2] / 1e6);
+        cJSON_AddNumberToObject(latencyInfo, "dnWdMax", dnWdDelay[3] / 1e6);
+
+        cJSON_AddNumberToObject(latencyInfo, "dnWlMea", dnWlDelay[0] / 1e6);
+        cJSON_AddNumberToObject(latencyInfo, "dnWlStd", dnWlDelay[1] / 1e6);
+        cJSON_AddNumberToObject(latencyInfo, "dnWlMin", dnWlDelay[2] / 1e6);
+        cJSON_AddNumberToObject(latencyInfo, "dnWlMax", dnWlDelay[3] / 1e6);
+
+        cJSON_AddItemToArray(ueMsgArray, ueStatsMsg);
     }
 
     std::string cJsonPrint = cJSON_PrintUnformatted(msg);
@@ -296,37 +330,47 @@ RemoteCfApplication::BuildAndSendE2Report()
     deflate(&defstream, Z_FINISH);
     deflateEnd(&defstream);
 
-    NS_LOG_DEBUG("Original len: " << strlen(reportString));
-    // This is one way of getting the size of the output
-    printf("Compressed size is: %lu\n", defstream.total_out);
-    printf("Compressed size(wrong) is: %lu\n", strlen(b));
-    printf("Compressed string is: %s\n", b);
+    // NS_LOG_DEBUG("Original len: " << strlen(reportString));
+    // // This is one way of getting the size of the output
+    // printf("Compressed size is: %lu\n", defstream.total_out);
+    // printf("Compressed size(wrong) is: %lu\n", strlen(b));
+    // printf("Compressed string is: %s\n", b);
 
     std::string base64String = base64_encode((const unsigned char*)b, defstream.total_out);
-    NS_LOG_DEBUG("base64String: " << base64String);
-    NS_LOG_DEBUG("base64String size: " << base64String.length());
+    // NS_LOG_DEBUG("base64String: " << base64String);
+    // NS_LOG_DEBUG("base64String size: " << base64String.length());
 
-    Ptr<KpmIndicationHeader> header = BuildRicIndicationHeader(plmId, gnbId, m_serverId);
-    E2AP_PDU* pdu_du_ue = new E2AP_PDU;
-    auto kpmPrams = m_e2term->GetSubscriptionPara();
-    NS_LOG_DEBUG("kpmPrams.ranFuncionId: " << kpmPrams.ranFuncionId);
-    encoding::generate_e2apv1_indication_request_parameterized(
-        pdu_du_ue,
-        kpmPrams.requestorId,
-        kpmPrams.instanceId,
-        kpmPrams.ranFuncionId,
-        kpmPrams.actionId,
-        1,                          // TODO sequence number
-        (uint8_t*)header->m_buffer, // buffer containing the encoded header
-        header->m_size,             // size of the encoded header
-        //  (uint8_t*) duMsg->m_buffer, // buffer containing the encoded message
-        // (uint8_t*)(reportString),
-        (uint8_t*)base64String.c_str(),
-        //  duMsg->m_size
-        base64String.length());
-    // defstream.total_out); // size of the encoded message
-    m_e2term->SendE2Message(pdu_du_ue);
-    delete pdu_du_ue;
+    if (m_e2term != nullptr)
+    {
+        Ptr<KpmIndicationHeader> header = BuildRicIndicationHeader(plmId, gnbId, m_serverId);
+        E2AP_PDU* pdu_du_ue = new E2AP_PDU;
+        auto kpmPrams = m_e2term->GetSubscriptionPara();
+        NS_LOG_DEBUG("kpmPrams.ranFuncionId: " << kpmPrams.ranFuncionId);
+        encoding::generate_e2apv1_indication_request_parameterized(
+            pdu_du_ue,
+            kpmPrams.requestorId,
+            kpmPrams.instanceId,
+            kpmPrams.ranFuncionId,
+            kpmPrams.actionId,
+            1,                          // TODO sequence number
+            (uint8_t*)header->m_buffer, // buffer containing the encoded header
+            header->m_size,             // size of the encoded header
+            //  (uint8_t*) duMsg->m_buffer, // buffer containing the encoded message
+            // (uint8_t*)(reportString),
+            (uint8_t*)base64String.c_str(),
+            //  duMsg->m_size
+            base64String.length());
+        // defstream.total_out); // size of the encoded message
+        m_e2term->SendE2Message(pdu_du_ue);
+        delete pdu_du_ue;
+    }
+    else if (m_clientFd > 0)
+    {
+        if (send(m_clientFd, base64String.c_str(), base64String.length(), 0) < 0)
+        {
+            NS_LOG_ERROR("Error when send cell data.");
+        }
+    }
 
     Simulator::ScheduleWithContext(GetNode()->GetId(),
                                    MilliSeconds(500),
@@ -379,6 +423,61 @@ RemoteCfApplication::KpmSubscriptionCallback(E2AP_PDU_t* sub_req_pdu)
     //     BuildAndSendReportMessage(params);
     //     m_isReportingEnabled = true;
     // }
+}
+
+void
+RemoteCfApplication::ControlMessageReceivedCallback(E2AP_PDU_t* pdu)
+{
+    // NS_LOG_DEBUG ("Control Message Received, cellId is " << m_gnbNetDev->GetCellId ());
+    std::cout << "Control Message Received, serverId is " << this->GetServerId() << std::endl;
+    InitiatingMessage_t* mess = pdu->choice.initiatingMessage;
+    auto* request = (RICcontrolRequest_t*)&mess->value.choice.RICcontrolRequest;
+    NS_LOG_INFO(xer_fprint(stderr, &asn_DEF_RICcontrolRequest, request));
+
+    size_t count = request->protocolIEs.list.count;
+    if (count <= 0)
+    {
+        NS_LOG_ERROR("[E2SM] received empty list");
+        return;
+    }
+    for (size_t i = 0; i < count; i++)
+    {
+        RICcontrolRequest_IEs_t* ie = request->protocolIEs.list.array[i];
+        switch (ie->value.present)
+        {
+        case RICcontrolRequest_IEs__value_PR_RICcontrolMessage: {
+            NS_LOG_DEBUG("Control Message: " << ie->value.choice.RICcontrolMessage.buf);
+            // cJSON *json = cJSON_Parse ((const char *) ie->value.choice.RICcontrolMessage.buf);
+            // if (json == NULL)
+            //   {
+            //     NS_LOG_ERROR ("Parsing json failed");
+            //   }
+            // else
+            //   {
+            //     // NS_LOG_DEBUG("Get available json");
+            //     cJSON *uePolicy = NULL;
+            //     cJSON_ArrayForEach (uePolicy, json)
+            //     {
+            //       cJSON *imsi = cJSON_GetObjectItemCaseSensitive (uePolicy, "imsi");
+            //       cJSON *cfNodeId = cJSON_GetObjectItemCaseSensitive (uePolicy, "cfNodeId");
+            //       if (cJSON_IsNumber (imsi) && cJSON_IsNumber (cfNodeId))
+            //         {
+            //           NS_LOG_DEBUG ("Recv ctrl policy for imsi "
+            //                         << imsi->valueint << " to cell " << m_gnbNetDev->GetCellId ()
+            //                         << " to cfNode " << cfNodeId->valueint);
+            //           m_vrSystemProfile->SetProfileForImsi (
+            //               imsi->valueint, m_gnbNetDev->GetCellId (), cfNodeId->valueint);
+            //           // m_vrSystemControl->ApplyForSingleUe(imsi->valueint,
+            //           m_gnbNetDev->GetCellId(), cfNodeId->valueint);
+            //         }
+            //     }
+            //   }
+            break;
+        }
+        default:
+            break;
+        }
+    }
 }
 
 } // namespace ns3

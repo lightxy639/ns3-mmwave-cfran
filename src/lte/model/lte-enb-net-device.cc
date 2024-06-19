@@ -26,10 +26,11 @@
  */
 
 #include "encode_e2apv1.hpp"
+#include "zlib.h"
 
 #include <ns3/abort.h>
-#include <ns3/cJSON.h>
 #include <ns3/base64.h>
+#include <ns3/cJSON.h>
 #include <ns3/callback.h>
 #include <ns3/enum.h>
 #include <ns3/ff-mac-scheduler.h>
@@ -59,7 +60,6 @@
 #include <ns3/uinteger.h>
 
 #include <iostream>
-#include "zlib.h"
 
 namespace ns3
 {
@@ -165,7 +165,8 @@ LteEnbNetDevice::LteEnbNetDevice()
     : m_isConstructed(false),
       m_isConfigured(false),
       m_anr(0),
-      m_componentCarrierManager(0)
+      m_componentCarrierManager(0),
+      m_clientFd(-1)
 {
     NS_LOG_FUNCTION(this);
 }
@@ -437,7 +438,19 @@ LteEnbNetDevice::UpdateConfig(void)
         if (m_e2term)
         {
             NS_LOG_DEBUG("E2sim start in cell " << m_cellId);
-            Simulator::Schedule(MicroSeconds(0), &E2Termination::Start, m_e2term);
+            // Simulator::Schedule(MicroSeconds(0), &E2Termination::Start, m_e2term);
+            Simulator::ScheduleWithContext(GetNode()->GetId(),
+                                           MicroSeconds(0),
+                                           &E2Termination::Start,
+                                           m_e2term);
+
+            Ptr<RicControlFunctionDescription> ricCtrlFd = Create<RicControlFunctionDescription>();
+            m_e2term->RegisterSmCallbackToE2Sm(
+                300,
+                ricCtrlFd,
+                std::bind(&LteEnbNetDevice::ControlMessageReceivedCallback,
+                          this,
+                          std::placeholders::_1));
         }
     }
     else
@@ -470,6 +483,16 @@ LteEnbNetDevice::SetE2Termination(Ptr<E2Termination> e2term)
     // if (!m_forceE2FileLogging)
     // {
     // }
+}
+
+void
+LteEnbNetDevice::SetClientFd(int clientFd)
+{
+    m_clientFd = clientFd;
+    Simulator::ScheduleWithContext(GetNode()->GetId(),
+                                   MilliSeconds(500),
+                                   &LteEnbNetDevice::BuildAndSendReportMessage,
+                                   this);
 }
 
 /**
@@ -525,7 +548,7 @@ LteEnbNetDevice::BuildAndSendReportMessage()
         for (auto cell : cellSinrMap)
         {
             uint16_t cellId = cell.first;
-            if(cellId == 0)
+            if (cellId == 0)
             {
                 continue;
             }
@@ -557,39 +580,47 @@ LteEnbNetDevice::BuildAndSendReportMessage()
     deflate(&defstream, Z_FINISH);
     deflateEnd(&defstream);
 
-    NS_LOG_DEBUG("Original len: " << strlen(reportString));
-    // This is one way of getting the size of the output
-    printf("Compressed size is: %lu\n", defstream.total_out);
-    printf("Compressed size(wrong) is: %lu\n", strlen(b));
-    printf("Compressed string is: %s\n", b);
+    // NS_LOG_DEBUG("Original len: " << strlen(reportString));
+    // // This is one way of getting the size of the output
+    // printf("Compressed size is: %lu\n", defstream.total_out);
+    // printf("Compressed size(wrong) is: %lu\n", strlen(b));
+    // printf("Compressed string is: %s\n", b);
 
     std::string base64String = base64_encode((const unsigned char*)b, defstream.total_out);
-    NS_LOG_DEBUG("base64String: " << base64String);
-    NS_LOG_DEBUG("base64String size: " << base64String.length());
+    // NS_LOG_DEBUG("base64String: " << base64String);
+    // NS_LOG_DEBUG("base64String size: " << base64String.length());
 
-
-    Ptr<KpmIndicationHeader> header = BuildRicIndicationHeader(plmId, gnbId, m_cellId);
-    E2AP_PDU* pdu_du_ue = new E2AP_PDU;
-    auto kpmPrams = m_e2term->GetSubscriptionPara();
-    NS_LOG_DEBUG("kpmPrams.ranFuncionId: " << kpmPrams.ranFuncionId);
-    encoding::generate_e2apv1_indication_request_parameterized(
-        pdu_du_ue,
-        kpmPrams.requestorId,
-        kpmPrams.instanceId,
-        kpmPrams.ranFuncionId,
-        kpmPrams.actionId,
-        1,                          // TODO sequence number
-        (uint8_t*)header->m_buffer, // buffer containing the encoded header
-        header->m_size,             // size of the encoded header
-        //  (uint8_t*) duMsg->m_buffer, // buffer containing the encoded message
-        // (uint8_t*)(reportString),
-        (uint8_t*)base64String.c_str(),
-        //  duMsg->m_size
-        base64String.length());
-    // defstream.total_out); // size of the encoded message
-    m_e2term->SendE2Message(pdu_du_ue);
-    delete pdu_du_ue;
-
+    if (m_e2term != nullptr)
+    {
+        Ptr<KpmIndicationHeader> header = BuildRicIndicationHeader(plmId, gnbId, m_cellId);
+        E2AP_PDU* pdu_du_ue = new E2AP_PDU;
+        auto kpmPrams = m_e2term->GetSubscriptionPara();
+        NS_LOG_DEBUG("kpmPrams.ranFuncionId: " << kpmPrams.ranFuncionId);
+        encoding::generate_e2apv1_indication_request_parameterized(
+            pdu_du_ue,
+            kpmPrams.requestorId,
+            kpmPrams.instanceId,
+            kpmPrams.ranFuncionId,
+            kpmPrams.actionId,
+            1,                          // TODO sequence number
+            (uint8_t*)header->m_buffer, // buffer containing the encoded header
+            header->m_size,             // size of the encoded header
+            //  (uint8_t*) duMsg->m_buffer, // buffer containing the encoded message
+            // (uint8_t*)(reportString),
+            (uint8_t*)base64String.c_str(),
+            //  duMsg->m_size
+            base64String.length());
+        // defstream.total_out); // size of the encoded message
+        m_e2term->SendE2Message(pdu_du_ue);
+        delete pdu_du_ue;
+    }
+    else if (m_clientFd > 0)
+    {
+        if (send(m_clientFd, base64String.c_str(), base64String.length(), 0) < 0)
+        {
+            NS_LOG_ERROR("Error when send cell data.");
+        }
+    }
 
     Simulator::ScheduleWithContext(GetNode()->GetId(),
                                    MilliSeconds(500),
@@ -615,6 +646,61 @@ LteEnbNetDevice::BuildRicIndicationHeader(std::string plmId, std::string gnbId, 
         Create<KpmIndicationHeader>(KpmIndicationHeader::GlobalE2nodeType::gNB, headerValues);
 
     return header;
+}
+
+void
+LteEnbNetDevice::ControlMessageReceivedCallback(E2AP_PDU_t* pdu)
+{
+    // NS_LOG_DEBUG ("Control Message Received, cellId is " << m_gnbNetDev->GetCellId ());
+    std::cout << "Control Message Received, cellId is " << this->GetCellId() << std::endl;
+    InitiatingMessage_t* mess = pdu->choice.initiatingMessage;
+    auto* request = (RICcontrolRequest_t*)&mess->value.choice.RICcontrolRequest;
+    NS_LOG_INFO(xer_fprint(stderr, &asn_DEF_RICcontrolRequest, request));
+
+    size_t count = request->protocolIEs.list.count;
+    if (count <= 0)
+    {
+        NS_LOG_ERROR("[E2SM] received empty list");
+        return;
+    }
+    for (size_t i = 0; i < count; i++)
+    {
+        RICcontrolRequest_IEs_t* ie = request->protocolIEs.list.array[i];
+        switch (ie->value.present)
+        {
+        case RICcontrolRequest_IEs__value_PR_RICcontrolMessage: {
+            NS_LOG_DEBUG("Control Message: " << ie->value.choice.RICcontrolMessage.buf);
+            // cJSON *json = cJSON_Parse ((const char *) ie->value.choice.RICcontrolMessage.buf);
+            // if (json == NULL)
+            //   {
+            //     NS_LOG_ERROR ("Parsing json failed");
+            //   }
+            // else
+            //   {
+            //     // NS_LOG_DEBUG("Get available json");
+            //     cJSON *uePolicy = NULL;
+            //     cJSON_ArrayForEach (uePolicy, json)
+            //     {
+            //       cJSON *imsi = cJSON_GetObjectItemCaseSensitive (uePolicy, "imsi");
+            //       cJSON *cfNodeId = cJSON_GetObjectItemCaseSensitive (uePolicy, "cfNodeId");
+            //       if (cJSON_IsNumber (imsi) && cJSON_IsNumber (cfNodeId))
+            //         {
+            //           NS_LOG_DEBUG ("Recv ctrl policy for imsi "
+            //                         << imsi->valueint << " to cell " << m_gnbNetDev->GetCellId ()
+            //                         << " to cfNode " << cfNodeId->valueint);
+            //           m_vrSystemProfile->SetProfileForImsi (
+            //               imsi->valueint, m_gnbNetDev->GetCellId (), cfNodeId->valueint);
+            //           // m_vrSystemControl->ApplyForSingleUe(imsi->valueint,
+            //           m_gnbNetDev->GetCellId(), cfNodeId->valueint);
+            //         }
+            //     }
+            //   }
+            break;
+        }
+        default:
+            break;
+        }
+    }
 }
 
 } // namespace ns3

@@ -41,6 +41,9 @@ class CfApplicationHelper : public Object
     std::string m_e2ip;
     uint16_t m_e2port;
     uint16_t m_e2localPort;
+
+    bool m_enableCustomSocket;
+    uint16_t m_customServerPort;
 };
 } // namespace ns3
 

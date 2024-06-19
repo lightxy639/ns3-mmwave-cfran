@@ -320,7 +320,7 @@ CfE2eBuffer::UeRecvResultCallback(Ptr<CfE2eBuffer> stats,
     }
     else
     {
-        NS_FATAL_ERROR("No temp value found");
+        // NS_FATAL_ERROR("No temp value found");
     }
 }
 

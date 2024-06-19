@@ -18,7 +18,7 @@ namespace ns3
 // class CfModel : public Object
 struct CfModel
 {
-//   public:
+    //   public:
     CfModel();
 
     CfModel(std::string cfType, float cfCapacity);
@@ -36,13 +36,13 @@ struct CfModel
     bool operator>=(const CfModel&);
     CfModel operator/(uint64_t num);
 
-//   private:
+    //   private:
     std::string m_cfType; // CPU, GPU, FPGA,...
     float m_cfCapacity;   // MIPS, TFLOPS,...
 };
 
-std::ostream &operator <<(std::ostream &os, const CfModel &cfModel);
-std::istream &operator >>(std::istream &is, CfModel &cfModel);
+std::ostream& operator<<(std::ostream& os, const CfModel& cfModel);
+std::istream& operator>>(std::istream& is, CfModel& cfModel);
 
 ATTRIBUTE_HELPER_HEADER(CfModel);
 
@@ -60,6 +60,8 @@ struct UeTaskModel
     CfModel m_cfRequired; // the computing force UE required (optional)
     float m_cfLoad;       // TFLOPs...
     float m_deadline;     // ms
+    // float m_uplinkSize;   // bytes
+    // float m_downlinkSize; // bytes
     Ptr<Application> m_application;
 };
 

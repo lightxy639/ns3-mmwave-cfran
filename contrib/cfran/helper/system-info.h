@@ -24,6 +24,7 @@ class CfranSystemInfo : public Object
       Gnb = 0,
       Remote = 1
     };
+    
     struct UeInfo
     {
         uint64_t m_imsi;       // imsi

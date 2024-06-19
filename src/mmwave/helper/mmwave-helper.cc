@@ -64,9 +64,12 @@
 #include <ns3/uinteger.h>
 #include <ns3/uniform-planar-array.h>
 
+#include <arpa/inet.h>
 #include <iostream>
+#include <netinet/in.h>
 #include <sstream>
 #include <string>
+#include <sys/socket.h>
 
 namespace ns3
 {
@@ -300,6 +303,16 @@ MmWaveHelper::GetTypeId(void)
                           "The first port number for the local bind",
                           UintegerValue(38470),
                           MakeUintegerAccessor(&MmWaveHelper::m_e2localPort),
+                          MakeUintegerChecker<uint16_t>())
+            .AddAttribute("EnableCustomSocket",
+                          "If true, use custom socket instead of E2Termination",
+                          BooleanValue(false),
+                          MakeBooleanAccessor(&MmWaveHelper::m_enableCustomSocket),
+                          MakeBooleanChecker())
+            .AddAttribute("CustemServerPort",
+                          "Port number of custom server",
+                          UintegerValue(36000),
+                          MakeUintegerAccessor(&MmWaveHelper::m_customServerPort),
                           MakeUintegerChecker<uint16_t>());
 
     return tid;
@@ -2167,16 +2180,57 @@ MmWaveHelper::InstallSingleEnbDevice(Ptr<Node> n)
 
     if (m_e2mode_nr)
     {
-        const uint16_t local_port = m_e2localPort + (uint16_t)cellId;
-        const std::string gnb_id{std::to_string(cellId)};
+        if (!m_enableCustomSocket)
+        {
+            const uint16_t local_port = m_e2localPort + (uint16_t)cellId;
+            const std::string gnb_id{std::to_string(cellId)};
 
-        std::string plmnId = "111";
+            std::string plmnId = "111";
 
-        NS_LOG_INFO("cell_id " << gnb_id);
-        Ptr<E2Termination> e2term =
-            CreateObject<E2Termination>(m_e2ip, m_e2port, local_port, gnb_id, plmnId);
+            NS_LOG_INFO("cell_id " << gnb_id);
+            Ptr<E2Termination> e2term =
+                CreateObject<E2Termination>(m_e2ip, m_e2port, local_port, gnb_id, plmnId);
 
-        device->SetAttribute("E2Termination", PointerValue(e2term));
+            device->SetAttribute("E2Termination", PointerValue(e2term));
+        }
+
+        else
+        {
+            int clientFd;
+            sockaddr_in clientAddr, serverAddr;
+            const uint16_t local_port = m_e2localPort + (uint16_t)cellId;
+            int status;
+            if ((clientFd = socket(AF_INET, SOCK_STREAM, 0)) < 0)
+            {
+                NS_FATAL_ERROR("Test socket creation error");
+            }
+            clientAddr.sin_family = AF_INET;
+            clientAddr.sin_addr.s_addr = INADDR_ANY;
+            clientAddr.sin_port = htons(local_port);
+            if (bind(clientFd, (struct sockaddr*)&clientAddr, sizeof(clientAddr)) < 0)
+            {
+                NS_FATAL_ERROR("bind failed");
+            }
+            device->SetClientFd(clientFd);
+
+            serverAddr.sin_family = AF_INET;
+            serverAddr.sin_port = htons(m_customServerPort);
+
+            if (inet_pton(AF_INET, "127.0.0.1", &serverAddr.sin_addr) <= 0)
+            {
+                NS_FATAL_ERROR("Invalid address/ Address not supported");
+            }
+
+            if ((status = connect(clientFd, (struct sockaddr*)&serverAddr, sizeof(serverAddr))) < 0)
+            {
+                NS_FATAL_ERROR("Connection Failed");
+            }
+            else
+            {
+                NS_LOG_UNCOND("Connect success: "
+                              << "Port " << local_port);
+            }
+        }
 
         // EnableE2PdcpTraces();
         // EnableE2RlcTraces();
@@ -2484,15 +2538,56 @@ MmWaveHelper::InstallSingleLteEnbDevice(Ptr<Node> n)
 
     if (m_e2mode_lte)
     {
-        const uint16_t local_port = m_e2localPort + (uint16_t)cellId;
-        const std::string enb_id{std::to_string(cellId)};
-        std::string plmnId = "111";
+        if (!m_enableCustomSocket)
+        {
+            const uint16_t local_port = m_e2localPort + (uint16_t)cellId;
+            const std::string enb_id{std::to_string(cellId)};
+            std::string plmnId = "111";
 
-        NS_LOG_INFO("enb_id " << enb_id);
-        Ptr<E2Termination> e2term =
-            CreateObject<E2Termination>(m_e2ip, m_e2port, local_port, enb_id, plmnId);
+            NS_LOG_INFO("enb_id " << enb_id);
+            Ptr<E2Termination> e2term =
+                CreateObject<E2Termination>(m_e2ip, m_e2port, local_port, enb_id, plmnId);
 
-        dev->SetAttribute("E2Termination", PointerValue(e2term));
+            dev->SetAttribute("E2Termination", PointerValue(e2term));
+        }
+
+        else
+        {
+            int clientFd;
+            sockaddr_in clientAddr, serverAddr;
+            const uint16_t local_port = m_e2localPort + (uint16_t)cellId;
+            int status;
+            if ((clientFd = socket(AF_INET, SOCK_STREAM, 0)) < 0)
+            {
+                NS_FATAL_ERROR("Test socket creation error");
+            }
+            clientAddr.sin_family = AF_INET;
+            clientAddr.sin_addr.s_addr = INADDR_ANY;
+            clientAddr.sin_port = htons(local_port);
+            if (bind(clientFd, (struct sockaddr*)&clientAddr, sizeof(clientAddr)) < 0)
+            {
+                NS_FATAL_ERROR("bind failed");
+            }
+            dev->SetClientFd(clientFd);
+
+            serverAddr.sin_family = AF_INET;
+            serverAddr.sin_port = htons(m_customServerPort);
+
+            if (inet_pton(AF_INET, "127.0.0.1", &serverAddr.sin_addr) <= 0)
+            {
+                NS_FATAL_ERROR("Invalid address/ Address not supported");
+            }
+
+            if ((status = connect(clientFd, (struct sockaddr*)&serverAddr, sizeof(serverAddr))) < 0)
+            {
+                NS_FATAL_ERROR("Connection Failed");
+            }
+            else
+            {
+                NS_LOG_UNCOND("Connect success: "
+                              << "Port " << local_port);
+            }
+        }
 
         // EnableE2PdcpTraces();
         // EnableE2RlcTraces();

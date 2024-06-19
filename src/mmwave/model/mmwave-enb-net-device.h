@@ -98,7 +98,13 @@ class MmWaveEnbNetDevice : public MmWaveNetDevice
 
     Ptr<E2Termination> GetE2Termination() const;
 
+    void SetClientFd(int clientFd);
+
+    int GetClientFd() const;
+
     void KpmSubscriptionCallback(E2AP_PDU_t* sub_req_pdu);
+
+    void ControlMessageReceivedCallback(E2AP_PDU_t *pdu);
 
     void BuildAndSendReportMessage();
 
@@ -127,6 +133,7 @@ class MmWaveEnbNetDevice : public MmWaveNetDevice
     bool m_isConfigured;
 
     Ptr<E2Termination> m_e2term;
+    int m_clientFd;
     std::string GetImsiString(uint64_t imsi);
     Ptr<MmWaveBearerStatsCalculator> m_pdcpStatsCalculator;
     Ptr<MmWaveBearerStatsCalculator> m_rlcStatsCalculator;

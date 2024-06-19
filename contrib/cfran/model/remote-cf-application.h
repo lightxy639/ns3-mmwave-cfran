@@ -24,6 +24,8 @@ class RemoteCfApplication : public CfApplication
 
     void SetE2Termination(Ptr<E2Termination> e2term) override;
 
+    void SetClientFd(int clientFd) override;
+
     void SendPacketToUe(uint64_t ueId, Ptr<Packet> packet) override;
 
     void RecvFromUe(Ptr<Socket> socket) override;
@@ -33,6 +35,8 @@ class RemoteCfApplication : public CfApplication
     void BuildAndSendE2Report();
     
     void KpmSubscriptionCallback(E2AP_PDU_t* sub_req_pdu);
+    
+    void ControlMessageReceivedCallback(E2AP_PDU_t *pdu);
 
     Ptr<KpmIndicationHeader> BuildRicIndicationHeader(std::string plmId,
                                                       std::string gnbId,

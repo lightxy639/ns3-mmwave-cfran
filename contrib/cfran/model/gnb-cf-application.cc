@@ -98,6 +98,17 @@ GnbCfApplication::SetMmWaveEnbNetDevice(Ptr<mmwave::MmWaveEnbNetDevice> mmwaveEn
 }
 
 void
+GnbCfApplication::SetClientFd(int clientFd)
+{
+    m_clientFd = clientFd;
+
+    Simulator::ScheduleWithContext(GetNode()->GetId(),
+                                   MilliSeconds(500),
+                                   &GnbCfApplication::BuildAndSendE2Report,
+                                   this);
+}
+
+void
 GnbCfApplication::RecvTaskRequest()
 {
     NS_LOG_FUNCTION(this);
@@ -223,7 +234,19 @@ GnbCfApplication::StartApplication()
     if (m_e2term)
     {
         Simulator::Schedule(Seconds(1.5), &GnbCfApplication::BuildAndSendE2Report, this);
+        Ptr<RicControlFunctionDescription> ricCtrlFd = Create<RicControlFunctionDescription>();
+        m_e2term->RegisterSmCallbackToE2Sm(
+            300,
+            ricCtrlFd,
+            std::bind(&GnbCfApplication::ControlMessageReceivedCallback,
+                      this,
+                      std::placeholders::_1));
     }
+    Simulator::Schedule(MilliSeconds(10), &GnbCfApplication::ExecuteCommands, this);
+    // else if (m_clientFd > 0)
+    // {
+        
+    // }
 }
 
 void
@@ -356,7 +379,7 @@ GnbCfApplication::RecvFromUe(Ptr<Socket> socket)
                 NS_LOG_DEBUG("Report to RIC and wait for command.");
                 SendNewUeReport(cfRadioHeader.GetUeId());
 
-                AssignUe(cfRadioHeader.GetUeId(), 3);
+                AssignUe(cfRadioHeader.GetUeId(), 2);
             }
         }
         else if (cfRadioHeader.GetMessageType() == CfRadioHeader::TaskRequest)
@@ -689,7 +712,7 @@ GnbCfApplication::AssignUe(uint64_t ueId, uint64_t offloadPointId)
         }
         else if (m_cfranSystemInfo->GetOffladPointType(offloadPointId) == CfranSystemInfo::Remote)
         {
-            NS_LOG_DEBUG("Instruct users to offload tasks to remote servers");
+            NS_LOG_DEBUG("Instruct users to offload tasks to remote server " << offloadPointId);
             CfRadioHeader cfrHd;
             cfrHd.SetMessageType(CfRadioHeader::OffloadCommand);
             cfrHd.SetGnbId(offloadPointId);
@@ -707,14 +730,15 @@ GnbCfApplication::BuildAndSendE2Report()
 {
     NS_LOG_FUNCTION(this);
 
-    NS_LOG_DEBUG(this << "m_e2term->GetSubscriptionState(): " << m_e2term->GetSubscriptionState());
-    if (!m_e2term->GetSubscriptionState())
+    // NS_LOG_DEBUG(this << "m_e2term->GetSubscriptionState(): " <<
+    // m_e2term->GetSubscriptionState());
+    if (m_e2term != nullptr && !m_e2term->GetSubscriptionState())
     {
         Simulator::Schedule(MilliSeconds(500), &GnbCfApplication::BuildAndSendE2Report, this);
         return;
     }
 
-    E2Termination::RicSubscriptionRequest_rval_s params = m_e2term->GetSubscriptionPara();
+    // E2Termination::RicSubscriptionRequest_rval_s params = m_e2term->GetSubscriptionPara();
 
     std::string plmId = "111";
     std::string gnbId = std::to_string(m_mmWaveEnbNetDevice->GetCellId());
@@ -746,35 +770,47 @@ GnbCfApplication::BuildAndSendE2Report()
         cJSON* ueStatsMsg = cJSON_CreateObject();
         cJSON_AddNumberToObject(ueStatsMsg, "Id", ueId);
 
-        cJSON_AddNumberToObject(ueStatsMsg, "upWlMea", upWlDelay[0] / 1e6);
-        cJSON_AddNumberToObject(ueStatsMsg, "upWlStd", upWlDelay[1] / 1e6);
-        cJSON_AddNumberToObject(ueStatsMsg, "upWlMin", upWlDelay[2] / 1e6);
-        cJSON_AddNumberToObject(ueStatsMsg, "upWlMax", upWlDelay[3] / 1e6);
+        cJSON* uePos = cJSON_AddObjectToObject(ueStatsMsg, "pos");
 
-        cJSON_AddNumberToObject(ueStatsMsg, "upWdMea", upWdDelay[0] / 1e6);
-        cJSON_AddNumberToObject(ueStatsMsg, "upWdStd", upWdDelay[1] / 1e6);
-        cJSON_AddNumberToObject(ueStatsMsg, "upWdMin", upWdDelay[2] / 1e6);
-        cJSON_AddNumberToObject(ueStatsMsg, "upWdMax", upWdDelay[3] / 1e6);
+        Vector pos = m_cfranSystemInfo->GetUeInfo(ueId)
+                         .m_mcUeNetDevice->GetNode()
+                         ->GetObject<MobilityModel>()
+                         ->GetPosition();
+        cJSON_AddNumberToObject(uePos, "x", pos.x);
+        cJSON_AddNumberToObject(uePos, "y", pos.y);
+        cJSON_AddNumberToObject(uePos, "z", pos.z);
 
-        cJSON_AddNumberToObject(ueStatsMsg, "queMea", queueDelay[0] / 1e6);
-        cJSON_AddNumberToObject(ueStatsMsg, "queStd", queueDelay[1] / 1e6);
-        cJSON_AddNumberToObject(ueStatsMsg, "queMin", queueDelay[2] / 1e6);
-        cJSON_AddNumberToObject(ueStatsMsg, "queMax", queueDelay[3] / 1e6);
+        cJSON* latencyInfo = cJSON_AddObjectToObject(ueStatsMsg, "latency");
 
-        cJSON_AddNumberToObject(ueStatsMsg, "compMea", compDelay[0] / 1e6);
-        cJSON_AddNumberToObject(ueStatsMsg, "compStd", compDelay[1] / 1e6);
-        cJSON_AddNumberToObject(ueStatsMsg, "compMin", compDelay[2] / 1e6);
-        cJSON_AddNumberToObject(ueStatsMsg, "compMax", compDelay[3] / 1e6);
+        cJSON_AddNumberToObject(latencyInfo, "upWlMea", upWlDelay[0] / 1e6);
+        cJSON_AddNumberToObject(latencyInfo, "upWlStd", upWlDelay[1] / 1e6);
+        cJSON_AddNumberToObject(latencyInfo, "upWlMin", upWlDelay[2] / 1e6);
+        cJSON_AddNumberToObject(latencyInfo, "upWlMax", upWlDelay[3] / 1e6);
 
-        cJSON_AddNumberToObject(ueStatsMsg, "dnWdMea", dnWdDelay[0] / 1e6);
-        cJSON_AddNumberToObject(ueStatsMsg, "dnWdStd", dnWdDelay[1] / 1e6);
-        cJSON_AddNumberToObject(ueStatsMsg, "dnWdMin", dnWdDelay[2] / 1e6);
-        cJSON_AddNumberToObject(ueStatsMsg, "dnWdMax", dnWdDelay[3] / 1e6);
+        cJSON_AddNumberToObject(latencyInfo, "upWdMea", upWdDelay[0] / 1e6);
+        cJSON_AddNumberToObject(latencyInfo, "upWdStd", upWdDelay[1] / 1e6);
+        cJSON_AddNumberToObject(latencyInfo, "upWdMin", upWdDelay[2] / 1e6);
+        cJSON_AddNumberToObject(latencyInfo, "upWdMax", upWdDelay[3] / 1e6);
 
-        cJSON_AddNumberToObject(ueStatsMsg, "dnWlMea", dnWlDelay[0] / 1e6);
-        cJSON_AddNumberToObject(ueStatsMsg, "dnWlStd", dnWlDelay[1] / 1e6);
-        cJSON_AddNumberToObject(ueStatsMsg, "dnWlMin", dnWlDelay[2] / 1e6);
-        cJSON_AddNumberToObject(ueStatsMsg, "dnWlMax", dnWlDelay[3] / 1e6);
+        cJSON_AddNumberToObject(latencyInfo, "queMea", queueDelay[0] / 1e6);
+        cJSON_AddNumberToObject(latencyInfo, "queStd", queueDelay[1] / 1e6);
+        cJSON_AddNumberToObject(latencyInfo, "queMin", queueDelay[2] / 1e6);
+        cJSON_AddNumberToObject(latencyInfo, "queMax", queueDelay[3] / 1e6);
+
+        cJSON_AddNumberToObject(latencyInfo, "compMea", compDelay[0] / 1e6);
+        cJSON_AddNumberToObject(latencyInfo, "compStd", compDelay[1] / 1e6);
+        cJSON_AddNumberToObject(latencyInfo, "compMin", compDelay[2] / 1e6);
+        cJSON_AddNumberToObject(latencyInfo, "compMax", compDelay[3] / 1e6);
+
+        cJSON_AddNumberToObject(latencyInfo, "dnWdMea", dnWdDelay[0] / 1e6);
+        cJSON_AddNumberToObject(latencyInfo, "dnWdStd", dnWdDelay[1] / 1e6);
+        cJSON_AddNumberToObject(latencyInfo, "dnWdMin", dnWdDelay[2] / 1e6);
+        cJSON_AddNumberToObject(latencyInfo, "dnWdMax", dnWdDelay[3] / 1e6);
+
+        cJSON_AddNumberToObject(latencyInfo, "dnWlMea", dnWlDelay[0] / 1e6);
+        cJSON_AddNumberToObject(latencyInfo, "dnWlStd", dnWlDelay[1] / 1e6);
+        cJSON_AddNumberToObject(latencyInfo, "dnWlMin", dnWlDelay[2] / 1e6);
+        cJSON_AddNumberToObject(latencyInfo, "dnWlMax", dnWlDelay[3] / 1e6);
 
         cJSON_AddItemToArray(ueMsgArray, ueStatsMsg);
 
@@ -804,38 +840,48 @@ GnbCfApplication::BuildAndSendE2Report()
     deflate(&defstream, Z_FINISH);
     deflateEnd(&defstream);
 
-    NS_LOG_DEBUG("Original len: " << strlen(reportString));
-    // This is one way of getting the size of the output
-    printf("Compressed size is: %lu\n", defstream.total_out);
-    printf("Compressed size(wrong) is: %lu\n", strlen(b));
-    printf("Compressed string is: %s\n", b);
+    // NS_LOG_DEBUG("Original len: " << strlen(reportString));
+    // // This is one way of getting the size of the output
+    // printf("Compressed size is: %lu\n", defstream.total_out);
+    // printf("Compressed size(wrong) is: %lu\n", strlen(b));
+    // printf("Compressed string is: %s\n", b);
 
     std::string base64String = base64_encode((const unsigned char*)b, defstream.total_out);
-    NS_LOG_DEBUG("base64String: " << base64String);
-    NS_LOG_DEBUG("base64String size: " << base64String.length());
+    // NS_LOG_DEBUG("base64String: " << base64String);
+    // NS_LOG_DEBUG("base64String size: " << base64String.length());
 
-    Ptr<KpmIndicationHeader> header =
-        m_mmWaveEnbNetDevice->BuildRicIndicationHeader(plmId, gnbId, cellId);
-    E2AP_PDU* pdu_du_ue = new E2AP_PDU;
-    auto kpmPrams = m_e2term->GetSubscriptionPara();
-    NS_LOG_DEBUG("kpmPrams.ranFuncionId: " << kpmPrams.ranFuncionId);
-    encoding::generate_e2apv1_indication_request_parameterized(
-        pdu_du_ue,
-        kpmPrams.requestorId,
-        kpmPrams.instanceId,
-        kpmPrams.ranFuncionId,
-        kpmPrams.actionId,
-        1,                          // TODO sequence number
-        (uint8_t*)header->m_buffer, // buffer containing the encoded header
-        header->m_size,             // size of the encoded header
-        //  (uint8_t*) duMsg->m_buffer, // buffer containing the encoded message
-        // (uint8_t*)(reportString),
-        (uint8_t*)base64String.c_str(),
-        //  duMsg->m_size
-        base64String.length());
-    // defstream.total_out); // size of the encoded message
-    m_e2term->SendE2Message(pdu_du_ue);
-    delete pdu_du_ue;
+    if (m_e2term != nullptr)
+    {
+        Ptr<KpmIndicationHeader> header =
+            m_mmWaveEnbNetDevice->BuildRicIndicationHeader(plmId, gnbId, cellId);
+        E2AP_PDU* pdu_du_ue = new E2AP_PDU;
+        auto kpmPrams = m_e2term->GetSubscriptionPara();
+        NS_LOG_DEBUG("kpmPrams.ranFuncionId: " << kpmPrams.ranFuncionId);
+        encoding::generate_e2apv1_indication_request_parameterized(
+            pdu_du_ue,
+            kpmPrams.requestorId,
+            kpmPrams.instanceId,
+            kpmPrams.ranFuncionId,
+            kpmPrams.actionId,
+            1,                          // TODO sequence number
+            (uint8_t*)header->m_buffer, // buffer containing the encoded header
+            header->m_size,             // size of the encoded header
+            //  (uint8_t*) duMsg->m_buffer, // buffer containing the encoded message
+            // (uint8_t*)(reportString),
+            (uint8_t*)base64String.c_str(),
+            //  duMsg->m_size
+            base64String.length());
+        // defstream.total_out); // size of the encoded message
+        m_e2term->SendE2Message(pdu_du_ue);
+        delete pdu_du_ue;
+    }
+    else if (m_clientFd > 0)
+    {
+        if (send(m_clientFd, base64String.c_str(), base64String.length(), 0) < 0)
+        {
+            NS_LOG_ERROR("Error when send cell data.");
+        }
+    }
 
     Simulator::ScheduleWithContext(GetNode()->GetId(),
                                    MilliSeconds(500),
@@ -844,4 +890,81 @@ GnbCfApplication::BuildAndSendE2Report()
     // Simulator::Schedule(MilliSeconds(500), &GnbCfApplication::BuildAndSendE2Report, this);
 }
 
+void
+GnbCfApplication::ControlMessageReceivedCallback(E2AP_PDU_t* pdu)
+{
+    // NS_LOG_DEBUG ("Control Message Received, cellId is " << m_gnbNetDev->GetCellId ());
+    std::cout << "Control Message Received, cellId is " << m_mmWaveEnbNetDevice->GetCellId()
+              << std::endl;
+    InitiatingMessage_t* mess = pdu->choice.initiatingMessage;
+    auto* request = (RICcontrolRequest_t*)&mess->value.choice.RICcontrolRequest;
+    NS_LOG_INFO(xer_fprint(stderr, &asn_DEF_RICcontrolRequest, request));
+
+    size_t count = request->protocolIEs.list.count;
+    if (count <= 0)
+    {
+        NS_LOG_ERROR("[E2SM] received empty list");
+        return;
+    }
+    for (size_t i = 0; i < count; i++)
+    {
+        RICcontrolRequest_IEs_t* ie = request->protocolIEs.list.array[i];
+        switch (ie->value.present)
+        {
+        case RICcontrolRequest_IEs__value_PR_RICcontrolMessage: {
+            NS_LOG_DEBUG("Control Message: " << ie->value.choice.RICcontrolMessage.buf);
+
+            cJSON *json = cJSON_Parse ((const char *) ie->value.choice.RICcontrolMessage.buf);
+            if (json == nullptr)
+              {
+                NS_LOG_ERROR ("Parsing json failed");
+              }
+            else
+              {
+                // NS_LOG_DEBUG("Get available json");
+                cJSON *uePolicy = nullptr;
+                cJSON_ArrayForEach (uePolicy, json)
+                {
+                  cJSON *imsi = cJSON_GetObjectItemCaseSensitive (uePolicy, "imsi");
+                  cJSON *offloadPointId = cJSON_GetObjectItemCaseSensitive (uePolicy, "offloadPointId");
+                  if (cJSON_IsNumber (imsi) && cJSON_IsNumber (offloadPointId))
+                    {
+                      NS_LOG_DEBUG ("Recv ctrl policy for imsi "
+                                    << " to cfNode " << offloadPointId->valueint);
+                        Policy uePolicy;
+                        uePolicy.m_ueId = imsi->valueint;
+                        uePolicy.m_offloadPointId = offloadPointId->valueint;
+                        m_policy.push(uePolicy);
+                        // m_policy.push()
+
+                      // m_vrSystemControl->ApplyForSingleUe(imsi->valueint, m_gnbNetDev->GetCellId(), cfNodeId->valueint);
+                    }
+                }
+              }
+            break;
+        }
+        default:
+            break;
+        }
+    }
+
+    // for (auto it = m_ueState.begin(); it != m_ueState.end(); it++)
+    // {
+    //     uint64_t ueId = it->first;
+    //     AssignUe(ueId, 6);
+    // }
+}
+
+void
+GnbCfApplication::ExecuteCommands()
+{
+    while(!m_policy.empty())
+    {
+        auto uePolicy = m_policy.front();
+        AssignUe(uePolicy.m_ueId, uePolicy.m_offloadPointId);
+        m_policy.pop();
+    }
+
+    Simulator::Schedule(MilliSeconds(5), &GnbCfApplication::ExecuteCommands, this);
+}
 } // namespace ns3

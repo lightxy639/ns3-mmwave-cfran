@@ -407,6 +407,9 @@ class MmWaveHelper : public Object
     uint16_t m_e2port;
     uint16_t m_e2localPort;
     
+    bool m_enableCustomSocket;
+    uint16_t m_customServerPort;
+    
     std::map<uint8_t, Ptr<SpectrumChannel>> m_channel; // mmWave TDD channel
     Ptr<SpectrumChannel> m_downlinkChannel; /// The downlink LTE channel used in the simulation.
     Ptr<SpectrumChannel> m_uplinkChannel;   /// The uplink LTE channel used in the simulation.
