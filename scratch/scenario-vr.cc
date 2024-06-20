@@ -394,6 +394,7 @@ main(int argc, char* argv[])
 
     LogComponentEnable("UeCfApplication", LOG_DEBUG);
     // LogComponentEnable("UeCfApplication", LOG_FUNCTION);
+    LogComponentEnable("UeCfApplication", LOG_INFO);
     LogComponentEnable("UeCfApplication", LOG_PREFIX_ALL);
 
     LogComponentEnable("RemoteCfApplication", LOG_INFO);
@@ -953,6 +954,8 @@ main(int argc, char* argv[])
         // ueTaskModel.m_cfRequired = CfModel("GPU", 10);
         ueTaskModel.m_cfLoad = 0.2;
         ueTaskModel.m_deadline = 10;
+        ueTaskModel.m_uplinkSize = 500000;
+        ueTaskModel.m_downlinkSize = 500000;
 
         ueInfo.m_imsi = imsi;
         ueInfo.m_ipAddr = ueAddr;

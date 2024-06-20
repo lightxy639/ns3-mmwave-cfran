@@ -60,8 +60,8 @@ struct UeTaskModel
     CfModel m_cfRequired; // the computing force UE required (optional)
     float m_cfLoad;       // TFLOPs...
     float m_deadline;     // ms
-    // float m_uplinkSize;   // bytes
-    // float m_downlinkSize; // bytes
+    uint64_t m_uplinkSize;   // bytes
+    uint64_t m_downlinkSize; // bytes
     Ptr<Application> m_application;
 };
 

@@ -66,13 +66,14 @@ UeCfApplication::UeCfApplication()
       m_taskId(0),
       m_socket(0),
       m_minSize(1000),
-      m_requestDataSize(500000),
+      //   m_requestDataSize(500000),
       m_uploadPacketSize(1000),
       m_period(40),
       m_accessGnbId(0),
       m_offloadPointId(0)
 {
     NS_LOG_FUNCTION(this);
+    m_downlinkResultManager = CreateObject<MultiPacketManager>();
 }
 
 UeCfApplication::~UeCfApplication()
@@ -236,7 +237,8 @@ UeCfApplication::SendTaskRequest()
         rlcIntercept = false;
     }
 
-    uint32_t packetNum = std::ceil(float(m_requestDataSize) / m_uploadPacketSize);
+    uint64_t requestDataSize = m_cfranSystemInfo->GetUeInfo(m_ueId).m_taskModel.m_uplinkSize;
+    uint32_t packetNum = std::ceil((float)requestDataSize / m_uploadPacketSize);
     for (uint32_t n = 1; n <= packetNum; n++)
     {
         // double packetInterval = 10; // us
@@ -342,22 +344,36 @@ UeCfApplication::RecvFromNetwork(Ptr<Packet> p)
 
     else if (cfRadioHeader.GetMessageType() == CfRadioHeader::TaskResult)
     {
-        if (m_cfranSystemInfo->GetOffladPointType(m_offloadPointId) == CfranSystemInfo::Gnb)
-        {
-            NS_LOG_INFO("UE " << m_ueId << " Recv task result " << cfRadioHeader.GetTaskId()
-                              << " from gnb " << cfRadioHeader.GetGnbId());
-        }
-        else if (m_cfranSystemInfo->GetOffladPointType(m_offloadPointId) == CfranSystemInfo::Remote)
-        {
-            NS_LOG_INFO("UE " << m_ueId << " Recv task result " << cfRadioHeader.GetTaskId()
-                              << " from remote server " << cfRadioHeader.GetGnbId());
-        }
+        auto sourceId = cfRadioHeader.GetGnbId();
+        auto taskId = cfRadioHeader.GetTaskId();
 
-        m_rxResultTrace(cfRadioHeader.GetUeId(),
-                        cfRadioHeader.GetTaskId(),
-                        Simulator::Now().GetTimeStep());
-        // m_rxResultTrace(m_ueId, cfRadioHeader.GetTaskId(), Simulator::Now().GetTimeStep());
-        E2eTrace(cfRadioHeader);
+        MultiPacketHeader mpHeader;
+        p->RemoveHeader(mpHeader);
+
+        bool recvCompleted =
+            m_downlinkResultManager->AddAndCheckPacket(sourceId,
+                                                       taskId,
+                                                       mpHeader.GetPacketId(),
+                                                       mpHeader.GetTotalPacketNum());
+        if (recvCompleted)
+        {
+            if (m_cfranSystemInfo->GetOffladPointType(m_offloadPointId) == CfranSystemInfo::Gnb)
+            {
+                NS_LOG_INFO("UE " << m_ueId << " Recv task result " << cfRadioHeader.GetTaskId()
+                                  << " from gnb " << cfRadioHeader.GetGnbId());
+            }
+            else if (m_cfranSystemInfo->GetOffladPointType(m_offloadPointId) ==
+                     CfranSystemInfo::Remote)
+            {
+                NS_LOG_INFO("UE " << m_ueId << " Recv task result " << cfRadioHeader.GetTaskId()
+                                  << " from remote server " << cfRadioHeader.GetGnbId());
+            }
+            m_rxResultTrace(cfRadioHeader.GetUeId(),
+                            cfRadioHeader.GetTaskId(),
+                            Simulator::Now().GetTimeStep());
+            // m_rxResultTrace(m_ueId, cfRadioHeader.GetTaskId(), Simulator::Now().GetTimeStep());
+            E2eTrace(cfRadioHeader);
+        }
     }
     else
     {

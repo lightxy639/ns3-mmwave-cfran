@@ -8,6 +8,8 @@
 #include "cf-radio-header.h"
 #include <ns3/cf-e2e-calculator.h>
 #include <ns3/cf-e2e-buffer.h>
+#include <ns3/multi-packet-manager.h>
+
 
 namespace ns3
 {
@@ -84,7 +86,7 @@ class UeCfApplication : public Application
 
     uint16_t m_minSize;
 
-    uint32_t m_requestDataSize;  // bytes
+    // uint32_t m_requestDataSize;  // bytes
 
     uint32_t m_uploadPacketSize; // bytes
 
@@ -102,6 +104,8 @@ class UeCfApplication : public Application
 
     Ptr<CfE2eBuffer> m_cfE2eBuffer;
     Ptr<CfE2eCalculator> m_cfE2eCalculator;
+
+    Ptr<MultiPacketManager> m_downlinkResultManager;
 
     TracedCallback<uint64_t, uint64_t, uint64_t> m_txRequestTrace;
     TracedCallback<uint64_t, uint64_t, uint64_t> m_rxResultTrace;
