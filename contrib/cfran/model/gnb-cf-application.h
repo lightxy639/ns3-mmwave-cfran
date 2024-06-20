@@ -159,7 +159,9 @@ class GnbCfApplication : public CfApplication
     virtual void StopApplication(); // Called at time specified by Stop
 
 
-    TracedCallback<uint64_t, uint64_t, uint64_t> m_forwardRequestTrace;
+    // TracedCallback<uint64_t, uint64_t, uint64_t> m_forwardRequestTrace;
+
+    TracedCallback<uint64_t, uint64_t, uint64_t> m_recvRequestToBeForwardedTrace;
     TracedCallback<uint64_t, uint64_t, uint64_t> m_recvForwardedRequestTrace;
 
     TracedCallback<uint64_t, uint64_t, uint64_t> m_forwardResultTrace;

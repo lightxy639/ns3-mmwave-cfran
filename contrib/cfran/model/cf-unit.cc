@@ -17,9 +17,9 @@ CfUnit::GetTypeId()
                           CfModelValue(CfModel()),
                           MakeCfModelAccessor(&CfUnit::m_cf),
                           MakeCfModelChecker())
-            .AddTraceSource("ComputingTask",
+            .AddTraceSource("ProcessTask",
                             "Process UE task",
-                            MakeTraceSourceAccessor(&CfUnit::m_computingTaskTrace),
+                            MakeTraceSourceAccessor(&CfUnit::m_processTaskTrace),
                             "ns3::TaskComputing::TracedCallback");
 
     return tid;

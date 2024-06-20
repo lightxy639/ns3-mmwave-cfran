@@ -41,10 +41,10 @@ CfApplication::GetTypeId()
                             "Add UE task to cfUnit queue",
                             MakeTraceSourceAccessor(&CfApplication::m_addTaskTrace),
                             "ns3::TaskQueuePush::TracedCallback")
-            .AddTraceSource("GetResult",
-                            "Get task result directly",
-                            MakeTraceSourceAccessor(&CfApplication::m_getResultTrace),
-                            "ns3::TaskCompleted::TracedCallback")
+            // .AddTraceSource("GetResult",
+            //                 "Get task result directly",
+            //                 MakeTraceSourceAccessor(&CfApplication::m_getResultTrace),
+            //                 "ns3::TaskCompleted::TracedCallback")
             .AddTraceSource("SendResult",
                             "Send UE task result to UE",
                             MakeTraceSourceAccessor(&CfApplication::m_sendResultTrace),

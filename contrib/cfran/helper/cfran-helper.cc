@@ -57,22 +57,17 @@ CfRanHelper::EnableTraces(ApplicationContainer ueAppC, ApplicationContainer gnbA
     //     MakeBoundCallback(&CfE2eBuffer::CfUnitStartCompCallback, m_cfE2eBuffer));
 
     Config::ConnectWithoutContextFailSafe(
-        "/NodeList/*/ApplicationList/*/TxRequest",
+        "/NodeList/*/ApplicationList/*/SendRequest",
         MakeBoundCallback(&CfE2eBuffer::UeSendRequestCallback, m_cfE2eBuffer));
 
     Config::ConnectWithoutContextFailSafe(
-        "/NodeList/*/ApplicationList/*/RxResult",
+        "/NodeList/*/ApplicationList/*/RecvResult",
         MakeBoundCallback(&CfE2eBuffer::UeRecvResultCallback, m_cfE2eBuffer));
 
     Config::ConnectWithoutContextFailSafe(
         "/NodeList/*/ApplicationList/*/RecvRequest",
         MakeBoundCallback(&CfE2eBuffer::GnbRecvUeRequestCallback, m_cfE2eBuffer));
-    Config::ConnectWithoutContextFailSafe(
-        "/NodeList/*/ApplicationList/*/ForwardRequest",
-        MakeBoundCallback(&CfE2eBuffer::GnbForwardUeRequestCallback, m_cfE2eBuffer));
-    Config::ConnectWithoutContextFailSafe(
-        "/NodeList/*/ApplicationList/*/RecvForwardedRequest",
-        MakeBoundCallback(&CfE2eBuffer::GnbRecvForwardedUeRequestCallback, m_cfE2eBuffer));
+
     Config::ConnectWithoutContextFailSafe(
         "/NodeList/*/ApplicationList/*/AddTask",
         MakeBoundCallback(&CfE2eBuffer::CfAppAddTaskCallback, m_cfE2eBuffer));
@@ -84,11 +79,9 @@ CfRanHelper::EnableTraces(ApplicationContainer ueAppC, ApplicationContainer gnbA
     Config::ConnectWithoutContextFailSafe(
         "/NodeList/*/ApplicationList/*/GetResult",
         MakeBoundCallback(&CfE2eBuffer::CfAppGetResultCallback, m_cfE2eBuffer));
+
     Config::ConnectWithoutContextFailSafe(
-        "/NodeList/*/ApplicationList/*/ForwardResult",
-        MakeBoundCallback(&CfE2eBuffer::GnbForwardResultCallback, m_cfE2eBuffer));
-    Config::ConnectWithoutContextFailSafe(
-        "/NodeList/*/ApplicationList/*/GetForwardedResult",
+        "/NodeList/*/ApplicationList/*/RecvForwardedResult",
         MakeBoundCallback(&CfE2eBuffer::GnbGetForwardedResultCallback, m_cfE2eBuffer));
     Config::ConnectWithoutContextFailSafe(
         "/NodeList/*/ApplicationList/*/SendResult",

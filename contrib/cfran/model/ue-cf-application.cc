@@ -49,11 +49,11 @@ UeCfApplication::GetTypeId()
                           PointerValue(),
                           MakePointerAccessor(&UeCfApplication::m_cfE2eCalculator),
                           MakePointerChecker<CfE2eCalculator>())
-            .AddTraceSource("TxRequest",
+            .AddTraceSource("SendRequest",
                             "Send task request through wireless channel",
                             MakeTraceSourceAccessor(&UeCfApplication::m_txRequestTrace),
                             "ns3::UlTaskTransmission::TracedCallback")
-            .AddTraceSource("RxResult",
+            .AddTraceSource("RecvResult",
                             "Recv task result through wireless channel",
                             MakeTraceSourceAccessor(&UeCfApplication::m_rxResultTrace),
                             "ns3::DlResultTransmission::TracedCallback");

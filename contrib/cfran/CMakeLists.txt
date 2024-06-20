@@ -33,6 +33,7 @@ set(source_files
     helper/multi-packet-manager.cc
     helper/cf-e2e-calculator.cc
     helper/cf-e2e-buffer.cc
+    helper/cf-time-buffer.cc
 )
 
 set(header_files
@@ -60,6 +61,7 @@ set(header_files
     helper/multi-packet-manager.h
     helper/cf-e2e-calculator.h
     helper/cf-e2e-buffer.h
+    helper/cf-time-buffer.h
 )
 
 

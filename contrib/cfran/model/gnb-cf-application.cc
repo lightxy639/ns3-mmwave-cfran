@@ -59,19 +59,24 @@ GnbCfApplication::GetTypeId()
                 EnumValue(GnbCfApplication::E2),
                 MakeEnumAccessor(&GnbCfApplication::m_policyMode),
                 MakeEnumChecker(GnbCfApplication::Local, "Local", GnbCfApplication::E2, "E2"))
-            .AddTraceSource("ForwardRequest",
-                            "Forward UE task request of UE",
-                            MakeTraceSourceAccessor(&GnbCfApplication::m_forwardRequestTrace),
-                            "ns3::UlRequestForwardTx::TracedCallback")
-            .AddTraceSource("RecvForwardedRequest",
-                            "Recv forwarded UE task request of UE",
-                            MakeTraceSourceAccessor(&GnbCfApplication::m_recvForwardedRequestTrace),
-                            "ns3::UlRequestForwardedRx::TracedCallback")
-            .AddTraceSource("ForwardResult",
-                            "Forward task result to corresponding gNB",
-                            MakeTraceSourceAccessor(&GnbCfApplication::m_forwardResultTrace),
-                            "ns3::ResultWiredDownlink::TracedCallback")
-            .AddTraceSource("GetForwardedResult",
+            // .AddTraceSource("ForwardRequest",
+            //                 "Forward UE task request of UE",
+            //                 MakeTraceSourceAccessor(&GnbCfApplication::m_forwardRequestTrace),
+            //                 "ns3::UlRequestForwardTx::TracedCallback")
+            .AddTraceSource(
+                "RecvRequestToBeForwarded",
+                "Recv UE task request to be forwarded",
+                MakeTraceSourceAccessor(&GnbCfApplication::m_recvRequestToBeForwardedTrace),
+                "ns3::UlRequestToBeForwardRx::TracedCallback")
+            // .AddTraceSource("RecvForwardedRequest",
+            //                 "Recv forwarded UE task request of UE",
+            //                 MakeTraceSourceAccessor(&GnbCfApplication::m_recvForwardedRequestTrace),
+            //                 "ns3::UlRequestForwardedRx::TracedCallback")
+            // .AddTraceSource("ForwardResult",
+            //                 "Forward task result to corresponding gNB",
+            //                 MakeTraceSourceAccessor(&GnbCfApplication::m_forwardResultTrace),
+            //                 "ns3::ResultWiredDownlink::TracedCallback")
+            .AddTraceSource("RecvForwardedResult",
                             "Recv forwarded task result",
                             MakeTraceSourceAccessor(&GnbCfApplication::m_getForwardedResultTrace),
                             "ns3::ResultWiredDownlinkRx::TracedCallback");
@@ -470,7 +475,7 @@ GnbCfApplication::RecvFromUe(Ptr<Socket> socket)
                 if (receiveCompleted)
                 {
                     m_recvRequestTrace(ueId, taskId, Simulator::Now().GetTimeStep());
-                    m_forwardRequestTrace(ueId, taskId, Simulator::Now().GetTimeStep());
+                    // m_forwardRequestTrace(ueId, taskId, Simulator::Now().GetTimeStep());
                 }
 
                 CfX2Header x2Hd;
