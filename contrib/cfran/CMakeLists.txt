@@ -32,7 +32,7 @@ set(source_files
     helper/cf-application-helper.cc
     helper/multi-packet-manager.cc
     helper/cf-e2e-calculator.cc
-    helper/cf-e2e-buffer.cc
+    # helper/cf-e2e-buffer.cc
     helper/cf-time-buffer.cc
 )
 
@@ -60,7 +60,7 @@ set(header_files
     helper/cf-application-helper.h
     helper/multi-packet-manager.h
     helper/cf-e2e-calculator.h
-    helper/cf-e2e-buffer.h
+    # helper/cf-e2e-buffer.h
     helper/cf-time-buffer.h
 )
 

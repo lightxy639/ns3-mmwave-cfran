@@ -7,7 +7,8 @@
 #include <ns3/system-info.h>
 #include "cf-radio-header.h"
 #include <ns3/cf-e2e-calculator.h>
-#include <ns3/cf-e2e-buffer.h>
+// #include <ns3/cf-e2e-buffer.h>
+#include <ns3/cf-time-buffer.h>
 #include <ns3/multi-packet-manager.h>
 
 
@@ -102,13 +103,14 @@ class UeCfApplication : public Application
     virtual void StopApplication(); // Called at time specified by Stop
     uint32_t m_taskNow;
 
-    Ptr<CfE2eBuffer> m_cfE2eBuffer;
+    // Ptr<CfE2eBuffer> m_cfE2eBuffer;
     Ptr<CfE2eCalculator> m_cfE2eCalculator;
+    Ptr<CfTimeBuffer> m_cfTimeBuffer;
 
     Ptr<MultiPacketManager> m_downlinkResultManager;
 
-    TracedCallback<uint64_t, uint64_t, uint64_t> m_txRequestTrace;
-    TracedCallback<uint64_t, uint64_t, uint64_t> m_rxResultTrace;
+    TracedCallback<uint64_t, uint64_t, uint64_t, TimeType, OffloadPosition> m_txRequestTrace;
+    TracedCallback<uint64_t, uint64_t, uint64_t, TimeType, OffloadPosition> m_rxResultTrace;
 };
 
 } // namespace ns3

@@ -8,27 +8,27 @@
 namespace ns3
 {
 
-struct UeTaskIdPair_t
-{
-    uint64_t m_ueId;
-    uint64_t m_taskId;
+// struct UeTaskIdPair_t
+// {
+//     uint64_t m_ueId;
+//     uint64_t m_taskId;
 
-  public:
-    UeTaskIdPair_t(){};
-    UeTaskIdPair_t(const uint64_t a, const uint64_t b)
-        : m_ueId(a),
-          m_taskId(b){};
+//   public:
+//     UeTaskIdPair_t(){};
+//     UeTaskIdPair_t(const uint64_t a, const uint64_t b)
+//         : m_ueId(a),
+//           m_taskId(b){};
 
-    friend bool operator==(const UeTaskIdPair_t& a, const UeTaskIdPair_t& b)
-    {
-        return ((a.m_ueId == b.m_ueId) && (a.m_taskId == b.m_taskId));
-    }
+//     friend bool operator==(const UeTaskIdPair_t& a, const UeTaskIdPair_t& b)
+//     {
+//         return ((a.m_ueId == b.m_ueId) && (a.m_taskId == b.m_taskId));
+//     }
 
-    friend bool operator<(const UeTaskIdPair_t& a, const UeTaskIdPair_t& b)
-    {
-        return ((a.m_ueId < b.m_ueId) || ((a.m_ueId == b.m_ueId) && (a.m_taskId < b.m_taskId)));
-    }
-};
+//     friend bool operator<(const UeTaskIdPair_t& a, const UeTaskIdPair_t& b)
+//     {
+//         return ((a.m_ueId < b.m_ueId) || ((a.m_ueId == b.m_ueId) && (a.m_taskId < b.m_taskId)));
+//     }
+// };
 
 typedef std::map<UeTaskIdPair_t, uint64_t> DetailedDelayStatsBuffer;
 

@@ -4,7 +4,8 @@
 #include <ns3/application-container.h>
 #include <ns3/cf-unit.h>
 #include <ns3/cf-e2e-calculator.h>
-#include <ns3/cf-e2e-buffer.h>
+// #include <ns3/cf-e2e-buffer.h>
+#include <ns3/cf-time-buffer.h>
 #include <ns3/node-container.h>
 #include <ns3/object-factory.h>
 
@@ -46,7 +47,8 @@ class CfRanHelper : public Object
 
   private:
     Ptr<CfE2eCalculator> m_cfE2eCalculator;
-    Ptr<CfE2eBuffer> m_cfE2eBuffer;
+    // Ptr<CfE2eBuffer> m_cfE2eBuffer;
+    Ptr<CfTimeBuffer> m_cfTimeBuffer;
 };
 } // namespace ns3
 

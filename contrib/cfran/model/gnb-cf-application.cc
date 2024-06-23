@@ -78,7 +78,7 @@ GnbCfApplication::GetTypeId()
             //                 "ns3::ResultWiredDownlink::TracedCallback")
             .AddTraceSource("RecvForwardedResult",
                             "Recv forwarded task result",
-                            MakeTraceSourceAccessor(&GnbCfApplication::m_getForwardedResultTrace),
+                            MakeTraceSourceAccessor(&GnbCfApplication::m_recvForwardedResultTrace),
                             "ns3::ResultWiredDownlinkRx::TracedCallback");
 
     return tid;
@@ -271,7 +271,7 @@ GnbCfApplication::RecvTaskResult(uint64_t ueId, UeTaskModel ueTask)
 {
     NS_LOG_FUNCTION(this << ueId << ueTask.m_taskId);
 
-    m_getResultTrace(ueId, ueTask.m_taskId, Simulator::Now().GetTimeStep());
+    // m_getResultTrace(ueId, ueTask.m_taskId, Simulator::Now().GetTimeStep(), GetResult, None);
 
     auto ueConnectedGnbId =
         m_cfranSystemInfo->GetUeInfo(ueId).m_mcUeNetDevice->GetMmWaveTargetEnb()->GetCellId();
@@ -280,7 +280,7 @@ GnbCfApplication::RecvTaskResult(uint64_t ueId, UeTaskModel ueTask)
     if (ueConnectedGnbId == appGnbId)
     {
         // SendTaskResultToUserFromGnb(ueId);
-        m_sendResultTrace(ueId, ueTask.m_taskId, Simulator::Now().GetTimeStep());
+        m_sendResultTrace(ueId, ueTask.m_taskId, Simulator::Now().GetTimeStep(), SendResult, None);
 
         uint64_t resultDataSize = m_cfranSystemInfo->GetUeInfo(ueId).m_taskModel.m_downlinkSize;
         uint32_t packetNum = std::ceil((float)resultDataSize / m_defaultPacketSize);
@@ -316,8 +316,9 @@ GnbCfApplication::RecvTaskResult(uint64_t ueId, UeTaskModel ueTask)
     }
     else
     {
-        m_forwardResultTrace(ueId, ueTask.m_taskId, Simulator::Now().GetTimeStep());
+        // m_recvForwardedResultTrace(ueId, ueTask.m_taskId, Simulator::Now().GetTimeStep(), RecvForwardedResult, None);
 
+        m_sendResultTrace(ueId, ueTask.m_taskId, Simulator::Now().GetTimeStep(), SendResult, None);
         uint64_t resultDataSize = m_cfranSystemInfo->GetUeInfo(ueId).m_taskModel.m_downlinkSize;
         uint32_t packetNum = std::ceil((float)resultDataSize / m_defaultPacketSize);
 
@@ -452,8 +453,8 @@ GnbCfApplication::RecvFromUe(Ptr<Socket> socket)
                     NS_LOG_INFO("Gnb " << m_mmWaveEnbNetDevice->GetCellId() << " Recv task request "
                                        << cfRadioHeader.GetTaskId() << " of UE "
                                        << cfRadioHeader.GetUeId());
-                    m_recvRequestTrace(ueId, taskId, Simulator::Now().GetTimeStep());
-                    m_addTaskTrace(ueId, taskId, Simulator::Now().GetTimeStep());
+                    m_recvRequestTrace(ueId, taskId, Simulator::Now().GetTimeStep(), RecvRequest, None);
+                    m_addTaskTrace(ueId, taskId, Simulator::Now().GetTimeStep(), AddTask, None);
 
                     UeTaskModel ueTask = m_cfranSystemInfo->GetUeInfo(ueId).m_taskModel;
                     ueTask.m_taskId = cfRadioHeader.GetTaskId();
@@ -474,7 +475,7 @@ GnbCfApplication::RecvFromUe(Ptr<Socket> socket)
                                                             mpHd.GetTotalPacketNum());
                 if (receiveCompleted)
                 {
-                    m_recvRequestTrace(ueId, taskId, Simulator::Now().GetTimeStep());
+                    m_recvRequestTrace(ueId, taskId, Simulator::Now().GetTimeStep(), RecvRequest, None);
                     // m_forwardRequestTrace(ueId, taskId, Simulator::Now().GetTimeStep());
                 }
 
@@ -583,8 +584,9 @@ GnbCfApplication::RecvFromOtherGnb(Ptr<Socket> socket)
                 NS_LOG_INFO("Gnb " << m_mmWaveEnbNetDevice->GetCellId()
                                    << " Recv task request of UE " << cfX2Header.GetUeId()
                                    << " from gnb " << cfX2Header.GetSourceGnbId());
-                m_recvForwardedRequestTrace(ueId, taskId, Simulator::Now().GetTimeStep());
-                m_addTaskTrace(ueId, taskId, Simulator::Now().GetTimeStep());
+                // m_recvForwardedRequestTrace(ueId, taskId, Simulator::Now().GetTimeStep(), );
+                m_recvRequestTrace(ueId, taskId, Simulator::Now().GetTimeStep(), RecvRequest, None);
+                m_addTaskTrace(ueId, taskId, Simulator::Now().GetTimeStep(), AddTask, None);
 
                 UeTaskModel ueTask = m_cfranSystemInfo->GetUeInfo(ueId).m_taskModel;
                 ueTask.m_taskId = taskId;
@@ -615,12 +617,14 @@ GnbCfApplication::RecvFromOtherGnb(Ptr<Socket> socket)
                                << " Recv forwarded Task Result " << cfX2Header.GetTaskId()
                                << " of UE " << cfX2Header.GetUeId() << " from gnb "
                                << cfX2Header.GetSourceGnbId());
-            m_getForwardedResultTrace(cfX2Header.GetUeId(),
+            m_recvForwardedResultTrace(cfX2Header.GetUeId(),
                                       cfX2Header.GetTaskId(),
-                                      Simulator::Now().GetTimeStep());
-            m_sendResultTrace(cfX2Header.GetUeId(),
-                              cfX2Header.GetTaskId(),
-                              Simulator::Now().GetTimeStep());
+                                      Simulator::Now().GetTimeStep(),
+                                      RecvForwardedResult,
+                                      None);
+            // m_sendResultTrace(cfX2Header.GetUeId(),
+            //                   cfX2Header.GetTaskId(),
+            //                   Simulator::Now().GetTimeStep());
 
             NS_ASSERT(cfX2Header.GetTargetGnbId() == m_mmWaveEnbNetDevice->GetCellId());
 

@@ -39,11 +39,16 @@ UeCfApplication::GetTypeId()
                           UintegerValue(2345),
                           MakeUintegerAccessor(&UeCfApplication::m_ueRemotePort),
                           MakeUintegerChecker<uint16_t>())
-            .AddAttribute("CfE2eBuffer",
-                          "CfE2eBuffer instance",
+            // .AddAttribute("CfE2eBuffer",
+            //               "CfE2eBuffer instance",
+            //               PointerValue(),
+            //               MakePointerAccessor(&UeCfApplication::m_cfE2eBuffer),
+            //               MakePointerChecker<CfE2eBuffer>())
+            .AddAttribute("CfTimeBuffer",
+                          "CfTimeBuffer instance",
                           PointerValue(),
-                          MakePointerAccessor(&UeCfApplication::m_cfE2eBuffer),
-                          MakePointerChecker<CfE2eBuffer>())
+                          MakePointerAccessor(&UeCfApplication::m_cfTimeBuffer),
+                          MakePointerChecker<CfTimeBuffer>())
             .AddAttribute("CfE2eCalculator",
                           "CfE2eCalculator instance",
                           PointerValue(),
@@ -270,7 +275,17 @@ UeCfApplication::SendTaskRequest()
             NS_FATAL_ERROR("Error in sending task request.");
         }
     }
-    m_txRequestTrace(m_ueId, m_taskId, Simulator::Now().GetTimeStep());
+
+    OffloadPosition offType = None;
+    if (m_cfranSystemInfo->GetOffladPointType(m_offloadPointId) == CfranSystemInfo::Gnb)
+    {
+        offType = m_offloadPointId == m_accessGnbId ? LocalGnb : OtherGnb;
+    }
+    else
+    {
+        offType = RemoteServer;
+    }
+    m_txRequestTrace(m_ueId, m_taskId, Simulator::Now().GetTimeStep(), TimeType::SendRequest, offType);
 
     NS_LOG_INFO("UE " << m_ueId << " send task request " << m_taskId << " to cell "
                       << m_offloadPointId);
@@ -370,7 +385,9 @@ UeCfApplication::RecvFromNetwork(Ptr<Packet> p)
             }
             m_rxResultTrace(cfRadioHeader.GetUeId(),
                             cfRadioHeader.GetTaskId(),
-                            Simulator::Now().GetTimeStep());
+                            Simulator::Now().GetTimeStep(),
+                            RecvResult,
+                            None);
             // m_rxResultTrace(m_ueId, cfRadioHeader.GetTaskId(), Simulator::Now().GetTimeStep());
             E2eTrace(cfRadioHeader);
         }
@@ -423,20 +440,20 @@ UeCfApplication::E2eTrace(CfRadioHeader cfRHd)
     uint64_t offloadGnbId = cfRHd.GetGnbId();
     uint64_t connectingGnbId = m_mcUeNetDev->GetMmWaveTargetEnb()->GetCellId();
 
-    uint64_t upWlDelay = m_cfE2eBuffer->GetUplinkWirelessDelay(ueId, taskId, true);
-    uint64_t upWdDelay = m_cfE2eBuffer->GetUplinkWiredDelay(ueId, taskId, true);
-    uint64_t queueDelay = m_cfE2eBuffer->GetQueueDelay(ueId, taskId, true);
-    uint64_t computingDelay = m_cfE2eBuffer->GetComputingDelay(ueId, taskId, true);
-    uint64_t dnWdDelay = m_cfE2eBuffer->GetDownlinkWiredDelay(ueId, taskId, true);
-    uint64_t dnWlDelay = m_cfE2eBuffer->GetDownlinkWirelessDelay(ueId, taskId, true);
+    // uint64_t upWlDelay = m_cfE2eBuffer->GetUplinkWirelessDelay(ueId, taskId, true);
+    // uint64_t upWdDelay = m_cfE2eBuffer->GetUplinkWiredDelay(ueId, taskId, true);
+    // uint64_t queueDelay = m_cfE2eBuffer->GetQueueDelay(ueId, taskId, true);
+    // uint64_t computingDelay = m_cfE2eBuffer->GetComputingDelay(ueId, taskId, true);
+    // uint64_t dnWdDelay = m_cfE2eBuffer->GetDownlinkWiredDelay(ueId, taskId, true);
+    // uint64_t dnWlDelay = m_cfE2eBuffer->GetDownlinkWirelessDelay(ueId, taskId, true);
 
-    m_cfE2eCalculator->UpdateDelayStats(ueId,
-                                        upWlDelay,
-                                        upWdDelay,
-                                        queueDelay,
-                                        computingDelay,
-                                        dnWdDelay,
-                                        dnWlDelay);
+    // m_cfE2eCalculator->UpdateDelayStats(ueId,
+    //                                     upWlDelay,
+    //                                     upWdDelay,
+    //                                     queueDelay,
+    //                                     computingDelay,
+    //                                     dnWdDelay,
+    //                                     dnWlDelay);
 }
 
 } // namespace ns3

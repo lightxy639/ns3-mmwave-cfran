@@ -106,6 +106,8 @@ class CfTimeBuffer : public Object
                           OffloadPosition pos = None);
     TimeData GetTimeData(uint64_t ueId, uint64_t taskId);
 
+    void RemoveTimeData(uint64_t ueId, uint64_t taskId);
+
   private:
     TimeDataBuffer m_timeDataBuffer;
     // static void UeRecvResultCallback(Ptr<CfTimeBuffer> buffer,

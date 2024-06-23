@@ -3,6 +3,7 @@
 
 #include <ns3/cf-application.h>
 #include <ns3/cf-model.h>
+#include <ns3/cf-time-buffer.h>
 #include <ns3/net-device.h>
 #include <ns3/traced-callback.h>
 
@@ -63,7 +64,7 @@ class CfUnit : public Object
     uint64_t m_id;    ///< the id of computing force unit
     CfModel m_cf;     ///< the total computing force of CfUnit
     Ptr<CfApplication> m_cfApplication;
-    TracedCallback<uint64_t, uint64_t, uint64_t> m_processTaskTrace;
+    TracedCallback<uint64_t, uint64_t, uint64_t, TimeType, OffloadPosition> m_processTaskTrace;
 };
 } // namespace ns3
 #endif

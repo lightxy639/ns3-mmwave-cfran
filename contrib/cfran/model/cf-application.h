@@ -2,6 +2,7 @@
 #define CF_APPLICATION_H
 
 #include <ns3/application.h>
+#include <ns3/cf-time-buffer.h>
 #include <ns3/cf-e2e-calculator.h>
 #include <ns3/cf-unit.h>
 #include <ns3/multi-packet-manager.h>
@@ -66,10 +67,10 @@ class CfApplication : public Application
     uint32_t m_defaultPacketSize;
 
     Ptr<CfE2eCalculator> m_cfE2eCalaulator;
-    TracedCallback<uint64_t, uint64_t, uint64_t> m_recvRequestTrace;
-    TracedCallback<uint64_t, uint64_t, uint64_t> m_addTaskTrace;
-    TracedCallback<uint64_t, uint64_t, uint64_t> m_getResultTrace;
-    TracedCallback<uint64_t, uint64_t, uint64_t> m_sendResultTrace;
+    TracedCallback<uint64_t, uint64_t, uint64_t, TimeType, OffloadPosition> m_recvRequestTrace;
+    TracedCallback<uint64_t, uint64_t, uint64_t, TimeType, OffloadPosition> m_addTaskTrace;
+    // TracedCallback<uint64_t, uint64_t, uint64_t, TimeType, OffloadPosition> m_getResultTrace;
+    TracedCallback<uint64_t, uint64_t, uint64_t, TimeType, OffloadPosition> m_sendResultTrace;
 };
 } // namespace ns3
 

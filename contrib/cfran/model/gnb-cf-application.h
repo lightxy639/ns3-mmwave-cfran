@@ -161,11 +161,11 @@ class GnbCfApplication : public CfApplication
 
     // TracedCallback<uint64_t, uint64_t, uint64_t> m_forwardRequestTrace;
 
-    TracedCallback<uint64_t, uint64_t, uint64_t> m_recvRequestToBeForwardedTrace;
-    TracedCallback<uint64_t, uint64_t, uint64_t> m_recvForwardedRequestTrace;
+    TracedCallback<uint64_t, uint64_t, uint64_t, TimeType, OffloadPosition> m_recvRequestToBeForwardedTrace;
+    TracedCallback<uint64_t, uint64_t, uint64_t, TimeType, OffloadPosition> m_recvForwardedResultTrace;
 
-    TracedCallback<uint64_t, uint64_t, uint64_t> m_forwardResultTrace;
-    TracedCallback<uint64_t, uint64_t, uint64_t> m_getForwardedResultTrace;
+    // TracedCallback<uint64_t, uint64_t, uint64_t> m_forwardResultTrace;
+    // TracedCallback<uint64_t, uint64_t, uint64_t> m_getForwardedResultTrace;
 
     std::string m_ueE2eOutFile;
     bool m_firstWrite;

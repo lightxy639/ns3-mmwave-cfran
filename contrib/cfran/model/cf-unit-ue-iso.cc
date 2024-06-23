@@ -109,7 +109,7 @@ CfUnitUeIso::ExecuteUeTask(uint64_t ueId, UeTaskModel ueTask)
         NS_LOG_DEBUG("The computing latency of (UE, Task) " << ueId << " " << ueTask.m_taskId
                                                             << " is " << executeLatency << "ms");
 
-        m_computingTaskTrace(ueId, ueTask.m_taskId, Simulator::Now().GetTimeStep());
+        m_processTaskTrace(ueId, ueTask.m_taskId, Simulator::Now().GetTimeStep(), ProcessTask, None);
     }
     else
     {

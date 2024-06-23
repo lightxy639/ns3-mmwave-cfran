@@ -140,8 +140,8 @@ RemoteCfApplication::RecvFromUe(Ptr<Socket> socket)
                 NS_LOG_INFO("Remote server " << m_serverId << " Recv task request "
                                              << cfRadioHeader.GetTaskId() << " of UE "
                                              << cfRadioHeader.GetUeId());
-                m_recvRequestTrace(ueId, taskId, Simulator::Now().GetTimeStep());
-                m_addTaskTrace(ueId, taskId, Simulator::Now().GetTimeStep());
+                m_recvRequestTrace(ueId, taskId, Simulator::Now().GetTimeStep(), RecvRequest, None);
+                m_addTaskTrace(ueId, taskId, Simulator::Now().GetTimeStep(), AddTask, None);
 
                 UeTaskModel ueTask = m_cfranSystemInfo->GetUeInfo(ueId).m_taskModel;
                 ueTask.m_taskId = cfRadioHeader.GetTaskId();
@@ -159,7 +159,7 @@ void
 RemoteCfApplication::RecvTaskResult(uint64_t ueId, UeTaskModel ueTask)
 {
     NS_LOG_FUNCTION(this << ueId << ueTask.m_taskId);
-    m_getResultTrace(ueId, ueTask.m_taskId, Simulator::Now().GetTimeStep());
+    // m_getResultTrace(ueId, ueTask.m_taskId, Simulator::Now().GetTimeStep(), GetResult, None);
 
     Ptr<Packet> resultPacket = Create<Packet>(500);
 
@@ -172,7 +172,7 @@ RemoteCfApplication::RecvTaskResult(uint64_t ueId, UeTaskModel ueTask)
 
     SendPacketToUe(ueId, resultPacket);
 
-    m_sendResultTrace(ueId, ueTask.m_taskId, Simulator::Now().GetTimeStep());
+    m_sendResultTrace(ueId, ueTask.m_taskId, Simulator::Now().GetTimeStep(), SendResult, None);
 }
 
 void
