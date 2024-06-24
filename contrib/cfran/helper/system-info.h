@@ -17,17 +17,16 @@ namespace ns3
  */
 class CfranSystemInfo : public Object
 {
-
   public:
     enum OffloadPointType
     {
-      Gnb = 0,
-      Remote = 1
+        Gnb = 0,
+        Remote = 1
     };
-    
+
     struct UeInfo
     {
-        uint64_t m_imsi;       // imsi
+        uint64_t m_imsi; // imsi
         Ipv4Address m_ipAddr;
         uint16_t m_port;
         float m_taskPeriodity; // ms
@@ -45,11 +44,18 @@ class CfranSystemInfo : public Object
 
     struct RemoteInfo
     {
-      uint64_t m_id;
-      Ipv4Address m_ipAddr;
-      uint16_t m_port;
+        uint64_t m_id;
+        Ipv4Address m_ipAddr;
+        uint16_t m_port;
+        float m_hostGwLatency; //ms
     };
-    
+
+    struct WiredLatencyInfo
+    {
+        float m_s1ULatency; // ms
+        float m_x2Latency;  // ms
+    };
+
     CfranSystemInfo();
     virtual ~CfranSystemInfo();
 
@@ -62,13 +68,13 @@ class CfranSystemInfo : public Object
     UeInfo GetUeInfo(uint64_t imsi);
     CellInfo GetCellInfo(uint64_t cellId);
     RemoteInfo GetRemoteInfo(uint64_t remoteId);
+    WiredLatencyInfo GetWiredLatencyInfo();
     OffloadPointType GetOffladPointType(uint64_t offloadId);
 
     void AddUeInfo(uint64_t imsi, UeInfo ueInfo);
     void AddCellInfo(uint64_t cellId, CellInfo cellInfo);
     void AddRemoteInfo(uint64_t remoteId, RemoteInfo remoteInfo);
-
-
+    void SetWiredLatencyInfo(WiredLatencyInfo wiredInfo);
 
   protected:
     // inherited from Object
@@ -78,6 +84,7 @@ class CfranSystemInfo : public Object
     std::map<uint64_t, UeInfo> m_ueInfo;
     std::map<uint64_t, CellInfo> m_cellInfo;
     std::map<uint64_t, RemoteInfo> m_remoteInfo;
+    WiredLatencyInfo m_wiredLatencyInfo;
 };
 } // namespace ns3
 

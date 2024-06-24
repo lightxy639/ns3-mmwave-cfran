@@ -109,8 +109,8 @@ class UeCfApplication : public Application
 
     Ptr<MultiPacketManager> m_downlinkResultManager;
 
-    TracedCallback<uint64_t, uint64_t, uint64_t, TimeType, OffloadPosition> m_txRequestTrace;
-    TracedCallback<uint64_t, uint64_t, uint64_t, TimeType, OffloadPosition> m_rxResultTrace;
+    TracedCallback<uint64_t, uint64_t, uint64_t, TimeType, OffloadPosition> m_sendRequestTrace;
+    TracedCallback<uint64_t, uint64_t, uint64_t, TimeType, OffloadPosition> m_recvResultTrace;
 };
 
 } // namespace ns3

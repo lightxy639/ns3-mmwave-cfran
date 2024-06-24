@@ -294,9 +294,8 @@ TargetEnbTest()
 void
 PacketSinkLog(Ptr<const Packet>, const Address& from, const Address& local)
 {
-    NS_LOG_UNCOND("Recv packet "
-                  << "from " << InetSocketAddress::ConvertFrom(from).GetIpv4() << " at "
-                  << InetSocketAddress::ConvertFrom(local).GetIpv4());
+    NS_LOG_UNCOND("Recv packet " << "from " << InetSocketAddress::ConvertFrom(from).GetIpv4()
+                                 << " at " << InetSocketAddress::ConvertFrom(local).GetIpv4());
 }
 
 static ns3::GlobalValue g_mmw1DistFromMainStreet(
@@ -331,6 +330,11 @@ static ns3::GlobalValue g_bufferSize("bufferSize",
                                      "RLC tx buffer size (MB)",
                                      ns3::UintegerValue(20),
                                      ns3::MakeUintegerChecker<uint32_t>());
+
+static ns3::GlobalValue g_s1uLatency("s1ULatency",
+                                     "Latency on S1U interface (us)",
+                                     ns3::DoubleValue(1000),
+                                     ns3::MakeDoubleChecker<double>());
 static ns3::GlobalValue g_x2Latency("x2Latency",
                                     "Latency on X2 interface (us)",
                                     ns3::DoubleValue(500),
@@ -401,7 +405,6 @@ main(int argc, char* argv[])
     // LogComponentEnable("RemoteCfApplication", LOG_FUNCTION);
     LogComponentEnable("RemoteCfApplication", LOG_DEBUG);
     LogComponentEnable("RemoteCfApplication", LOG_PREFIX_ALL);
-
     // LogComponentEnable("CfranSystemInfo", LOG_INFO);
     LogComponentEnable("CfranSystemInfo", LOG_FUNCTION);
     LogComponentEnable("CfranSystemInfo", LOG_PREFIX_ALL);
@@ -481,6 +484,8 @@ main(int argc, char* argv[])
     uint32_t bufferSize = uintegerValue.Get();
     GlobalValue::GetValueByName("interPckInterval", uintegerValue);
     uint32_t interPacketInterval = uintegerValue.Get();
+    GlobalValue::GetValueByName("s1ULatency", doubleValue);
+    double s1ULatency = doubleValue.Get();
     GlobalValue::GetValueByName("x2Latency", doubleValue);
     double x2Latency = doubleValue.Get();
     GlobalValue::GetValueByName("mmeLatency", doubleValue);
@@ -625,8 +630,8 @@ main(int argc, char* argv[])
 
     Config::SetDefault("ns3::MmWaveHelper::E2TermIp", StringValue("10.0.2.10"));
     Config::SetDefault("ns3::CfApplicationHelper::E2TermIp", StringValue("10.0.2.10"));
-    Config::SetDefault("ns3::MmWaveHelper::EnableCustomSocket", BooleanValue(false));
-    Config::SetDefault("ns3::CfApplicationHelper::EnableCustomSocket", BooleanValue(false));
+    Config::SetDefault("ns3::MmWaveHelper::EnableCustomSocket", BooleanValue(true));
+    Config::SetDefault("ns3::CfApplicationHelper::EnableCustomSocket", BooleanValue(true));
     Config::SetDefault("ns3::MmWaveHelper::CustemServerPort", UintegerValue(36000));
     Config::SetDefault("ns3::CfApplicationHelper::CustemServerPort", UintegerValue(36000));
 
@@ -654,9 +659,10 @@ main(int argc, char* argv[])
     // Get SGW/PGW and create a single RemoteHost
     Ptr<Node> pgw = epcHelper->GetPgwNode();
 
-
     uint8_t nEdgeNodes = 2;
     uint8_t nCentralNodes = 1;
+    float edgeLatency = 5;
+    float centralLatency = 10;
 
     NodeContainer edgeContainer;
     NodeContainer centralContainer;
@@ -676,11 +682,13 @@ main(int argc, char* argv[])
     Ipv4InterfaceContainer remoteIpIfaces;
     for (uint32_t n = 0; n < remoteHostContainer.GetN(); n++)
     {
+        float hostGwLatency = n < edgeContainer.GetN() ? edgeLatency : centralLatency;
+
         Ptr<Node> remoteHost = remoteHostContainer.Get(n);
         PointToPointHelper p2ph;
         p2ph.SetDeviceAttribute("DataRate", DataRateValue(DataRate("100Gb/s")));
         p2ph.SetDeviceAttribute("Mtu", UintegerValue(2500));
-        p2ph.SetChannelAttribute("Delay", TimeValue(Seconds(0.010)));
+        p2ph.SetChannelAttribute("Delay", TimeValue(MilliSeconds(hostGwLatency)));
         NetDeviceContainer internetDevices = p2ph.Install(pgw, remoteHost);
 
         Ipv4InterfaceContainer internetIpIfaces = ipv4h.Assign(internetDevices);
@@ -710,7 +718,6 @@ main(int argc, char* argv[])
     uint8_t nGnbNodes = 2;
     uint8_t ues = 2;
     uint8_t nUeNodes = nGnbNodes * ues;
-
 
     mmWaveEnbNodes.Create(nGnbNodes);
     lteEnbNodes.Create(1);
@@ -966,6 +973,12 @@ main(int argc, char* argv[])
 
         cfranSystemInfo->AddUeInfo(imsi, ueInfo);
     }
+
+    CfranSystemInfo::WiredLatencyInfo wiredLatencyInfo;
+    wiredLatencyInfo.m_s1ULatency = s1ULatency * 1e3; // ns
+    wiredLatencyInfo.m_x2Latency = x2Latency * 1e3;  // ns
+    cfranSystemInfo->SetWiredLatencyInfo(wiredLatencyInfo);
+
     Config::SetDefault("ns3::CfApplication::CfranSystemInfomation", PointerValue(cfranSystemInfo));
     Config::SetDefault("ns3::UeCfApplication::CfranSystemInfomation",
                        PointerValue(cfranSystemInfo));
@@ -999,6 +1012,7 @@ main(int argc, char* argv[])
         remoteInfo.m_id = remoteCfApp->GetServerId();
         remoteInfo.m_ipAddr = remoteIpIfaces.GetAddress(n);
         remoteInfo.m_port = ulPort;
+        remoteInfo.m_hostGwLatency = n < edgeContainer.GetN() ? edgeLatency : centralLatency;
 
         cfranSystemInfo->AddRemoteInfo(remoteCfApp->GetServerId(), remoteInfo);
 

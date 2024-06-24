@@ -64,7 +64,7 @@ CfTimeBuffer::UpdateTimeBuffer(uint64_t ueId,
         m_timeDataBuffer[p].m_pos = pos;
     }
 
-    switch (time)
+    switch (type)
     {
     case SendRequest:
         m_timeDataBuffer[p].m_sendRequest = time;

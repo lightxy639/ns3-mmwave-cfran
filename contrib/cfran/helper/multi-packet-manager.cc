@@ -21,7 +21,7 @@ MultiPacketManager::GetTypeId()
 }
 
 MultiPacketManager::MultiPacketManager()
-    : m_recvQueueSize(5)
+    : m_recvQueueSize(20)
 {
     NS_LOG_FUNCTION(this);
 }

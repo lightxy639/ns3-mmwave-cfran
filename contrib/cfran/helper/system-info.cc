@@ -76,6 +76,12 @@ CfranSystemInfo::GetOffladPointType(uint64_t id)
     }
 }
 
+CfranSystemInfo::WiredLatencyInfo
+CfranSystemInfo::GetWiredLatencyInfo()
+{
+    return m_wiredLatencyInfo;
+}
+
 void
 CfranSystemInfo::AddUeInfo(uint64_t imsi, UeInfo ueInfo)
 {
@@ -94,4 +100,11 @@ CfranSystemInfo::AddRemoteInfo(uint64_t remoteId, RemoteInfo remoteInfo)
     NS_LOG_FUNCTION(this << remoteId);
     m_remoteInfo.insert(std::pair<uint64_t, RemoteInfo>(remoteId, remoteInfo));
 }
+
+void
+CfranSystemInfo::SetWiredLatencyInfo(WiredLatencyInfo wiredInfo)
+{
+    m_wiredLatencyInfo = wiredInfo;
+}
+
 } // namespace ns3

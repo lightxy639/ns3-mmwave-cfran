@@ -89,6 +89,9 @@ GnbCfApplication::GnbCfApplication()
       m_appSize(50000000)
 {
     NS_LOG_FUNCTION(this);
+    m_requestManager = CreateObject<MultiPacketManager>();
+    m_resultManager = CreateObject<MultiPacketManager>();
+    m_appDataManager = CreateObject<MultiPacketManager>();
 }
 
 GnbCfApplication::~GnbCfApplication()
@@ -316,7 +319,8 @@ GnbCfApplication::RecvTaskResult(uint64_t ueId, UeTaskModel ueTask)
     }
     else
     {
-        // m_recvForwardedResultTrace(ueId, ueTask.m_taskId, Simulator::Now().GetTimeStep(), RecvForwardedResult, None);
+        // m_recvForwardedResultTrace(ueId, ueTask.m_taskId, Simulator::Now().GetTimeStep(),
+        // RecvForwardedResult, None);
 
         m_sendResultTrace(ueId, ueTask.m_taskId, Simulator::Now().GetTimeStep(), SendResult, None);
         uint64_t resultDataSize = m_cfranSystemInfo->GetUeInfo(ueId).m_taskModel.m_downlinkSize;
@@ -427,7 +431,7 @@ GnbCfApplication::RecvFromUe(Ptr<Socket> socket)
                 NS_LOG_DEBUG("Report to RIC and wait for command.");
                 SendNewUeReport(cfRadioHeader.GetUeId());
 
-                AssignUe(cfRadioHeader.GetUeId(), 2);
+                AssignUe(cfRadioHeader.GetUeId(), 6);
             }
         }
         else if (cfRadioHeader.GetMessageType() == CfRadioHeader::TaskRequest)
@@ -444,16 +448,20 @@ GnbCfApplication::RecvFromUe(Ptr<Socket> socket)
 
                 packet->RemoveHeader(mpHeader);
                 receiveCompleted =
-                    m_multiPacketManager->AddAndCheckPacket(ueId,
-                                                            taskId,
-                                                            mpHeader.GetPacketId(),
-                                                            mpHeader.GetTotalPacketNum());
+                    m_requestManager->AddAndCheckPacket(ueId,
+                                                        taskId,
+                                                        mpHeader.GetPacketId(),
+                                                        mpHeader.GetTotalPacketNum());
                 if (receiveCompleted)
                 {
                     NS_LOG_INFO("Gnb " << m_mmWaveEnbNetDevice->GetCellId() << " Recv task request "
                                        << cfRadioHeader.GetTaskId() << " of UE "
                                        << cfRadioHeader.GetUeId());
-                    m_recvRequestTrace(ueId, taskId, Simulator::Now().GetTimeStep(), RecvRequest, None);
+                    m_recvRequestTrace(ueId,
+                                       taskId,
+                                       Simulator::Now().GetTimeStep(),
+                                       RecvRequest,
+                                       None);
                     m_addTaskTrace(ueId, taskId, Simulator::Now().GetTimeStep(), AddTask, None);
 
                     UeTaskModel ueTask = m_cfranSystemInfo->GetUeInfo(ueId).m_taskModel;
@@ -469,13 +477,19 @@ GnbCfApplication::RecvFromUe(Ptr<Socket> socket)
                 MultiPacketHeader mpHd;
                 packet->PeekHeader(mpHd);
                 bool receiveCompleted =
-                    m_multiPacketManager->AddAndCheckPacket(ueId,
-                                                            taskId,
-                                                            mpHd.GetPacketId(),
-                                                            mpHd.GetTotalPacketNum());
+                    m_requestManager->AddAndCheckPacket(ueId,
+                                                        taskId,
+                                                        mpHd.GetPacketId(),
+                                                        mpHd.GetTotalPacketNum());
                 if (receiveCompleted)
                 {
-                    m_recvRequestTrace(ueId, taskId, Simulator::Now().GetTimeStep(), RecvRequest, None);
+                    // m_recvRequestTrace(ueId, taskId, Simulator::Now().GetTimeStep(), RecvRequest,
+                    // None);
+                    m_recvRequestToBeForwardedTrace(ueId,
+                                                    taskId,
+                                                    Simulator::Now().GetTimeStep(),
+                                                    RecvRequestToBeForwarded,
+                                                    None);
                     // m_forwardRequestTrace(ueId, taskId, Simulator::Now().GetTimeStep());
                 }
 
@@ -574,11 +588,10 @@ GnbCfApplication::RecvFromOtherGnb(Ptr<Socket> socket)
             bool receiveCompleted = false;
 
             packet->RemoveHeader(mpHeader);
-            receiveCompleted =
-                m_multiPacketManager->AddAndCheckPacket(ueId + 100,
-                                                        taskId,
-                                                        mpHeader.GetPacketId(),
-                                                        mpHeader.GetTotalPacketNum());
+            receiveCompleted = m_requestManager->AddAndCheckPacket(ueId,
+                                                                   taskId,
+                                                                   mpHeader.GetPacketId(),
+                                                                   mpHeader.GetTotalPacketNum());
             if (receiveCompleted)
             {
                 NS_LOG_INFO("Gnb " << m_mmWaveEnbNetDevice->GetCellId()
@@ -617,14 +630,33 @@ GnbCfApplication::RecvFromOtherGnb(Ptr<Socket> socket)
                                << " Recv forwarded Task Result " << cfX2Header.GetTaskId()
                                << " of UE " << cfX2Header.GetUeId() << " from gnb "
                                << cfX2Header.GetSourceGnbId());
-            m_recvForwardedResultTrace(cfX2Header.GetUeId(),
-                                      cfX2Header.GetTaskId(),
-                                      Simulator::Now().GetTimeStep(),
-                                      RecvForwardedResult,
-                                      None);
+
             // m_sendResultTrace(cfX2Header.GetUeId(),
             //                   cfX2Header.GetTaskId(),
             //                   Simulator::Now().GetTimeStep());
+
+            MultiPacketHeader mpHeader;
+            bool receiveCompleted = false;
+
+            // packet->RemoveHeader(mpHeader);
+            packet->PeekHeader(mpHeader);
+
+            // NS_LOG_DEBUG("Result Packet Id: " << mpHeader.GetPacketId() << "Tatal Packet Number: "
+            //                                   << mpHeader.GetTotalPacketNum());
+            receiveCompleted = m_resultManager->AddAndCheckPacket(cfX2Header.GetUeId(),
+                                                                  cfX2Header.GetTaskId(),
+                                                                  mpHeader.GetPacketId(),
+                                                                  mpHeader.GetTotalPacketNum());
+            if (receiveCompleted)
+            {
+                NS_LOG_DEBUG("Recv result of " << "UE " << cfX2Header.GetUeId() << " TASK "
+                                               << cfX2Header.GetTaskId());
+                m_recvForwardedResultTrace(cfX2Header.GetUeId(),
+                                           cfX2Header.GetTaskId(),
+                                           Simulator::Now().GetTimeStep(),
+                                           RecvForwardedResult,
+                                           None);
+            }
 
             NS_ASSERT(cfX2Header.GetTargetGnbId() == m_mmWaveEnbNetDevice->GetCellId());
 
@@ -653,11 +685,10 @@ GnbCfApplication::RecvFromOtherGnb(Ptr<Socket> socket)
 
             packet->RemoveHeader(mpHeader);
 
-            receiveCompleted =
-                m_multiPacketManager->AddAndCheckPacket(sourceGnbId + 200,
-                                                        ueId,
-                                                        mpHeader.GetPacketId(),
-                                                        mpHeader.GetTotalPacketNum());
+            receiveCompleted = m_appDataManager->AddAndCheckPacket(sourceGnbId,
+                                                                   ueId,
+                                                                   mpHeader.GetPacketId(),
+                                                                   mpHeader.GetTotalPacketNum());
             if (receiveCompleted)
             {
                 NS_LOG_INFO("Gnb " << m_mmWaveEnbNetDevice->GetCellId()
@@ -1003,8 +1034,8 @@ GnbCfApplication::ControlMessageReceivedCallback(E2AP_PDU_t* pdu)
                         cJSON_GetObjectItemCaseSensitive(uePolicy, "offloadPointId");
                     if (cJSON_IsNumber(imsi) && cJSON_IsNumber(offloadPointId))
                     {
-                        NS_LOG_DEBUG("Recv ctrl policy for imsi "
-                                     << " to cfNode " << offloadPointId->valueint);
+                        NS_LOG_DEBUG("Recv ctrl policy for imsi " << " to cfNode "
+                                                                  << offloadPointId->valueint);
                         // Policy uePolicy;
                         // uePolicy.m_ueId = imsi->valueint;
                         // uePolicy.m_offloadPointId = offloadPointId->valueint;

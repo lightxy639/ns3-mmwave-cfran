@@ -100,8 +100,7 @@ RemoteCfApplication::RecvFromUe(Ptr<Socket> socket)
 
         if (cfRadioHeader.GetMessageType() == CfRadioHeader::InitRequest)
         {
-            NS_LOG_INFO("Remote server "
-                        << "Recv init request of UE " << cfRadioHeader.GetUeId());
+            NS_LOG_INFO("Remote server " << "Recv init request of UE " << cfRadioHeader.GetUeId());
 
             auto ueId = cfRadioHeader.GetUeId();
             UpdateUeState(ueId, UeState::Initializing);
@@ -161,18 +160,24 @@ RemoteCfApplication::RecvTaskResult(uint64_t ueId, UeTaskModel ueTask)
     NS_LOG_FUNCTION(this << ueId << ueTask.m_taskId);
     // m_getResultTrace(ueId, ueTask.m_taskId, Simulator::Now().GetTimeStep(), GetResult, None);
 
-    Ptr<Packet> resultPacket = Create<Packet>(500);
-
-    CfRadioHeader echoHeader;
-    echoHeader.SetUeId(ueId);
-    echoHeader.SetMessageType(CfRadioHeader::TaskResult);
-    echoHeader.SetGnbId(m_serverId);
-    echoHeader.SetTaskId(ueTask.m_taskId);
-    resultPacket->AddHeader(echoHeader);
-
-    SendPacketToUe(ueId, resultPacket);
+    uint64_t resultDataSize = m_cfranSystemInfo->GetUeInfo(ueId).m_taskModel.m_downlinkSize;
+    uint32_t packetNum = std::ceil((float)resultDataSize / m_defaultPacketSize);
 
     m_sendResultTrace(ueId, ueTask.m_taskId, Simulator::Now().GetTimeStep(), SendResult, None);
+
+    for (uint32_t n = 1; n <= packetNum; n++)
+    {
+        Ptr<Packet> resultPacket = Create<Packet>(m_defaultPacketSize);
+
+        CfRadioHeader echoHeader;
+        echoHeader.SetUeId(ueId);
+        echoHeader.SetMessageType(CfRadioHeader::TaskResult);
+        echoHeader.SetGnbId(m_serverId);
+        echoHeader.SetTaskId(ueTask.m_taskId);
+        resultPacket->AddHeader(echoHeader);
+
+        SendPacketToUe(ueId, resultPacket);
+    }
 }
 
 void

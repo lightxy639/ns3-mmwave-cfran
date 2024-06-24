@@ -161,6 +161,10 @@ class GnbCfApplication : public CfApplication
 
     // TracedCallback<uint64_t, uint64_t, uint64_t> m_forwardRequestTrace;
 
+    Ptr<MultiPacketManager> m_requestManager;
+    Ptr<MultiPacketManager> m_resultManager;
+    Ptr<MultiPacketManager> m_appDataManager;
+    
     TracedCallback<uint64_t, uint64_t, uint64_t, TimeType, OffloadPosition> m_recvRequestToBeForwardedTrace;
     TracedCallback<uint64_t, uint64_t, uint64_t, TimeType, OffloadPosition> m_recvForwardedResultTrace;
 
