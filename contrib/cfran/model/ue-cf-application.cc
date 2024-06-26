@@ -5,6 +5,7 @@
 
 #include <ns3/intercept-tag.h>
 #include <ns3/log.h>
+#include <ns3/lte-pdcp-tag.h>
 #include <ns3/simulator.h>
 
 namespace ns3
@@ -29,6 +30,11 @@ UeCfApplication::GetTypeId()
             //               UintegerValue(100),
             //               MakeUintegerAccessor(&UeCfApplication::m_offloadPort),
             //               MakeUintegerChecker<uint16_t>())
+            .AddAttribute("RandomArrivalDeparture",
+                        "If true, users will arrive and leave randomly",
+                        BooleanValue(false),
+                        MakeBooleanAccessor(&UeCfApplication::m_randomArrivalDeparture),
+                        MakeBooleanChecker())
             .AddAttribute("UeGnbPort",
                           "The port used by the UE's socket to gnb in the cfran scenario",
                           UintegerValue(1234),
@@ -69,6 +75,7 @@ UeCfApplication::GetTypeId()
 UeCfApplication::UeCfApplication()
     : m_ueId(0),
       m_taskId(0),
+      m_active(false),
       m_socket(0),
       m_minSize(1000),
       //   m_requestDataSize(500000),
@@ -151,7 +158,15 @@ UeCfApplication::StartApplication()
 {
     NS_LOG_FUNCTION(this);
 
-    Simulator::Schedule(MilliSeconds(100), &UeCfApplication::SendInitRequest, this);
+    if(!m_randomArrivalDeparture)
+    {
+        m_active = true;
+        Simulator::Schedule(MilliSeconds(100), &UeCfApplication::SendInitRequest, this);
+    }
+    else
+    {
+        ChangeStatus();
+    }
 }
 
 void
@@ -369,6 +384,31 @@ UeCfApplication::RecvFromNetwork(Ptr<Packet> p)
         MultiPacketHeader mpHeader;
         p->RemoveHeader(mpHeader);
 
+        // PdcpTag pdcpTag;
+        // p->FindFirstMatchingByteTag(pdcpTag);
+
+        if (m_cfranSystemInfo->GetOffladPointType(m_offloadPointId) == CfranSystemInfo::Remote)
+        {
+            if (m_downlinkResultManager->IsNewFile(sourceId, taskId))
+            {
+                PdcpTag pdcpTag;
+                if (p->FindFirstMatchingByteTag(pdcpTag))
+                {
+                    m_cfTimeBuffer->UpdateTimeBuffer(m_ueId,
+                                                     taskId,
+                                                     pdcpTag.GetSenderTimestamp().GetTimeStep(),
+                                                     RecvForwardedResult,
+                                                     None);
+                    NS_LOG_DEBUG("Recv first packet " << " UE " << m_ueId << " task " << taskId << " packetId " << mpHeader.GetPacketId());
+                }
+                else
+                {
+                    NS_FATAL_ERROR("No valid pdcp tag");
+                }
+            }
+        }
+        // NS_LOG_DEBUG("Recv packet " << " UE " << m_ueId << " task " << taskId << " packetId " << mpHeader.GetPacketId());
+        // NS_LOG_DEBUG("PDCP Latency " << Simulator::Now().GetTimeStep() - pdcpTag.GetSenderTimestamp().GetTimeStep());
         bool recvCompleted =
             m_downlinkResultManager->AddAndCheckPacket(sourceId,
                                                        taskId,
@@ -488,10 +528,13 @@ UeCfApplication::E2eTrace(CfRadioHeader cfRHd)
         uint64_t queueDelay = timeData.m_processTask - timeData.m_addTask;
         uint64_t processDelay = timeData.m_sendResult - timeData.m_processTask;
 
-        uint64_t dnWdDelay = m_cfranSystemInfo->GetWiredLatencyInfo().m_s1ULatency +
-                             m_cfranSystemInfo->GetWiredLatencyInfo().m_x2Latency +
-                             m_cfranSystemInfo->GetRemoteInfo(offloadId).m_hostGwLatency * 1e6;
-        uint64_t dnWlDelay = timeData.m_recvResult - timeData.m_sendResult - dnWdDelay;
+        // uint64_t dnWdDelay = m_cfranSystemInfo->GetWiredLatencyInfo().m_s1ULatency +
+        //                      m_cfranSystemInfo->GetWiredLatencyInfo().m_x2Latency +
+        //                      m_cfranSystemInfo->GetRemoteInfo(offloadId).m_hostGwLatency * 1e6;
+        // uint64_t dnWlDelay = timeData.m_recvResult - timeData.m_sendResult - dnWdDelay;
+        uint64_t dnWlDelay = timeData.m_recvResult - timeData.m_recvForwardedResult;
+
+        uint64_t dnWdDelay = timeData.m_recvResult - timeData.m_sendResult - dnWlDelay;
 
         m_cfE2eCalculator->UpdateDelayStats(ueId,
                                             upWlDelay,
@@ -500,6 +543,7 @@ UeCfApplication::E2eTrace(CfRadioHeader cfRHd)
                                             processDelay,
                                             dnWdDelay,
                                             dnWlDelay);
+        NS_LOG_DEBUG("UE " << ueId << " TASK " << taskId << " dnWlDelay " << dnWlDelay);
     }
 
     m_cfTimeBuffer->RemoveTimeData(ueId, taskId);
@@ -518,6 +562,12 @@ UeCfApplication::E2eTrace(CfRadioHeader cfRHd)
     //                                     computingDelay,
     //                                     dnWdDelay,
     //                                     dnWlDelay);
+}
+
+void
+UeCfApplication::ChangeStatus()
+{
+    
 }
 
 } // namespace ns3

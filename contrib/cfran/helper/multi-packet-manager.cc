@@ -37,6 +37,25 @@ MultiPacketManager::DoInitialize()
     NS_LOG_FUNCTION(this);
 }
 
+bool 
+MultiPacketManager::IsNewFile(uint64_t sourceId, uint64_t fileId)
+{
+    auto itSrc = m_fileInfo.find(sourceId);
+    if (itSrc == m_fileInfo.end())
+    {
+        return true;
+    }
+    else
+    {
+        auto itFile = itSrc->second.find(fileId);
+        if(itFile == itSrc->second.end())
+        {
+            return true;
+        }
+    }
+    return false;
+}
+
 bool
 MultiPacketManager::AddAndCheckPacket(uint64_t sourceId,
                                       uint64_t fileId,

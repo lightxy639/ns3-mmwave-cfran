@@ -100,7 +100,8 @@ RemoteCfApplication::RecvFromUe(Ptr<Socket> socket)
 
         if (cfRadioHeader.GetMessageType() == CfRadioHeader::InitRequest)
         {
-            NS_LOG_INFO("Remote server " << "Recv init request of UE " << cfRadioHeader.GetUeId());
+            NS_LOG_INFO("Remote server "
+                        << "Recv init request of UE " << cfRadioHeader.GetUeId());
 
             auto ueId = cfRadioHeader.GetUeId();
             UpdateUeState(ueId, UeState::Initializing);
@@ -167,15 +168,20 @@ RemoteCfApplication::RecvTaskResult(uint64_t ueId, UeTaskModel ueTask)
 
     for (uint32_t n = 1; n <= packetNum; n++)
     {
+        MultiPacketHeader mpHeader;
+        mpHeader.SetPacketId(n);
+        mpHeader.SetTotalpacketNum(packetNum);
+
+        CfRadioHeader cfrHeader;
+        cfrHeader.SetUeId(ueId);
+        cfrHeader.SetMessageType(CfRadioHeader::TaskResult);
+        cfrHeader.SetGnbId(m_serverId);
+        cfrHeader.SetTaskId(ueTask.m_taskId);
+
         Ptr<Packet> resultPacket = Create<Packet>(m_defaultPacketSize);
-
-        CfRadioHeader echoHeader;
-        echoHeader.SetUeId(ueId);
-        echoHeader.SetMessageType(CfRadioHeader::TaskResult);
-        echoHeader.SetGnbId(m_serverId);
-        echoHeader.SetTaskId(ueTask.m_taskId);
-        resultPacket->AddHeader(echoHeader);
-
+        
+        resultPacket->AddHeader(mpHeader);
+        resultPacket->AddHeader(cfrHeader);
         SendPacketToUe(ueId, resultPacket);
     }
 }
@@ -233,7 +239,7 @@ RemoteCfApplication::BuildAndSendE2Report()
     // m_e2term->GetSubscriptionState());
     if (m_e2term != nullptr && !m_e2term->GetSubscriptionState())
     {
-        Simulator::Schedule(MilliSeconds(500), &RemoteCfApplication::BuildAndSendE2Report, this);
+        Simulator::Schedule(MilliSeconds(100), &RemoteCfApplication::BuildAndSendE2Report, this);
         return;
     }
 
@@ -378,7 +384,7 @@ RemoteCfApplication::BuildAndSendE2Report()
     }
 
     Simulator::ScheduleWithContext(GetNode()->GetId(),
-                                   MilliSeconds(500),
+                                   MilliSeconds(100),
                                    &RemoteCfApplication::BuildAndSendE2Report,
                                    this);
 }

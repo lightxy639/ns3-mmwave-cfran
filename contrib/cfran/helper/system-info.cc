@@ -82,6 +82,16 @@ CfranSystemInfo::GetWiredLatencyInfo()
     return m_wiredLatencyInfo;
 }
 
+CfranSystemInfo::UeRandomAction
+CfranSystemInfo::GetUeRandomAction(uint64_t time, uint64_t ueId)
+{
+    CfranSystemInfo::UeRandomAction action = m_ueRandomActionSequence[ueId].front();
+    
+    m_ueRandomActionSequence[ueId].pop();
+
+    return action;
+}
+
 void
 CfranSystemInfo::AddUeInfo(uint64_t imsi, UeInfo ueInfo)
 {
@@ -105,6 +115,12 @@ void
 CfranSystemInfo::SetWiredLatencyInfo(WiredLatencyInfo wiredInfo)
 {
     m_wiredLatencyInfo = wiredInfo;
+}
+
+void
+CfranSystemInfo::SetUeRandomActionSequence(UeRandomActionSequence seq)
+{
+    m_ueRandomActionSequence = seq;
 }
 
 } // namespace ns3

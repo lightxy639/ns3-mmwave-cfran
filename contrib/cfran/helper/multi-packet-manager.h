@@ -48,6 +48,7 @@ class MultiPacketManager : public Object
      */
     static TypeId GetTypeId();
 
+    bool IsNewFile(uint64_t sourceId, uint64_t fileId);
     bool AddAndCheckPacket(uint64_t sourceId,
                            uint64_t fileId,
                            uint64_t packetId,

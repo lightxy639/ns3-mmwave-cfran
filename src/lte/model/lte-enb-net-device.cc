@@ -490,7 +490,7 @@ LteEnbNetDevice::SetClientFd(int clientFd)
 {
     m_clientFd = clientFd;
     Simulator::ScheduleWithContext(GetNode()->GetId(),
-                                   MilliSeconds(500),
+                                   MilliSeconds(100),
                                    &LteEnbNetDevice::BuildAndSendReportMessage,
                                    this);
 }
@@ -623,7 +623,7 @@ LteEnbNetDevice::BuildAndSendReportMessage()
     }
 
     Simulator::ScheduleWithContext(GetNode()->GetId(),
-                                   MilliSeconds(500),
+                                   MilliSeconds(100),
                                    &LteEnbNetDevice::BuildAndSendReportMessage,
                                    this);
 }

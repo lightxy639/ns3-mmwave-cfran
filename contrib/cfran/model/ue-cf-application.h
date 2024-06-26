@@ -60,6 +60,8 @@ class UeCfApplication : public Application
 
     void E2eTrace(CfRadioHeader cfRHd);
 
+    void ChangeStatus();
+
   protected:
     void DoDispose();
 
@@ -72,6 +74,9 @@ class UeCfApplication : public Application
     // Ipv4Address m_offloadAddress;
 
     // uint16_t m_offloadPort;
+    bool m_active;
+
+    bool m_randomArrivalDeparture;
 
     uint16_t m_ueGnbPort;
 
@@ -101,6 +106,7 @@ class UeCfApplication : public Application
     virtual void StartApplication(); // Called at time specified by Start
 
     virtual void StopApplication(); // Called at time specified by Stop
+
     uint32_t m_taskNow;
 
     // Ptr<CfE2eBuffer> m_cfE2eBuffer;

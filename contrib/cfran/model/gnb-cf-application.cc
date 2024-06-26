@@ -111,7 +111,7 @@ GnbCfApplication::SetClientFd(int clientFd)
     m_clientFd = clientFd;
 
     Simulator::ScheduleWithContext(GetNode()->GetId(),
-                                   MilliSeconds(500),
+                                   MilliSeconds(100),
                                    &GnbCfApplication::BuildAndSendE2Report,
                                    this);
 }
@@ -431,7 +431,7 @@ GnbCfApplication::RecvFromUe(Ptr<Socket> socket)
                 NS_LOG_DEBUG("Report to RIC and wait for command.");
                 SendNewUeReport(cfRadioHeader.GetUeId());
 
-                AssignUe(cfRadioHeader.GetUeId(), 6);
+                AssignUe(cfRadioHeader.GetUeId(), 5);
             }
         }
         else if (cfRadioHeader.GetMessageType() == CfRadioHeader::TaskRequest)
@@ -838,7 +838,7 @@ GnbCfApplication::BuildAndSendE2Report()
     // m_e2term->GetSubscriptionState());
     if (m_e2term != nullptr && !m_e2term->GetSubscriptionState())
     {
-        Simulator::Schedule(MilliSeconds(500), &GnbCfApplication::BuildAndSendE2Report, this);
+        Simulator::Schedule(MilliSeconds(100), &GnbCfApplication::BuildAndSendE2Report, this);
         return;
     }
 
@@ -988,7 +988,7 @@ GnbCfApplication::BuildAndSendE2Report()
     }
 
     Simulator::ScheduleWithContext(GetNode()->GetId(),
-                                   MilliSeconds(500),
+                                   MilliSeconds(100),
                                    &GnbCfApplication::BuildAndSendE2Report,
                                    this);
     // Simulator::Schedule(MilliSeconds(500), &GnbCfApplication::BuildAndSendE2Report, this);

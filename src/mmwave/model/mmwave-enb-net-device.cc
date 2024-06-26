@@ -277,7 +277,7 @@ MmWaveEnbNetDevice::SetClientFd(int clientFd)
     m_clientFd = clientFd;
 
     Simulator::ScheduleWithContext(GetNode()->GetId(),
-                                   MilliSeconds(500),
+                                   MilliSeconds(100),
                                    &MmWaveEnbNetDevice::BuildAndSendReportMessage,
                                    this);
 }
@@ -576,7 +576,7 @@ MmWaveEnbNetDevice::BuildAndSendReportMessage()
     }
 
     Simulator::ScheduleWithContext(GetNode()->GetId(),
-                                   MilliSeconds(500),
+                                   MilliSeconds(100),
                                    &MmWaveEnbNetDevice::BuildAndSendReportMessage,
                                    this);
 }

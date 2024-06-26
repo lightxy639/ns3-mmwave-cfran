@@ -294,8 +294,76 @@ TargetEnbTest()
 void
 PacketSinkLog(Ptr<const Packet>, const Address& from, const Address& local)
 {
-    NS_LOG_UNCOND("Recv packet " << "from " << InetSocketAddress::ConvertFrom(from).GetIpv4()
-                                 << " at " << InetSocketAddress::ConvertFrom(local).GetIpv4());
+    NS_LOG_UNCOND("Recv packet "
+                  << "from " << InetSocketAddress::ConvertFrom(from).GetIpv4() << " at "
+                  << InetSocketAddress::ConvertFrom(local).GetIpv4());
+}
+
+CfranSystemInfo::UeRandomActionSequence
+GenerateUeRandomActionSequence(uint8_t ueNum,
+                               uint8_t arriveNum,
+                               uint8_t leaveNum,
+                               uint8_t maxCycles)
+{
+    std::vector<uint64_t> activeUe;
+    std::vector<uint64_t> inActiveUe;
+
+    CfranSystemInfo::UeRandomActionSequence seq;
+
+    for (uint8_t id = 1; id <= ueNum; id++)
+    {
+        inActiveUe.push_back(id);
+        seq[id] = std::queue<CfranSystemInfo::UeRandomAction>();
+    }
+
+
+    Ptr<UniformRandomVariable> uv = CreateObject<UniformRandomVariable>();
+    for (uint8_t time = 0; time < maxCycles; time++)
+    {
+        std::vector<uint64_t> ueArrive;
+        std::vector<uint64_t> ueLeave;
+
+        while (ueArrive.size() < arriveNum && !inActiveUe.empty())
+        {
+            uint16_t index = uv->GetInteger(0, inActiveUe.size() - 1);
+            uint64_t id = inActiveUe[index];
+            ueArrive.push_back(id);
+            seq[id].push(CfranSystemInfo::UeRandomAction::Arrive);
+            inActiveUe.erase(inActiveUe.begin() + index);
+        }
+
+        while(ueLeave.size() < leaveNum && !activeUe.empty())
+        {
+            uint16_t index = uv->GetInteger(0, activeUe.size() - 1);
+            uint64_t id = activeUe[index];
+            ueLeave.push_back(id);
+            seq[id].push(CfranSystemInfo::UeRandomAction::Leave);
+            activeUe.erase(activeUe.begin() + index);
+        }
+
+        for(auto it = activeUe.begin(); it != activeUe.end(); it++)
+        {
+            seq[*it].push(CfranSystemInfo::UeRandomAction::Hold);
+        }
+        for(auto it = inActiveUe.begin(); it != inActiveUe.end(); it++)
+        {
+            seq[*it].push(CfranSystemInfo::UeRandomAction::Hold);
+        }
+
+        activeUe.insert(activeUe.end(), ueArrive.begin(), ueArrive.end());
+        inActiveUe.insert(inActiveUe.end(), ueLeave.begin(), ueLeave.end());
+
+        NS_LOG_DEBUG("Time " << +time);
+        for (uint8_t id = 1; id <= ueNum; id++)
+        {
+            NS_LOG_DEBUG("Time " << +time << " UE " << +id << " Action " << seq[id].back());
+        }
+        // NS_LOG_DEBUG("ActiveUe " << activeUe);
+        // NS_LOG_DEBUG("ActiveUe " << activeUe);
+
+    }
+
+    return seq;
 }
 
 static ns3::GlobalValue g_mmw1DistFromMainStreet(
@@ -328,7 +396,7 @@ static ns3::GlobalValue g_interPckInterval("interPckInterval",
                                            ns3::MakeUintegerChecker<uint32_t>());
 static ns3::GlobalValue g_bufferSize("bufferSize",
                                      "RLC tx buffer size (MB)",
-                                     ns3::UintegerValue(20),
+                                     ns3::UintegerValue(50),
                                      ns3::MakeUintegerChecker<uint32_t>());
 
 static ns3::GlobalValue g_s1uLatency("s1ULatency",
@@ -392,8 +460,8 @@ main(int argc, char* argv[])
 {
     // LogComponentEnable("McTwoEnbs", LOG_DEBUG);
     // LogComponentEnable("GnbCfApplication", LOG_INFO);
-    LogComponentEnable("GnbCfApplication", LOG_DEBUG);
-    // LogComponentEnable("GnbCfApplication", LOG_FUNCTION);
+    // LogComponentEnable("GnbCfApplication", LOG_DEBUG);
+    LogComponentEnable("GnbCfApplication", LOG_FUNCTION);
     LogComponentEnable("GnbCfApplication", LOG_PREFIX_ALL);
 
     LogComponentEnable("UeCfApplication", LOG_DEBUG);
@@ -401,9 +469,9 @@ main(int argc, char* argv[])
     LogComponentEnable("UeCfApplication", LOG_INFO);
     LogComponentEnable("UeCfApplication", LOG_PREFIX_ALL);
 
-    LogComponentEnable("RemoteCfApplication", LOG_INFO);
-    // LogComponentEnable("RemoteCfApplication", LOG_FUNCTION);
-    LogComponentEnable("RemoteCfApplication", LOG_DEBUG);
+    // LogComponentEnable("RemoteCfApplication", LOG_INFO);
+    LogComponentEnable("RemoteCfApplication", LOG_FUNCTION);
+    // LogComponentEnable("RemoteCfApplication", LOG_DEBUG);
     LogComponentEnable("RemoteCfApplication", LOG_PREFIX_ALL);
     // LogComponentEnable("CfranSystemInfo", LOG_INFO);
     LogComponentEnable("CfranSystemInfo", LOG_FUNCTION);
@@ -413,9 +481,11 @@ main(int argc, char* argv[])
     // LogComponentEnable("CfApplicationHelper", LOG_PREFIX_ALL);
 
     // LogComponentEnable("MmWaveEnbNetDevice", LOG_DEBUG);
-    // // LogComponentEnable("MmWaveEnbNetDevice", LOG_FUNCTION);
-    // LogComponentEnable("MmWaveEnbNetDevice", LOG_PREFIX_ALL);
+    LogComponentEnable("MmWaveEnbNetDevice", LOG_FUNCTION);
+    LogComponentEnable("MmWaveEnbNetDevice", LOG_PREFIX_ALL);
 
+    LogComponentEnable("LteEnbNetDevice", LOG_FUNCTION);
+    LogComponentEnable("LteEnbNetDevice", LOG_PREFIX_ALL);
     // LogComponentEnable("CfE2eCalculator", LOG_FUNCTION);
     // LogComponentEnable("CfE2eCalculator", LOG_DEBUG);
     // LogComponentEnable("CfE2eCalculator", LOG_ERROR);
@@ -494,8 +564,8 @@ main(int argc, char* argv[])
     double ueSpeed = doubleValue.Get();
 
     double transientDuration = double(vectorTransient) / 1000000;
-    double simTime =
-        transientDuration + ((double)ueFinalPosition - (double)ueInitialPosition) / ueSpeed + 1;
+    // double simTime =
+    //     transientDuration + ((double)ueFinalPosition - (double)ueInitialPosition) / ueSpeed + 1;
 
     NS_LOG_UNCOND("rlcAmEnabled " << rlcAmEnabled << " bufferSize " << bufferSize
                                   << " interPacketInterval " << interPacketInterval << " x2Latency "
@@ -716,7 +786,7 @@ main(int argc, char* argv[])
     NodeContainer allEnbNodes;
 
     uint8_t nGnbNodes = 2;
-    uint8_t ues = 2;
+    uint8_t ues = 5;
     uint8_t nUeNodes = nGnbNodes * ues;
 
     mmWaveEnbNodes.Create(nGnbNodes);
@@ -976,7 +1046,7 @@ main(int argc, char* argv[])
 
     CfranSystemInfo::WiredLatencyInfo wiredLatencyInfo;
     wiredLatencyInfo.m_s1ULatency = s1ULatency * 1e3; // ns
-    wiredLatencyInfo.m_x2Latency = x2Latency * 1e3;  // ns
+    wiredLatencyInfo.m_x2Latency = x2Latency * 1e3;   // ns
     cfranSystemInfo->SetWiredLatencyInfo(wiredLatencyInfo);
 
     Config::SetDefault("ns3::CfApplication::CfranSystemInfomation", PointerValue(cfranSystemInfo));
@@ -1021,9 +1091,24 @@ main(int argc, char* argv[])
     }
 
     // Start applications
-    NS_LOG_UNCOND("transientDuration " << transientDuration << " simTime " << simTime);
-    serverApps.Start(Seconds(transientDuration));
-    clientApps.Start(Seconds(transientDuration + 1));
+
+    double serverAppStartTime = 0.5;
+    double clientAppStartTime = 1;
+    double statePeriod = 0.5;
+
+    uint16_t maxCycles = 10;
+
+    double simTime = maxCycles * statePeriod + 2;
+
+    NS_LOG_DEBUG("serverAppStartTime: " << serverAppStartTime << " clientAppStartTime: "
+                                        << clientAppStartTime << " simTime: " << simTime);
+
+    uint8_t nUeArrive = 5;
+    uint8_t nUeLeave = 1;
+
+    cfranSystemInfo->SetUeRandomActionSequence(GenerateUeRandomActionSequence(nUeNodes, nUeArrive, nUeLeave, 10));
+    serverApps.Start(Seconds(serverAppStartTime));
+    clientApps.Start(Seconds(clientAppStartTime));
     clientApps.Stop(Seconds(simTime - 1));
 
     // Simulator::Schedule(Seconds(transientDuration),
