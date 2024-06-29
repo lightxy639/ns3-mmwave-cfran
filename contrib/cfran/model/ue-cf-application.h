@@ -38,6 +38,8 @@ class UeCfApplication : public Application
     
     virtual void SendTaskRequest();
 
+    void SendTerminateCommand();
+
     virtual void RecvTaskResult(Ptr<Packet> p);
 
     // void SetOffloadAddress(Ipv4Address address, uint32_t port);
@@ -98,6 +100,8 @@ class UeCfApplication : public Application
 
     double m_period; // ms
 
+    double m_randomActionPeriod; // ms
+
     Ptr<CfranSystemInfo> m_cfranSystemInfo;
 
     Ptr<mmwave::McUeNetDevice> m_mcUeNetDev;
@@ -108,6 +112,8 @@ class UeCfApplication : public Application
     virtual void StopApplication(); // Called at time specified by Stop
 
     uint32_t m_taskNow;
+
+    EventId m_reqEventId;
 
     // Ptr<CfE2eBuffer> m_cfE2eBuffer;
     Ptr<CfE2eCalculator> m_cfE2eCalculator;

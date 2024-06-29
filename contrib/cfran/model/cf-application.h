@@ -59,6 +59,7 @@ class CfApplication : public Application
     Ptr<MultiPacketManager> m_multiPacketManager;
     Ptr<E2Termination> m_e2term;
     int m_clientFd;
+    double m_e2ReportPeriod;
 
     std::map<uint64_t, UeState> m_ueState;
 

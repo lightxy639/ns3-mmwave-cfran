@@ -66,11 +66,11 @@ CfranSystemInfo::GetOffladPointType(uint64_t id)
     auto it_gnb = m_cellInfo.find(id);
     auto it_remote = m_remoteInfo.find(id);
 
-    if(it_gnb != m_cellInfo.end())
+    if (it_gnb != m_cellInfo.end())
     {
         return OffloadPointType::Gnb;
     }
-    else if(it_remote != m_remoteInfo.end())
+    else if (it_remote != m_remoteInfo.end())
     {
         return OffloadPointType::Remote;
     }
@@ -83,11 +83,14 @@ CfranSystemInfo::GetWiredLatencyInfo()
 }
 
 CfranSystemInfo::UeRandomAction
-CfranSystemInfo::GetUeRandomAction(uint64_t time, uint64_t ueId)
+CfranSystemInfo::GetUeRandomAction(uint64_t ueId, bool pop = false)
 {
     CfranSystemInfo::UeRandomAction action = m_ueRandomActionSequence[ueId].front();
-    
-    m_ueRandomActionSequence[ueId].pop();
+
+    if (pop)
+    {
+        m_ueRandomActionSequence[ueId].pop();
+    }
 
     return action;
 }

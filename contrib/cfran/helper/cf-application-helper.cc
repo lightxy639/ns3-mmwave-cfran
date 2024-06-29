@@ -1,9 +1,7 @@
 #include "cf-application-helper.h"
 
 #include <ns3/cf-application.h>
-#include <ns3/gnb-cf-application.h>
 #include <ns3/log.h>
-#include <ns3/remote-cf-application.h>
 
 #include <arpa/inet.h>
 #include <iostream>

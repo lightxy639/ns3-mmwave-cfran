@@ -227,8 +227,8 @@ class LteEnbNetDevice : public LteNetDevice
 
     void BuildAndSendReportMessage();
 
-    void ControlMessageReceivedCallback(E2AP_PDU_t *pdu);
-    
+    void ControlMessageReceivedCallback(E2AP_PDU_t* pdu);
+
     Ptr<KpmIndicationHeader> BuildRicIndicationHeader(std::string plmId,
                                                       std::string gnbId,
                                                       uint16_t nrCellId);
@@ -285,6 +285,8 @@ class LteEnbNetDevice : public LteNetDevice
     Ptr<E2Termination> m_e2term;
 
     int m_clientFd;
+
+    double m_e2ReportPeriod;
 
 }; // end of class LteEnbNetDevice
 

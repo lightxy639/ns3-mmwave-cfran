@@ -81,7 +81,7 @@ class CfranSystemInfo : public Object
     RemoteInfo GetRemoteInfo(uint64_t remoteId);
     WiredLatencyInfo GetWiredLatencyInfo();
     OffloadPointType GetOffladPointType(uint64_t offloadId);
-    UeRandomAction GetUeRandomAction(uint64_t time, uint64_t ueId);
+    UeRandomAction GetUeRandomAction(uint64_t ueId, bool pop);
 
     void AddUeInfo(uint64_t imsi, UeInfo ueInfo);
     void AddCellInfo(uint64_t cellId, CellInfo cellInfo);

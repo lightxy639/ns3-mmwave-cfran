@@ -157,7 +157,12 @@ LteEnbNetDevice::GetTypeId(void)
                           PointerValue(),
                           MakePointerAccessor(&LteEnbNetDevice::SetE2Termination,
                                               &LteEnbNetDevice::GetE2Termination),
-                          MakePointerChecker<E2Termination>());
+                          MakePointerChecker<E2Termination>())
+            .AddAttribute("E2ReportPeriod",
+                          "Periodicity of E2 reporting (value in seconds)",
+                          DoubleValue(0.5),
+                          MakeDoubleAccessor(&LteEnbNetDevice::m_e2ReportPeriod),
+                          MakeDoubleChecker<double>());
     return tid;
 }
 
@@ -531,6 +536,8 @@ LteEnbNetDevice::BuildAndSendReportMessage()
     cJSON* msg = cJSON_CreateObject();
     cJSON_AddStringToObject(msg, "msgSource", "LteEnbNetDev");
     cJSON_AddNumberToObject(msg, "cellId", m_cellId);
+    cJSON_AddNumberToObject(msg, "updateTime", Simulator::Now().GetSeconds());
+    cJSON_AddStringToObject(msg, "msgType", "KpmIndication");
 
     auto mmwaveImsiCellSinrMap = m_rrc->GetMmwaveImsiCellSinrMap();
 
@@ -622,8 +629,9 @@ LteEnbNetDevice::BuildAndSendReportMessage()
         }
     }
 
+    NS_LOG_DEBUG("LteEnbNetDevice " << m_cellId << " send indication message");
     Simulator::ScheduleWithContext(GetNode()->GetId(),
-                                   MilliSeconds(100),
+                                   Seconds(m_e2ReportPeriod),
                                    &LteEnbNetDevice::BuildAndSendReportMessage,
                                    this);
 }
@@ -652,7 +660,7 @@ void
 LteEnbNetDevice::ControlMessageReceivedCallback(E2AP_PDU_t* pdu)
 {
     // NS_LOG_DEBUG ("Control Message Received, cellId is " << m_gnbNetDev->GetCellId ());
-    std::cout << "Control Message Received, cellId is " << this->GetCellId() << std::endl;
+    // std::cout << "Control Message Received, cellId is " << this->GetCellId() << std::endl;
     InitiatingMessage_t* mess = pdu->choice.initiatingMessage;
     auto* request = (RICcontrolRequest_t*)&mess->value.choice.RICcontrolRequest;
     NS_LOG_INFO(xer_fprint(stderr, &asn_DEF_RICcontrolRequest, request));

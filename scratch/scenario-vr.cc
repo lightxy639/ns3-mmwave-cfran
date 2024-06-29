@@ -316,7 +316,6 @@ GenerateUeRandomActionSequence(uint8_t ueNum,
         seq[id] = std::queue<CfranSystemInfo::UeRandomAction>();
     }
 
-
     Ptr<UniformRandomVariable> uv = CreateObject<UniformRandomVariable>();
     for (uint8_t time = 0; time < maxCycles; time++)
     {
@@ -332,7 +331,7 @@ GenerateUeRandomActionSequence(uint8_t ueNum,
             inActiveUe.erase(inActiveUe.begin() + index);
         }
 
-        while(ueLeave.size() < leaveNum && !activeUe.empty())
+        while (ueLeave.size() < leaveNum && !activeUe.empty())
         {
             uint16_t index = uv->GetInteger(0, activeUe.size() - 1);
             uint64_t id = activeUe[index];
@@ -341,11 +340,11 @@ GenerateUeRandomActionSequence(uint8_t ueNum,
             activeUe.erase(activeUe.begin() + index);
         }
 
-        for(auto it = activeUe.begin(); it != activeUe.end(); it++)
+        for (auto it = activeUe.begin(); it != activeUe.end(); it++)
         {
             seq[*it].push(CfranSystemInfo::UeRandomAction::Hold);
         }
-        for(auto it = inActiveUe.begin(); it != inActiveUe.end(); it++)
+        for (auto it = inActiveUe.begin(); it != inActiveUe.end(); it++)
         {
             seq[*it].push(CfranSystemInfo::UeRandomAction::Hold);
         }
@@ -360,7 +359,6 @@ GenerateUeRandomActionSequence(uint8_t ueNum,
         }
         // NS_LOG_DEBUG("ActiveUe " << activeUe);
         // NS_LOG_DEBUG("ActiveUe " << activeUe);
-
     }
 
     return seq;
@@ -459,9 +457,9 @@ int
 main(int argc, char* argv[])
 {
     // LogComponentEnable("McTwoEnbs", LOG_DEBUG);
-    // LogComponentEnable("GnbCfApplication", LOG_INFO);
-    // LogComponentEnable("GnbCfApplication", LOG_DEBUG);
-    LogComponentEnable("GnbCfApplication", LOG_FUNCTION);
+    LogComponentEnable("GnbCfApplication", LOG_INFO);
+    LogComponentEnable("GnbCfApplication", LOG_DEBUG);
+    // LogComponentEnable("GnbCfApplication", LOG_FUNCTION);
     LogComponentEnable("GnbCfApplication", LOG_PREFIX_ALL);
 
     LogComponentEnable("UeCfApplication", LOG_DEBUG);
@@ -470,21 +468,22 @@ main(int argc, char* argv[])
     LogComponentEnable("UeCfApplication", LOG_PREFIX_ALL);
 
     // LogComponentEnable("RemoteCfApplication", LOG_INFO);
-    LogComponentEnable("RemoteCfApplication", LOG_FUNCTION);
-    // LogComponentEnable("RemoteCfApplication", LOG_DEBUG);
+    // LogComponentEnable("RemoteCfApplication", LOG_FUNCTION);
+    LogComponentEnable("RemoteCfApplication", LOG_DEBUG);
+    LogComponentEnable("RemoteCfApplication", LOG_INFO);
     LogComponentEnable("RemoteCfApplication", LOG_PREFIX_ALL);
     // LogComponentEnable("CfranSystemInfo", LOG_INFO);
-    LogComponentEnable("CfranSystemInfo", LOG_FUNCTION);
-    LogComponentEnable("CfranSystemInfo", LOG_PREFIX_ALL);
+    // LogComponentEnable("CfranSystemInfo", LOG_FUNCTION);
+    // LogComponentEnable("CfranSystemInfo", LOG_PREFIX_ALL);
 
     // LogComponentEnable("CfApplicationHelper", LOG_DEBUG);
     // LogComponentEnable("CfApplicationHelper", LOG_PREFIX_ALL);
 
     // LogComponentEnable("MmWaveEnbNetDevice", LOG_DEBUG);
-    LogComponentEnable("MmWaveEnbNetDevice", LOG_FUNCTION);
+    // LogComponentEnable("MmWaveEnbNetDevice", LOG_FUNCTION);
     LogComponentEnable("MmWaveEnbNetDevice", LOG_PREFIX_ALL);
 
-    LogComponentEnable("LteEnbNetDevice", LOG_FUNCTION);
+    // LogComponentEnable("LteEnbNetDevice", LOG_FUNCTION);
     LogComponentEnable("LteEnbNetDevice", LOG_PREFIX_ALL);
     // LogComponentEnable("CfE2eCalculator", LOG_FUNCTION);
     // LogComponentEnable("CfE2eCalculator", LOG_DEBUG);
@@ -726,6 +725,11 @@ main(int argc, char* argv[])
     // parse again so you can override default values from the command line
     cmd.Parse(argc, argv);
 
+    double e2ReportPeriod = 0.1;
+    Config::SetDefault("ns3::CfApplication::E2ReportPeriod", DoubleValue(e2ReportPeriod));
+    Config::SetDefault("ns3::LteEnbNetDevice::E2ReportPeriod", DoubleValue(e2ReportPeriod));
+    Config::SetDefault("ns3::MmWaveEnbNetDevice::E2ReportPeriod", DoubleValue(e2ReportPeriod));
+
     // Get SGW/PGW and create a single RemoteHost
     Ptr<Node> pgw = epcHelper->GetPgwNode();
 
@@ -786,7 +790,7 @@ main(int argc, char* argv[])
     NodeContainer allEnbNodes;
 
     uint8_t nGnbNodes = 2;
-    uint8_t ues = 5;
+    uint8_t ues = 2;
     uint8_t nUeNodes = nGnbNodes * ues;
 
     mmWaveEnbNodes.Create(nGnbNodes);
@@ -1062,13 +1066,19 @@ main(int argc, char* argv[])
     ApplicationContainer gnbApps;
     bool dl = 0;
     bool ul = 1;
+
+    double statePeriod = 0.5;
+
     Config::SetDefault("ns3::CfApplication::Port", UintegerValue(ulPort));
+    Config::SetDefault("ns3::UeCfApplication::RandomActionPeriod", DoubleValue(statePeriod));
+
     // Config::SetDefault("ns3::UeCfApplication::OffloadPort", UintegerValue(ulPort));
 
     // CfApplicationHelper cfAppHelper;
     Ptr<CfApplicationHelper> cfAppHelper = CreateObject<CfApplicationHelper>();
     cfAppHelper->SetRemoteIdOffset(mmWaveEnbNodes.GetN() + lteEnbNodes.GetN());
-    serverApps.Add(cfAppHelper->Install(mmWaveEnbNodes));
+    ApplicationContainer gnbCfApps = cfAppHelper->Install(mmWaveEnbNodes);
+    serverApps.Add(gnbCfApps);
     ApplicationContainer remoteApps = cfAppHelper->Install(remoteHostContainer, false);
     serverApps.Add(remoteApps);
 
@@ -1092,9 +1102,8 @@ main(int argc, char* argv[])
 
     // Start applications
 
-    double serverAppStartTime = 0.5;
-    double clientAppStartTime = 1;
-    double statePeriod = 0.5;
+    double serverAppStartTime = 0.3;
+    double clientAppStartTime = 0.9;
 
     uint16_t maxCycles = 10;
 
@@ -1106,7 +1115,21 @@ main(int argc, char* argv[])
     uint8_t nUeArrive = 5;
     uint8_t nUeLeave = 1;
 
-    cfranSystemInfo->SetUeRandomActionSequence(GenerateUeRandomActionSequence(nUeNodes, nUeArrive, nUeLeave, 10));
+    cfranSystemInfo->SetUeRandomActionSequence(
+        GenerateUeRandomActionSequence(nUeNodes, nUeArrive, nUeLeave, 10));
+    // for (uint32_t n = 0; n < clientApps.GetN(); n++)
+    // {
+    //     Ptr<UeCfApplication> ueCfApp = DynamicCast<UeCfApplication>(clientApps.Get(n));
+    //     ueCfApp->SetAttribute("ns3::UeCfApplication::RandomActionPeriod",
+    //     DoubleValue(statePeriod));
+    // }
+
+    // for (uint32_t n = 0; n < gnbCfApps.GetN(); n++)
+    // {
+    //     Ptr<GnbCfApplication> gnbCfApp = DynamicCast<GnbCfApplication>(gnbCfApps.Get(n));
+    //     gnbCfApp->SetAttribute("ns3::")
+    // }
+
     serverApps.Start(Seconds(serverAppStartTime));
     clientApps.Start(Seconds(clientAppStartTime));
     clientApps.Stop(Seconds(simTime - 1));

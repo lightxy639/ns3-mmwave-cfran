@@ -134,6 +134,8 @@ class MmWaveEnbNetDevice : public MmWaveNetDevice
 
     Ptr<E2Termination> m_e2term;
     int m_clientFd;
+    double m_e2ReportPeriod;
+    
     std::string GetImsiString(uint64_t imsi);
     Ptr<MmWaveBearerStatsCalculator> m_pdcpStatsCalculator;
     Ptr<MmWaveBearerStatsCalculator> m_rlcStatsCalculator;

@@ -52,7 +52,7 @@ RemoteCfApplication::SetE2Termination(Ptr<E2Termination> e2term)
 {
     m_e2term = e2term;
 
-    NS_LOG_DEBUG("Register E2SM");
+    // NS_LOG_INFO("Register E2SM");
 
     Ptr<KpmFunctionDescription> kpmFd = Create<KpmFunctionDescription>();
     e2term->RegisterKpmCallbackToE2Sm(
@@ -137,9 +137,9 @@ RemoteCfApplication::RecvFromUe(Ptr<Socket> socket)
                                                         mpHeader.GetTotalPacketNum());
             if (receiveCompleted)
             {
-                NS_LOG_INFO("Remote server " << m_serverId << " Recv task request "
-                                             << cfRadioHeader.GetTaskId() << " of UE "
-                                             << cfRadioHeader.GetUeId());
+                // NS_LOG_INFO("Remote server " << m_serverId << " Recv task request "
+                //                              << cfRadioHeader.GetTaskId() << " of UE "
+                //                              << cfRadioHeader.GetUeId());
                 m_recvRequestTrace(ueId, taskId, Simulator::Now().GetTimeStep(), RecvRequest, None);
                 m_addTaskTrace(ueId, taskId, Simulator::Now().GetTimeStep(), AddTask, None);
 
@@ -147,6 +147,15 @@ RemoteCfApplication::RecvFromUe(Ptr<Socket> socket)
                 ueTask.m_taskId = cfRadioHeader.GetTaskId();
                 m_cfUnit->LoadUeTask(ueId, ueTask);
             }
+        }
+        else if (cfRadioHeader.GetMessageType() == CfRadioHeader::TerminateCommand)
+        {
+            uint64_t ueId = cfRadioHeader.GetUeId();
+            UpdateUeState(ueId, UeState::Over);
+            m_cfUnit->DeleteUe(ueId);
+            NS_LOG_INFO( "RemoteServer " << m_serverId << " Recv command of UE " << ueId << " to terminate the service");
+
+            SendUeEventMessage(ueId, CfranSystemInfo::UeRandomAction::Leave);
         }
         else
         {
@@ -179,7 +188,7 @@ RemoteCfApplication::RecvTaskResult(uint64_t ueId, UeTaskModel ueTask)
         cfrHeader.SetTaskId(ueTask.m_taskId);
 
         Ptr<Packet> resultPacket = Create<Packet>(m_defaultPacketSize);
-        
+
         resultPacket->AddHeader(mpHeader);
         resultPacket->AddHeader(cfrHeader);
         SendPacketToUe(ueId, resultPacket);
@@ -196,7 +205,7 @@ RemoteCfApplication::StartApplication()
         TypeId tid = TypeId::LookupByName("ns3::UdpSocketFactory");
         m_socket = Socket::CreateSocket(GetNode(), tid);
 
-        NS_LOG_DEBUG("Init  socket: " << m_port);
+        // NS_LOG_DEBUG("Init  socket: " << m_port);
         InetSocketAddress local = InetSocketAddress(Ipv4Address::GetAny(), m_port);
         if (m_socket->Bind(local) == -1)
         {
@@ -207,7 +216,7 @@ RemoteCfApplication::StartApplication()
     m_socket->SetRecvCallback(MakeCallback(&RemoteCfApplication::RecvFromUe, this));
     if (m_e2term != nullptr)
     {
-        NS_LOG_DEBUG("E2sim start in cell " << m_serverId);
+        NS_LOG_INFO("E2sim start in cell " << m_serverId);
         // Simulator::Schedule(Seconds(0), &E2Termination::Start, m_e2term);
         Simulator::ScheduleWithContext(GetNode()->GetId(),
                                        MicroSeconds(0),
@@ -251,6 +260,8 @@ RemoteCfApplication::BuildAndSendE2Report()
     cJSON* msg = cJSON_CreateObject();
     cJSON_AddStringToObject(msg, "msgSource", "RemoteCfApp");
     cJSON_AddNumberToObject(msg, "serverId", this->GetServerId());
+    cJSON_AddNumberToObject(msg, "updateTime", Simulator::Now().GetSeconds());
+    cJSON_AddStringToObject(msg, "msgType", "KpmIndication");
 
     cJSON* ueMsgArray = cJSON_AddArrayToObject(msg, "UeMsgArray");
 
@@ -356,7 +367,7 @@ RemoteCfApplication::BuildAndSendE2Report()
         Ptr<KpmIndicationHeader> header = BuildRicIndicationHeader(plmId, gnbId, m_serverId);
         E2AP_PDU* pdu_du_ue = new E2AP_PDU;
         auto kpmPrams = m_e2term->GetSubscriptionPara();
-        NS_LOG_DEBUG("kpmPrams.ranFuncionId: " << kpmPrams.ranFuncionId);
+        // NS_LOG_DEBUG("kpmPrams.ranFuncionId: " << kpmPrams.ranFuncionId);
         encoding::generate_e2apv1_indication_request_parameterized(
             pdu_du_ue,
             kpmPrams.requestorId,
@@ -383,8 +394,9 @@ RemoteCfApplication::BuildAndSendE2Report()
         }
     }
 
+    NS_LOG_INFO("RemoteCfApplication " << m_serverId << " send indication message");
     Simulator::ScheduleWithContext(GetNode()->GetId(),
-                                   MilliSeconds(100),
+                                   Seconds(m_e2ReportPeriod),
                                    &RemoteCfApplication::BuildAndSendE2Report,
                                    this);
 }
@@ -401,8 +413,8 @@ RemoteCfApplication::BuildRicIndicationHeader(std::string plmId,
     auto time = Simulator::Now();
     // uint64_t timestamp = m_startTime + (uint64_t)time.GetMilliSeconds();
     uint64_t timestamp = (uint64_t)time.GetMilliSeconds();
-    NS_LOG_DEBUG("NR plmid " << plmId << " gnbId " << gnbId << " nrCellId " << nrCellId);
-    NS_LOG_DEBUG("Timestamp " << timestamp);
+    // NS_LOG_DEBUG("NR plmid " << plmId << " gnbId " << gnbId << " nrCellId " << nrCellId);
+    // NS_LOG_DEBUG("Timestamp " << timestamp);
     headerValues.m_timestamp = timestamp;
 
     Ptr<KpmIndicationHeader> header =
@@ -489,6 +501,98 @@ RemoteCfApplication::ControlMessageReceivedCallback(E2AP_PDU_t* pdu)
             break;
         }
     }
+}
+
+void
+RemoteCfApplication::SendUeEventMessage(uint64_t ueId, CfranSystemInfo::UeRandomAction action)
+{
+    NS_LOG_FUNCTION(this);
+
+    cJSON* msg = cJSON_CreateObject();
+    cJSON_AddStringToObject(msg, "msgSource", "RemoteCfApp");
+    cJSON_AddNumberToObject(msg, "serverId", m_serverId);
+
+    cJSON_AddStringToObject(msg, "msgType", "Event");
+
+    cJSON* ueEvent = cJSON_AddObjectToObject(msg, "ueEvent");
+
+    cJSON_AddNumberToObject(ueEvent, "ueId", ueId);
+
+    if (action == CfranSystemInfo::Arrive)
+    {
+        cJSON_AddStringToObject(ueEvent, "action", "Arrive");
+    }
+    else if (action == CfranSystemInfo::Leave)
+    {
+        cJSON_AddStringToObject(ueEvent, "action", "Leave");
+    }
+
+    CfranSystemInfo::UeInfo ueInfo = m_cfranSystemInfo->GetUeInfo(ueId);
+    cJSON_AddNumberToObject(ueEvent, "cfLoad", ueInfo.m_taskModel.m_cfLoad);
+    cJSON_AddNumberToObject(ueEvent, "periodity", ueInfo.m_taskPeriodity);
+    cJSON_AddNumberToObject(ueEvent, "deadline", ueInfo.m_taskModel.m_deadline);
+    cJSON_AddNumberToObject(ueEvent, "uplinkSize", ueInfo.m_taskModel.m_uplinkSize);
+    cJSON_AddNumberToObject(ueEvent, "downlinkSize", ueInfo.m_taskModel.m_downlinkSize);
+
+    std::string cJsonPrint = cJSON_PrintUnformatted(msg);
+    const char* reportString = cJsonPrint.c_str();
+
+    char b[2048];
+
+    z_stream defstream;
+    defstream.zalloc = Z_NULL;
+    defstream.zfree = Z_NULL;
+    defstream.opaque = Z_NULL;
+    // setup "a" as the input and "b" as the compressed output
+    defstream.avail_in = (uInt)strlen(reportString) + 1; // size of input, string + terminator
+    defstream.next_in = (Bytef*)reportString;            // input char array
+    defstream.avail_out = (uInt)sizeof(b);               // size of output
+    defstream.next_out = (Bytef*)b;                      // output char array
+
+    // the actual compression work.
+    deflateInit(&defstream, Z_BEST_COMPRESSION);
+    deflate(&defstream, Z_FINISH);
+    deflateEnd(&defstream);
+
+    std::string base64String = base64_encode((const unsigned char*)b, defstream.total_out);
+
+    if (m_e2term != nullptr)
+    {
+        std::string plmId = "111";
+        std::string gnbId = std::to_string(m_serverId);
+        uint16_t cellId = m_serverId;
+
+        Ptr<KpmIndicationHeader> header = BuildRicIndicationHeader(plmId, gnbId, cellId);
+        E2AP_PDU* pdu_du_ue = new E2AP_PDU;
+        auto kpmPrams = m_e2term->GetSubscriptionPara();
+        NS_LOG_DEBUG("kpmPrams.ranFuncionId: " << kpmPrams.ranFuncionId);
+        encoding::generate_e2apv1_indication_request_parameterized(
+            pdu_du_ue,
+            kpmPrams.requestorId,
+            kpmPrams.instanceId,
+            kpmPrams.ranFuncionId,
+            kpmPrams.actionId,
+            1,                          // TODO sequence number
+            (uint8_t*)header->m_buffer, // buffer containing the encoded header
+            header->m_size,             // size of the encoded header
+            //  (uint8_t*) duMsg->m_buffer, // buffer containing the encoded message
+            // (uint8_t*)(reportString),
+            (uint8_t*)base64String.c_str(),
+            //  duMsg->m_size
+            base64String.length());
+        // defstream.total_out); // size of the encoded message
+        m_e2term->SendE2Message(pdu_du_ue);
+        delete pdu_du_ue;
+    }
+    else if (m_clientFd > 0)
+    {
+        if (send(m_clientFd, base64String.c_str(), base64String.length(), 0) < 0)
+        {
+            NS_LOG_ERROR("Error when send cell data.");
+        }
+    }
+
+    NS_LOG_INFO("RemoteServer " << m_serverId << " send event message of UE " << ueId);
 }
 
 } // namespace ns3

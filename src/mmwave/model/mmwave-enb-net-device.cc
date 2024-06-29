@@ -96,6 +96,11 @@ MmWaveEnbNetDevice::GetTypeId()
                           MakePointerAccessor(&MmWaveEnbNetDevice::SetE2Termination,
                                               &MmWaveEnbNetDevice::GetE2Termination),
                           MakePointerChecker<E2Termination>())
+            .AddAttribute("E2ReportPeriod",
+                          "Periodicity of E2 reporting (value in seconds)",
+                          DoubleValue(0.5),
+                          MakeDoubleAccessor(&MmWaveEnbNetDevice::m_e2ReportPeriod),
+                          MakeDoubleChecker<double>())
             .AddAttribute("RlcCalculator",
                           "The RLC calculator object for reporting",
                           PointerValue(),
@@ -339,7 +344,7 @@ void
 MmWaveEnbNetDevice::ControlMessageReceivedCallback(E2AP_PDU_t* pdu)
 {
     // NS_LOG_DEBUG ("Control Message Received, cellId is " << m_gnbNetDev->GetCellId ());
-    std::cout << "Control Message Received, cellId is " << this->GetCellId() << std::endl;
+    // std::cout << "Control Message Received, cellId is " << this->GetCellId() << std::endl;
     InitiatingMessage_t* mess = pdu->choice.initiatingMessage;
     auto* request = (RICcontrolRequest_t*)&mess->value.choice.RICcontrolRequest;
     NS_LOG_INFO(xer_fprint(stderr, &asn_DEF_RICcontrolRequest, request));
@@ -420,6 +425,8 @@ MmWaveEnbNetDevice::BuildAndSendReportMessage()
     cJSON* msg = cJSON_CreateObject();
     cJSON_AddStringToObject(msg, "msgSource", "MmwaveEnbNetDev");
     cJSON_AddNumberToObject(msg, "cellId", m_cellId);
+    cJSON_AddNumberToObject(msg, "updateTime", Simulator::Now().GetSeconds());
+    cJSON_AddStringToObject(msg, "msgType", "KpmIndication");
 
     cJSON* gnbPos = cJSON_AddObjectToObject(msg, "pos");
     Vector pos = this->GetNode()->GetObject<MobilityModel>()->GetPosition();
@@ -575,8 +582,10 @@ MmWaveEnbNetDevice::BuildAndSendReportMessage()
         }
     }
 
+    NS_LOG_DEBUG("MmWaveEnbNetDevice " << m_cellId << " send indication messsage");
+    
     Simulator::ScheduleWithContext(GetNode()->GetId(),
-                                   MilliSeconds(100),
+                                   Seconds(m_e2ReportPeriod),
                                    &MmWaveEnbNetDevice::BuildAndSendReportMessage,
                                    this);
 }
@@ -633,7 +642,10 @@ MmWaveEnbNetDevice::UpdateConfig(void)
             {
                 NS_LOG_DEBUG("E2sim start in cell " << m_cellId);
                 // Simulator::Schedule(MicroSeconds(0), &E2Termination::Start, m_e2term);
-                Simulator::ScheduleWithContext(GetNode()->GetId(), MicroSeconds(0), &E2Termination::Start, m_e2term);
+                Simulator::ScheduleWithContext(GetNode()->GetId(),
+                                               MicroSeconds(0),
+                                               &E2Termination::Start,
+                                               m_e2term);
             }
             m_isConfigured = true;
         }

@@ -19,7 +19,8 @@ class CfX2Header : public Header
         TaskRequest = 2,
         TaskResult = 3,
         MigrationData = 4,
-        MigrationDone = 5
+        MigrationDone = 5,
+        TerminateCommand = 6
     };
 
     CfX2Header();

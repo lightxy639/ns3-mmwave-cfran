@@ -94,6 +94,7 @@ class GnbCfApplication : public CfApplication
     void MigrateUeService(uint64_t ueId, uint64_t targetGnbId);
 
     void SendPacketToUe(uint64_t ueId, Ptr<Packet> packet) override;
+
     void RecvFromUe(Ptr<Socket> socket) override;
     // virtual
 
@@ -149,6 +150,8 @@ class GnbCfApplication : public CfApplication
     void AssignUe(uint64_t ueId, uint64_t offloadPointId);
 
     void BuildAndSendE2Report();
+
+    void SendUeEventMessage (uint64_t ueId , CfranSystemInfo::UeRandomAction action);
 
     void ControlMessageReceivedCallback(E2AP_PDU_t *pdu);
 

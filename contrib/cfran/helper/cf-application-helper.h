@@ -5,6 +5,8 @@
 #include <ns3/cf-application.h>
 #include <ns3/node-container.h>
 #include <ns3/object.h>
+#include <ns3/gnb-cf-application.h>
+#include <ns3/remote-cf-application.h>
 
 namespace ns3
 {

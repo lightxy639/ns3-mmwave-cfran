@@ -33,10 +33,12 @@ class RemoteCfApplication : public CfApplication
     void RecvTaskResult(uint64_t id, UeTaskModel ueTask) override;
 
     void BuildAndSendE2Report();
-    
+
+    void SendUeEventMessage(uint64_t ueId, CfranSystemInfo::UeRandomAction action);
+
     void KpmSubscriptionCallback(E2AP_PDU_t* sub_req_pdu);
-    
-    void ControlMessageReceivedCallback(E2AP_PDU_t *pdu);
+
+    void ControlMessageReceivedCallback(E2AP_PDU_t* pdu);
 
     Ptr<KpmIndicationHeader> BuildRicIndicationHeader(std::string plmId,
                                                       std::string gnbId,

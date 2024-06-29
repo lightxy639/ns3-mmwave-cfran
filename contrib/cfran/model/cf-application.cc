@@ -18,6 +18,11 @@ CfApplication::GetTypeId()
                           UintegerValue(100),
                           MakeUintegerAccessor(&CfApplication::m_port),
                           MakeUintegerChecker<uint16_t>())
+            .AddAttribute("E2ReportPeriod",
+                            "Periodicity of E2 reporting (value in seconds)",
+                            DoubleValue(0.5),
+                            MakeDoubleAccessor(&CfApplication::m_e2ReportPeriod),
+                            MakeDoubleChecker<double>())
             .AddAttribute("CfranSystemInfomation",
                           "Global user information in cfran scenario",
                           PointerValue(),
