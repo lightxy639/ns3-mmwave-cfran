@@ -1,10 +1,10 @@
-./ns3 run "scenario-vr.cc --customDdluPort=41000  --e2PortBase=51243" > cfran_1.log
-./ns3 run "scenario-vr.cc --customDdluPort=42000  --e2PortBase=52243" > cfran_2.log
-./ns3 run "scenario-vr.cc --customDdluPort=43000  --e2PortBase=53243" > cfran_3.log
-./ns3 run "scenario-vr.cc --customDdluPort=44000  --e2PortBase=54243" > cfran_4.log
-./ns3 run "scenario-vr.cc --customDdluPort=45000  --e2PortBase=55243" > cfran_5.log
-./ns3 run "scenario-vr.cc --customDdluPort=46000  --e2PortBase=56243" > cfran_6.log
-./ns3 run "scenario-vr.cc --customDdluPort=47000  --e2PortBase=56743" > cfran_7.log
-./ns3 run "scenario-vr.cc --customDdluPort=48000  --e2PortBase=56843" > cfran_8.log
-./ns3 run "scenario-vr.cc --customDdluPort=49000  --e2PortBase=56943" > cfran_9.log
-./ns3 run "scenario-vr.cc --customDdluPort=40000  --e2PortBase=56043" > cfran_0.log
+./ns3 run "scenario-vr.cc --customDdluPort=41000  --e2PortBase=51243" > cfran_1.log &
+./ns3 run "scenario-vr.cc --customDdluPort=42000  --e2PortBase=52243" > cfran_2.log &
+./ns3 run "scenario-vr.cc --customDdluPort=43000  --e2PortBase=53243" > cfran_3.log &
+./ns3 run "scenario-vr.cc --customDdluPort=44000  --e2PortBase=54243" > cfran_4.log &
+./ns3 run "scenario-vr.cc --customDdluPort=45000  --e2PortBase=55243" > cfran_5.log &
+./ns3 run "scenario-vr.cc --customDdluPort=46000  --e2PortBase=56243" > cfran_6.log &
+./ns3 run "scenario-vr.cc --customDdluPort=47000  --e2PortBase=56743" > cfran_7.log &
+./ns3 run "scenario-vr.cc --customDdluPort=48000  --e2PortBase=56843" > cfran_8.log &
+./ns3 run "scenario-vr.cc --customDdluPort=49000  --e2PortBase=56943" > cfran_9.log &
+./ns3 run "scenario-vr.cc --customDdluPort=40000  --e2PortBase=56043" > cfran_0.log &
