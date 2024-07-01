@@ -309,7 +309,7 @@ MmWaveHelper::GetTypeId(void)
                           BooleanValue(false),
                           MakeBooleanAccessor(&MmWaveHelper::m_enableCustomSocket),
                           MakeBooleanChecker())
-            .AddAttribute("CustemServerPort",
+            .AddAttribute("CustomServerPort",
                           "Port number of custom server",
                           UintegerValue(36000),
                           MakeUintegerAccessor(&MmWaveHelper::m_customServerPort),
@@ -2211,7 +2211,6 @@ MmWaveHelper::InstallSingleEnbDevice(Ptr<Node> n)
             {
                 NS_FATAL_ERROR("bind failed");
             }
-            device->SetClientFd(clientFd);
 
             serverAddr.sin_family = AF_INET;
             serverAddr.sin_port = htons(m_customServerPort);
@@ -2230,6 +2229,8 @@ MmWaveHelper::InstallSingleEnbDevice(Ptr<Node> n)
                 NS_LOG_UNCOND("Connect success: "
                               << "Port " << local_port);
             }
+            
+            device->SetClientFd(clientFd);
         }
 
         // EnableE2PdcpTraces();
@@ -2568,7 +2569,6 @@ MmWaveHelper::InstallSingleLteEnbDevice(Ptr<Node> n)
             {
                 NS_FATAL_ERROR("bind failed");
             }
-            dev->SetClientFd(clientFd);
 
             serverAddr.sin_family = AF_INET;
             serverAddr.sin_port = htons(m_customServerPort);
@@ -2587,6 +2587,7 @@ MmWaveHelper::InstallSingleLteEnbDevice(Ptr<Node> n)
                 NS_LOG_UNCOND("Connect success: "
                               << "Port " << local_port);
             }
+            dev->SetClientFd(clientFd);
         }
 
         // EnableE2PdcpTraces();

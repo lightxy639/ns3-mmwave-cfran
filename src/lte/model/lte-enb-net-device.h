@@ -32,9 +32,11 @@
 #include "ns3/nstime.h"
 #include "ns3/oran-interface.h"
 #include "ns3/traced-callback.h"
+#include "ns3/cJSON.h"
 
 #include <map>
 #include <vector>
+#include <queue>
 
 namespace ns3
 {
@@ -60,6 +62,12 @@ class LteEnbComponentCarrierManager;
 class LteEnbNetDevice : public LteNetDevice
 {
   public:
+    struct Policy
+    {
+      uint64_t m_ueId;
+      uint64_t m_targetGnbId;
+    };
+
     /**
      * \brief Get the type ID.
      * \return the object TypeId
@@ -229,6 +237,12 @@ class LteEnbNetDevice : public LteNetDevice
 
     void ControlMessageReceivedCallback(E2AP_PDU_t* pdu);
 
+    void RecvFromCustomSocket();
+
+    void PrasePolicyMessage(cJSON* json);
+
+    void ExecuteCommands();
+
     Ptr<KpmIndicationHeader> BuildRicIndicationHeader(std::string plmId,
                                                       std::string gnbId,
                                                       uint16_t nrCellId);
@@ -287,6 +301,10 @@ class LteEnbNetDevice : public LteNetDevice
     int m_clientFd;
 
     double m_e2ReportPeriod;
+
+    uint64_t m_reportTimeStamp;
+
+    std::queue<Policy> m_policy;
 
 }; // end of class LteEnbNetDevice
 

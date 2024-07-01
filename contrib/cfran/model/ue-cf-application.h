@@ -36,7 +36,7 @@ class UeCfApplication : public Application
 
     virtual void SendInitRequest();
     
-    virtual void SendTaskRequest();
+    virtual void SendTaskRequest(uint64_t offloadPointId);
 
     void SendTerminateCommand();
 

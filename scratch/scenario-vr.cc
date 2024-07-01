@@ -434,11 +434,11 @@ static ns3::GlobalValue g_outPath("outPath",
 static ns3::GlobalValue g_noiseAndFilter(
     "noiseAndFilter",
     "If true, use noisy SINR samples, filtered. If false, just use the SINR measure",
-    ns3::BooleanValue(false),
+    ns3::BooleanValue(true),
     ns3::MakeBooleanChecker());
 static ns3::GlobalValue g_handoverMode("handoverMode",
                                        "Handover mode",
-                                       ns3::UintegerValue(2),
+                                       ns3::UintegerValue(4),
                                        ns3::MakeUintegerChecker<uint8_t>());
 static ns3::GlobalValue g_reportTablePeriodicity("reportTablePeriodicity",
                                                  "Periodicity of RTs",
@@ -462,14 +462,14 @@ main(int argc, char* argv[])
     // LogComponentEnable("GnbCfApplication", LOG_FUNCTION);
     LogComponentEnable("GnbCfApplication", LOG_PREFIX_ALL);
 
-    LogComponentEnable("UeCfApplication", LOG_DEBUG);
+    // LogComponentEnable("UeCfApplication", LOG_DEBUG);
     // LogComponentEnable("UeCfApplication", LOG_FUNCTION);
     LogComponentEnable("UeCfApplication", LOG_INFO);
     LogComponentEnable("UeCfApplication", LOG_PREFIX_ALL);
 
     // LogComponentEnable("RemoteCfApplication", LOG_INFO);
     // LogComponentEnable("RemoteCfApplication", LOG_FUNCTION);
-    LogComponentEnable("RemoteCfApplication", LOG_DEBUG);
+    // LogComponentEnable("RemoteCfApplication", LOG_DEBUG);
     LogComponentEnable("RemoteCfApplication", LOG_INFO);
     LogComponentEnable("RemoteCfApplication", LOG_PREFIX_ALL);
     // LogComponentEnable("CfranSystemInfo", LOG_INFO);
@@ -483,7 +483,7 @@ main(int argc, char* argv[])
     // LogComponentEnable("MmWaveEnbNetDevice", LOG_FUNCTION);
     LogComponentEnable("MmWaveEnbNetDevice", LOG_PREFIX_ALL);
 
-    // LogComponentEnable("LteEnbNetDevice", LOG_FUNCTION);
+    LogComponentEnable("LteEnbNetDevice", LOG_INFO);
     LogComponentEnable("LteEnbNetDevice", LOG_PREFIX_ALL);
     // LogComponentEnable("CfE2eCalculator", LOG_FUNCTION);
     // LogComponentEnable("CfE2eCalculator", LOG_DEBUG);
@@ -492,14 +492,27 @@ main(int argc, char* argv[])
 
     LogComponentEnable("McTwoEnbs", LOG_DEBUG);
 
+
+    uint16_t localPortBase = 38470;
+    uint64_t customDdluPort = 36000;
+
+    // Command line arguments
+    CommandLine cmd;
+    cmd.AddValue ("e2PortBase", "The starting port allocated for the custom socket and e2Termination.", localPortBase);
+    cmd.AddValue ("customDdluPort", "The port of custom ddlu", customDdluPort);
+    cmd.Parse(argc, argv);
+
+    Config::SetDefault("ns3::MmWaveHelper::E2LocalPort", UintegerValue(localPortBase));
+    Config::SetDefault("ns3::CfApplicationHelper::E2LocalPort", UintegerValue(localPortBase));
+    Config::SetDefault ("ns3::MmWaveHelper::CustomServerPort", UintegerValue(customDdluPort));
+    Config::SetDefault ("ns3::CfApplicationHelper::CustomServerPort", UintegerValue(customDdluPort));
+
     bool harqEnabled = true;
     bool fixedTti = false;
 
     std::list<Box> m_previousBlocks;
 
-    // Command line arguments
-    CommandLine cmd;
-    cmd.Parse(argc, argv);
+
 
     UintegerValue uintegerValue;
     BooleanValue booleanValue;
@@ -612,7 +625,8 @@ main(int argc, char* argv[])
     Config::SetDefault("ns3::MmWaveFlexTtiMaxWeightMacScheduler::SymPerSlot", UintegerValue(6));
     Config::SetDefault("ns3::MmWavePhyMacCommon::TbDecodeLatency", UintegerValue(200.0));
     Config::SetDefault("ns3::MmWavePhyMacCommon::NumHarqProcess", UintegerValue(100));
-    Config::SetDefault("ns3::ThreeGppChannelModel::UpdatePeriod", TimeValue(MilliSeconds(100.0)));
+    // Config::SetDefault("ns3::ThreeGppChannelModel::UpdatePeriod", TimeValue(MilliSeconds(100.0)));
+    Config::SetDefault("ns3::ThreeGppChannelModel::UpdatePeriod", TimeValue(MilliSeconds(0)));
     Config::SetDefault("ns3::LteEnbRrc::SystemInformationPeriodicity",
                        TimeValue(MilliSeconds(5.0)));
     Config::SetDefault("ns3::LteRlcAm::ReportBufferStatusTimer", TimeValue(MicroSeconds(100.0)));
@@ -701,8 +715,8 @@ main(int argc, char* argv[])
     Config::SetDefault("ns3::CfApplicationHelper::E2TermIp", StringValue("10.0.2.10"));
     Config::SetDefault("ns3::MmWaveHelper::EnableCustomSocket", BooleanValue(true));
     Config::SetDefault("ns3::CfApplicationHelper::EnableCustomSocket", BooleanValue(true));
-    Config::SetDefault("ns3::MmWaveHelper::CustemServerPort", UintegerValue(36000));
-    Config::SetDefault("ns3::CfApplicationHelper::CustemServerPort", UintegerValue(36000));
+    // Config::SetDefault("ns3::MmWaveHelper::CustemServerPort", UintegerValue(36000));
+    // Config::SetDefault("ns3::CfApplicationHelper::CustemServerPort", UintegerValue(36000));
 
     Ptr<MmWaveHelper> mmwaveHelper = CreateObject<MmWaveHelper>();
     mmwaveHelper->SetPathlossModelType("ns3::ThreeGppUmiStreetCanyonPropagationLossModel");
@@ -790,7 +804,8 @@ main(int argc, char* argv[])
     NodeContainer allEnbNodes;
 
     uint8_t nGnbNodes = 2;
-    uint8_t ues = 2;
+    Ptr<UniformRandomVariable> uv = CreateObject<UniformRandomVariable>();
+    uint8_t ues = uv->GetInteger(1,4);
     uint8_t nUeNodes = nGnbNodes * ues;
 
     mmWaveEnbNodes.Create(nGnbNodes);
@@ -862,8 +877,8 @@ main(int argc, char* argv[])
 
     MobilityHelper uemobility;
     Ptr<UniformRandomVariable> speed = CreateObject<UniformRandomVariable>();
-    speed->SetAttribute("Min", DoubleValue(2.0));
-    speed->SetAttribute("Max", DoubleValue(4.0));
+    speed->SetAttribute("Min", DoubleValue(0));
+    speed->SetAttribute("Max", DoubleValue(0.1));
 
     uemobility.SetMobilityModel("ns3::RandomWalk2dOutdoorMobilityModel",
                                 "Speed",
@@ -1067,7 +1082,7 @@ main(int argc, char* argv[])
     bool dl = 0;
     bool ul = 1;
 
-    double statePeriod = 0.5;
+    double statePeriod = 0.3;
 
     Config::SetDefault("ns3::CfApplication::Port", UintegerValue(ulPort));
     Config::SetDefault("ns3::UeCfApplication::RandomActionPeriod", DoubleValue(statePeriod));
@@ -1103,7 +1118,7 @@ main(int argc, char* argv[])
     // Start applications
 
     double serverAppStartTime = 0.3;
-    double clientAppStartTime = 0.9;
+    double clientAppStartTime = 0.8;
 
     uint16_t maxCycles = 10;
 
@@ -1112,8 +1127,10 @@ main(int argc, char* argv[])
     NS_LOG_DEBUG("serverAppStartTime: " << serverAppStartTime << " clientAppStartTime: "
                                         << clientAppStartTime << " simTime: " << simTime);
 
-    uint8_t nUeArrive = 5;
-    uint8_t nUeLeave = 1;
+    // Ptr<UniformRandomVariable> uv = CreateObject<UniformRandomVariable>();
+    // uint8_t ues = uv->GetInteger(s1,4);
+    uint8_t nUeArrive = uv->GetInteger(1,4);
+    uint8_t nUeLeave = uv->GetInteger(1,4);
 
     cfranSystemInfo->SetUeRandomActionSequence(
         GenerateUeRandomActionSequence(nUeNodes, nUeArrive, nUeLeave, 10));

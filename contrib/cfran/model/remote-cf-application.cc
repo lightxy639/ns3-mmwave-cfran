@@ -9,6 +9,7 @@
 #include <ns3/log.h>
 
 #include <encode_e2apv1.hpp>
+#include <thread>
 
 namespace ns3
 {
@@ -84,6 +85,23 @@ RemoteCfApplication::SendPacketToUe(uint64_t ueId, Ptr<Packet> packet)
 }
 
 void
+RemoteCfApplication::SendRefuseInformationToUe(uint64_t ueId)
+{
+    NS_LOG_FUNCTION(this);
+
+    Ptr<Packet> packet = Create<Packet>(500);
+
+    CfRadioHeader cfrHeader;
+    cfrHeader.SetMessageType(CfRadioHeader::RefuseInform);
+    cfrHeader.SetGnbId(m_serverId);
+    cfrHeader.SetUeId(ueId);
+
+    packet->AddHeader(cfrHeader);
+
+    SendPacketToUe(ueId, packet);
+}
+
+void
 RemoteCfApplication::RecvFromUe(Ptr<Socket> socket)
 {
     NS_LOG_FUNCTION(this);
@@ -116,6 +134,7 @@ RemoteCfApplication::RecvFromUe(Ptr<Socket> socket)
             SendPacketToUe(ueId, resultPacket);
 
             UpdateUeState(ueId, UeState::Serving);
+            NS_LOG_INFO("RemoteServer " << m_serverId << " send Init Success to UE " << ueId);
         }
 
         else if (cfRadioHeader.GetMessageType() == CfRadioHeader::TaskRequest)
@@ -153,7 +172,8 @@ RemoteCfApplication::RecvFromUe(Ptr<Socket> socket)
             uint64_t ueId = cfRadioHeader.GetUeId();
             UpdateUeState(ueId, UeState::Over);
             m_cfUnit->DeleteUe(ueId);
-            NS_LOG_INFO( "RemoteServer " << m_serverId << " Recv command of UE " << ueId << " to terminate the service");
+            NS_LOG_INFO("RemoteServer " << m_serverId << " Recv command of UE " << ueId
+                                        << " to terminate the service");
 
             SendUeEventMessage(ueId, CfranSystemInfo::UeRandomAction::Leave);
         }
@@ -231,6 +251,13 @@ RemoteCfApplication::StartApplication()
                       this,
                       std::placeholders::_1));
     }
+    else if (m_clientFd > 0)
+    {
+        std::thread recvPolicyTread(&RemoteCfApplication::RecvFromCustomSocket, this);
+        recvPolicyTread.detach();
+    }
+
+    Simulator::Schedule(MilliSeconds(10), &RemoteCfApplication::ExecuteCommands, this);
 }
 
 void
@@ -262,6 +289,7 @@ RemoteCfApplication::BuildAndSendE2Report()
     cJSON_AddNumberToObject(msg, "serverId", this->GetServerId());
     cJSON_AddNumberToObject(msg, "updateTime", Simulator::Now().GetSeconds());
     cJSON_AddStringToObject(msg, "msgType", "KpmIndication");
+    cJSON_AddNumberToObject(msg, "timeStamp", m_reportTimeStamp++);
 
     cJSON* ueMsgArray = cJSON_AddArrayToObject(msg, "UeMsgArray");
 
@@ -394,7 +422,7 @@ RemoteCfApplication::BuildAndSendE2Report()
         }
     }
 
-    NS_LOG_INFO("RemoteCfApplication " << m_serverId << " send indication message");
+    // NS_LOG_INFO("RemoteCfApplication " << m_serverId << " send indication message");
     Simulator::ScheduleWithContext(GetNode()->GetId(),
                                    Seconds(m_e2ReportPeriod),
                                    &RemoteCfApplication::BuildAndSendE2Report,
@@ -595,4 +623,130 @@ RemoteCfApplication::SendUeEventMessage(uint64_t ueId, CfranSystemInfo::UeRandom
     NS_LOG_INFO("RemoteServer " << m_serverId << " send event message of UE " << ueId);
 }
 
+void
+RemoteCfApplication::RecvFromCustomSocket()
+{
+    NS_LOG_FUNCTION(this);
+    NS_LOG_DEBUG("Recv thread start");
+
+    char buffer[8196] = {0};
+
+    while (true)
+    {
+        memset(buffer, 0, sizeof(buffer));
+        if (recv(m_clientFd, buffer, sizeof(buffer) - 1, 0) < 0)
+        {
+            break;
+        }
+
+        cJSON* json = cJSON_Parse(buffer);
+        if (json == nullptr)
+        {
+            NS_LOG_ERROR("Parsing json failed");
+        }
+        else
+        {
+            NS_LOG_DEBUG("GnbCfApp " << m_serverId << " Recv Policy message: " << buffer);
+            PrasePolicyMessage(json);
+        }
+    }
+}
+
+void
+RemoteCfApplication::PrasePolicyMessage(cJSON* json)
+{
+    NS_LOG_DEBUG(this);
+
+    cJSON* uePolicy = nullptr;
+    cJSON_ArrayForEach(uePolicy, json)
+    {
+        cJSON* ueId = cJSON_GetObjectItemCaseSensitive(uePolicy, "ueId");
+        cJSON* action = cJSON_GetObjectItemCaseSensitive(uePolicy, "action");
+
+        if (cJSON_IsNumber(ueId) && cJSON_IsString(action))
+        {
+            Policy uePolicy;
+            uePolicy.m_ueId = ueId->valueint;
+            if (std::string(action->valuestring) == "StartService")
+            {
+                uePolicy.m_action = Action::StartService;
+            }
+            else if (std::string(action->valuestring) == "StopService")
+            {
+                uePolicy.m_action = Action::StopService;
+            }
+            else if (std::string(action->valuestring) == "RefuseService")
+            {
+                uePolicy.m_action = Action::RefuseService;
+            }
+            else
+            {
+                NS_FATAL_ERROR("Invalid action");
+            }
+
+            m_policy.push(uePolicy);
+        }
+        else
+        {
+            NS_FATAL_ERROR("Invalid json");
+        }
+    }
+}
+
+void
+RemoteCfApplication::ExecuteCommands()
+{
+    while (!m_policy.empty())
+    {
+        Policy uePolicy = m_policy.front();
+        m_policy.pop();
+
+        uint64_t ueId = uePolicy.m_ueId;
+        Action action = uePolicy.m_action;
+
+        if (action == Action::StartService)
+        {
+            NS_LOG_INFO("RemoteServer " << m_serverId << " start service for UE " << ueId);
+            UpdateUeState(ueId, UeState::Initializing);
+
+            m_cfUnit->AddNewUe(ueId);
+
+            Ptr<Packet> resultPacket = Create<Packet>(500);
+            CfRadioHeader echoHeader;
+            echoHeader.SetMessageType(CfRadioHeader::InitSuccess);
+            echoHeader.SetGnbId(m_serverId);
+            resultPacket->AddHeader(echoHeader);
+            SendPacketToUe(ueId, resultPacket);
+
+            UpdateUeState(ueId, UeState::Serving);
+
+            NS_LOG_INFO("RemoteServer " << m_serverId << " send Init Success to UE " << ueId);
+        }
+        else if (action == Action::StopService)
+        {
+            NS_LOG_INFO("RemoteServer " << m_serverId << " stop service for UE " << ueId);
+            UpdateUeState(ueId, UeState::Over);
+            m_cfUnit->DeleteUe(ueId);
+        }
+        else if (action == Action::RefuseService)
+        {
+            NS_LOG_INFO("RemoteServer " << m_serverId << " send refuse information to UE " << ueId);
+
+            if (m_ueState.find(ueId) != m_ueState.end())
+            {
+                UpdateUeState(ueId, UeState::Over);
+                m_cfUnit->DeleteUe(ueId);
+            }
+            Ptr<Packet> refusePacket = Create<Packet>(500);
+            CfRadioHeader cfrHeader;
+            cfrHeader.SetMessageType(CfRadioHeader::RefuseInform);
+            cfrHeader.SetGnbId(m_serverId);
+            refusePacket->AddHeader(cfrHeader);
+
+            SendPacketToUe(ueId, refusePacket);
+        }
+    }
+
+    Simulator::Schedule(MilliSeconds(5), &RemoteCfApplication::ExecuteCommands, this);
+}
 } // namespace ns3

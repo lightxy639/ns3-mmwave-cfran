@@ -59,7 +59,7 @@ CfApplicationHelper::GetTypeId()
                           BooleanValue(false),
                           MakeBooleanAccessor(&CfApplicationHelper::m_enableCustomSocket),
                           MakeBooleanChecker())
-            .AddAttribute("CustemServerPort",
+            .AddAttribute("CustomServerPort",
                           "Port number of custom server",
                           UintegerValue(36000),
                           MakeUintegerAccessor(&CfApplicationHelper::m_customServerPort),

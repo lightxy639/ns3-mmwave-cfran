@@ -60,6 +60,7 @@ class CfApplication : public Application
     Ptr<E2Termination> m_e2term;
     int m_clientFd;
     double m_e2ReportPeriod;
+    uint64_t m_reportTimeStamp;
 
     std::map<uint64_t, UeState> m_ueState;
 

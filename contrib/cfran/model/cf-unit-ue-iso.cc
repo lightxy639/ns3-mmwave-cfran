@@ -53,7 +53,8 @@ CfUnitUeIso::LoadUeTask(uint64_t ueId, UeTaskModel ueTask)
     }
     else
     {
-        NS_FATAL_ERROR("No UE info in this CfUnit");
+        // NS_FATAL_ERROR("No UE " << ueId << " info in  CfUnit " << m_id);
+        NS_LOG_UNCOND("No UE " << ueId << " info in  CfUnit " << m_id);
     }
 }
 

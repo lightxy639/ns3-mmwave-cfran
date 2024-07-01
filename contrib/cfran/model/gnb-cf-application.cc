@@ -4,7 +4,6 @@
 #include "zlib.h"
 
 #include <ns3/base64.h>
-#include <ns3/cJSON.h>
 #include <ns3/cf-radio-header.h>
 #include <ns3/cf-x2-header.h>
 #include <ns3/epc-x2.h>
@@ -17,6 +16,7 @@
 #include <ns3/task-request-header.h>
 
 #include <encode_e2apv1.hpp>
+#include <thread>
 
 namespace ns3
 {
@@ -190,6 +190,8 @@ GnbCfApplication::SendInitSuccessToUserFromGnb(uint64_t id)
     resultPacket->AddHeader(echoHeader);
 
     SendPacketToUe(id, resultPacket);
+
+    NS_LOG_INFO("Gnb " << m_mmWaveEnbNetDevice->GetCellId() << " send Init Success to UE " << id);
 }
 
 void
@@ -210,6 +212,8 @@ GnbCfApplication::SendInitSuccessToConnectedGnb(uint64_t ueId)
     resultPacket->AddHeader(cfX2Header);
 
     SendPacketToOtherGnb(ueConnectedGnbId, resultPacket);
+    NS_LOG_INFO("Gnb " << m_mmWaveEnbNetDevice->GetCellId() << " send Init Success for UE " << ueId
+                       << " to Gnb " << ueConnectedGnbId);
 }
 
 void
@@ -249,6 +253,12 @@ GnbCfApplication::StartApplication()
             std::bind(&GnbCfApplication::ControlMessageReceivedCallback,
                       this,
                       std::placeholders::_1));
+    }
+
+    else if (m_clientFd > 0)
+    {
+        std::thread recvPolicyTread(&GnbCfApplication::RecvFromCustomSocket, this);
+        recvPolicyTread.detach();
     }
     Simulator::Schedule(MilliSeconds(10), &GnbCfApplication::ExecuteCommands, this);
     // else if (m_clientFd > 0)
@@ -418,8 +428,9 @@ GnbCfApplication::RecvFromUe(Ptr<Socket> socket)
             {
                 // NS_LOG_INFO("Report to RIC and wait for command.");
                 // SendNewUeReport(cfRadioHeader.GetUeId());
-                SendUeEventMessage(cfRadioHeader.GetUeId(), CfranSystemInfo::UeRandomAction::Arrive);
-                AssignUe(cfRadioHeader.GetUeId(), 5);
+                SendUeEventMessage(cfRadioHeader.GetUeId(),
+                                   CfranSystemInfo::UeRandomAction::Arrive);
+                // AssignUe(cfRadioHeader.GetUeId(), 5);
             }
         }
         else if (cfRadioHeader.GetMessageType() == CfRadioHeader::TaskRequest)
@@ -442,7 +453,8 @@ GnbCfApplication::RecvFromUe(Ptr<Socket> socket)
                                                         mpHeader.GetTotalPacketNum());
                 if (receiveCompleted)
                 {
-                    // NS_LOG_INFO("Gnb " << m_mmWaveEnbNetDevice->GetCellId() << " Recv task request "
+                    // NS_LOG_INFO("Gnb " << m_mmWaveEnbNetDevice->GetCellId() << " Recv task
+                    // request "
                     //                    << cfRadioHeader.GetTaskId() << " of UE "
                     //                    << cfRadioHeader.GetUeId());
                     m_recvRequestTrace(ueId,
@@ -507,6 +519,8 @@ GnbCfApplication::RecvFromUe(Ptr<Socket> socket)
             }
             else
             {
+                NS_LOG_INFO("Gnb " << m_mmWaveEnbNetDevice->GetCellId()
+                                   << " Recv terminate command to Gnb " << offloadGnbId);
                 CfX2Header cfX2Header;
                 cfX2Header.SetMessageType(CfX2Header::TerminateCommand);
                 cfX2Header.SetUeId(ueId);
@@ -544,7 +558,7 @@ GnbCfApplication::InitX2Info()
         Address tempAddr;
         localUSocket->GetSockName(tempAddr);
         Ipv4Address localAddr = InetSocketAddress::ConvertFrom(tempAddr).GetIpv4();
-         
+
         NS_LOG_DEBUG("IP of the cell: " << localAddr);
         NS_LOG_DEBUG("Get IP adderess of cell " << remoteCellId << ": " << remoteIpAddr);
 
@@ -637,6 +651,9 @@ GnbCfApplication::RecvFromOtherGnb(Ptr<Socket> socket)
             initSuccPakcet->AddHeader(cfRadioHeader);
 
             SendPacketToUe(ueId, initSuccPakcet);
+
+            NS_LOG_INFO("Gnb " << m_mmWaveEnbNetDevice->GetCellId()
+                               << " send forwarded Init Success to UE " << ueId);
         }
         else if (cfX2Header.GetMessageType() == CfX2Header::TaskResult)
         {
@@ -644,7 +661,6 @@ GnbCfApplication::RecvFromOtherGnb(Ptr<Socket> socket)
             //                    << " Recv forwarded Task Result " << cfX2Header.GetTaskId()
             //                    << " of UE " << cfX2Header.GetUeId() << " from gnb "
             //                    << cfX2Header.GetSourceGnbId());
-
 
             MultiPacketHeader mpHeader;
             bool receiveCompleted = false;
@@ -726,6 +742,18 @@ GnbCfApplication::RecvFromOtherGnb(Ptr<Socket> socket)
             UpdateUeState(ueId, UeState::Over);
             m_cfUnit->DeleteUe(ueId);
             NS_LOG_INFO("UE " << ueId << " terminate the service");
+        }
+        else if (cfX2Header.GetMessageType() == CfX2Header::RefuseInform)
+        {
+            uint64_t ueId = cfX2Header.GetUeId();
+
+            CfRadioHeader cfRadioHeader;
+            cfRadioHeader.SetMessageType(CfRadioHeader::RefuseInform);
+            cfRadioHeader.SetUeId(ueId);
+
+            packet->AddHeader(cfRadioHeader);
+
+            SendPacketToUe(ueId, packet);
         }
         else
         {
@@ -870,6 +898,7 @@ GnbCfApplication::BuildAndSendE2Report()
     cJSON_AddNumberToObject(msg, "cfAppId", m_mmWaveEnbNetDevice->GetCellId());
     cJSON_AddNumberToObject(msg, "updateTime", Simulator::Now().GetSeconds());
     cJSON_AddStringToObject(msg, "msgType", "KpmIndication");
+    cJSON_AddNumberToObject(msg, "timeStamp", m_reportTimeStamp++);
 
     cJSON* ueMsgArray = cJSON_AddArrayToObject(msg, "UeMsgArray");
     for (auto it = m_ueState.begin(); it != m_ueState.end(); it++)
@@ -1006,8 +1035,8 @@ GnbCfApplication::BuildAndSendE2Report()
         }
     }
 
-    NS_LOG_DEBUG("GnbCfApplication " << m_mmWaveEnbNetDevice->GetCellId()
-                                     << " send indication message");
+    // NS_LOG_DEBUG("GnbCfApplication " << m_mmWaveEnbNetDevice->GetCellId()
+    //                                  << " send indication message");
     Simulator::ScheduleWithContext(GetNode()->GetId(),
                                    Seconds(m_e2ReportPeriod),
                                    &GnbCfApplication::BuildAndSendE2Report,
@@ -1083,9 +1112,55 @@ GnbCfApplication::ExecuteCommands()
 {
     while (!m_policy.empty())
     {
-        auto uePolicy = m_policy.front();
-        AssignUe(uePolicy.m_ueId, uePolicy.m_offloadPointId);
+        Policy uePolicy = m_policy.front();
         m_policy.pop();
+
+        uint64_t ueId = uePolicy.m_ueId;
+        Action action = uePolicy.m_action;
+
+        if (action == Action::StartService)
+        {
+            NS_LOG_INFO("GnbCfApp " << m_mmWaveEnbNetDevice->GetCellId() << " start service for UE "
+                                    << ueId);
+            uint64_t ueConnectingGnbId = m_cfranSystemInfo->GetUeInfo(ueId)
+                                             .m_mcUeNetDevice->GetMmWaveTargetEnb()
+                                             ->GetCellId();
+            uint64_t hereGnbId = m_mmWaveEnbNetDevice->GetCellId();
+            UpdateUeState(ueId, UeState::Initializing);
+            m_cfUnit->AddNewUe(ueId);
+            UpdateUeState(ueId, UeState::Serving);
+
+            if (ueConnectingGnbId == hereGnbId)
+            {
+                SendInitSuccessToUserFromGnb(ueId);
+            }
+            else
+            {
+                SendInitSuccessToConnectedGnb(ueId);
+            }
+        }
+
+        else if (action == Action::StopService)
+        {
+            NS_LOG_INFO("GnbCfApp " << m_mmWaveEnbNetDevice->GetCellId() << " stop service for UE "
+                                    << ueId);
+            UpdateUeState(ueId, UeState::Over);
+            m_cfUnit->DeleteUe(ueId);
+        }
+
+        else if (action == Action::RefuseService)
+        {
+            NS_LOG_INFO("GnbCfApp " << m_mmWaveEnbNetDevice->GetCellId()
+                                    << " send refuse information to UE " << ueId);
+            if (m_ueState.find(ueId) != m_ueState.end())
+            {
+                UpdateUeState(ueId, UeState::Over);
+                m_cfUnit->DeleteUe(ueId);
+            }
+
+            SendRefuseInformationToUe(ueId);
+        }
+        // AssignUe(uePolicy.m_ueId, uePolicy.m_offloadPointId);
     }
 
     Simulator::Schedule(MilliSeconds(5), &GnbCfApplication::ExecuteCommands, this);
@@ -1182,7 +1257,111 @@ GnbCfApplication::SendUeEventMessage(uint64_t ueId, CfranSystemInfo::UeRandomAct
     }
 
     NS_LOG_INFO("GnbCfApplication " << m_mmWaveEnbNetDevice->GetCellId()
-                                     << " send event message of UE " << ueId);
+                                    << " send event message of UE " << ueId);
+}
+
+void
+GnbCfApplication::SendRefuseInformationToUe(uint64_t ueId)
+{
+    NS_LOG_FUNCTION(this);
+    uint64_t ueConnectingGnbId =
+        m_cfranSystemInfo->GetUeInfo(ueId).m_mcUeNetDevice->GetMmWaveTargetEnb()->GetCellId();
+    uint64_t hereGnbId = m_mmWaveEnbNetDevice->GetCellId();
+
+    Ptr<Packet> refusePacket = Create<Packet>(500);
+
+    if (ueConnectingGnbId == hereGnbId)
+    {
+        CfRadioHeader cfrHeader;
+        cfrHeader.SetMessageType(CfRadioHeader::RefuseInform);
+        cfrHeader.SetGnbId(hereGnbId);
+        refusePacket->AddHeader(cfrHeader);
+
+        SendPacketToUe(ueId, refusePacket);
+    }
+    else
+    {
+        CfX2Header cfX2Header;
+        cfX2Header.SetMessageType(CfX2Header::RefuseInform);
+        cfX2Header.SetSourceGnbId(hereGnbId);
+        cfX2Header.SetTargetGnbId(ueConnectingGnbId);
+        cfX2Header.SetUeId(ueId);
+
+        refusePacket->AddHeader(cfX2Header);
+
+        SendPacketToOtherGnb(ueConnectingGnbId, refusePacket);
+    }
+}
+
+void
+GnbCfApplication::RecvFromCustomSocket()
+{
+    NS_LOG_FUNCTION(this);
+    NS_LOG_DEBUG("Recv thread start");
+
+    char buffer[8196] = {0};
+
+    while (true)
+    {
+        memset(buffer, 0, sizeof(buffer));
+        if (recv(m_clientFd, buffer, sizeof(buffer) - 1, 0) < 0)
+        {
+            break;
+        }
+
+        cJSON* json = cJSON_Parse(buffer);
+        if (json == nullptr)
+        {
+            NS_LOG_ERROR("Parsing json failed");
+        }
+        else
+        {
+            NS_LOG_DEBUG(" GnbCfApp " << m_mmWaveEnbNetDevice->GetCellId()
+                                      << " Recv Policy message: " << buffer);
+            PrasePolicyMessage(json);
+        }
+    }
+}
+
+void
+GnbCfApplication::PrasePolicyMessage(cJSON* json)
+{
+    NS_LOG_DEBUG(this);
+
+    cJSON* uePolicy = nullptr;
+    cJSON_ArrayForEach(uePolicy, json)
+    {
+        cJSON* ueId = cJSON_GetObjectItemCaseSensitive(uePolicy, "ueId");
+        cJSON* action = cJSON_GetObjectItemCaseSensitive(uePolicy, "action");
+
+        if (cJSON_IsNumber(ueId) && cJSON_IsString(action))
+        {
+            Policy uePolicy;
+            uePolicy.m_ueId = ueId->valueint;
+            if (std::string(action->valuestring) == "StartService")
+            {
+                uePolicy.m_action = Action::StartService;
+            }
+            else if (std::string(action->valuestring) == "StopService")
+            {
+                uePolicy.m_action = Action::StopService;
+            }
+            else if (std::string(action->valuestring) == "RefuseService")
+            {
+                uePolicy.m_action = Action::RefuseService;
+            }
+            else
+            {
+                NS_FATAL_ERROR("Invalid action");
+            }
+
+            m_policy.push(uePolicy);
+        }
+        else
+        {
+            NS_FATAL_ERROR("Invalid json");
+        }
+    }
 }
 
 } // namespace ns3

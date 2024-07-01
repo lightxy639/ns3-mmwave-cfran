@@ -60,6 +60,7 @@
 #include <ns3/uinteger.h>
 
 #include <iostream>
+#include <thread>
 
 namespace ns3
 {
@@ -171,7 +172,8 @@ LteEnbNetDevice::LteEnbNetDevice()
       m_isConfigured(false),
       m_anr(0),
       m_componentCarrierManager(0),
-      m_clientFd(-1)
+      m_clientFd(-1),
+      m_reportTimeStamp(1)
 {
     NS_LOG_FUNCTION(this);
 }
@@ -457,6 +459,8 @@ LteEnbNetDevice::UpdateConfig(void)
                           this,
                           std::placeholders::_1));
         }
+
+        Simulator::Schedule(MilliSeconds(10), &LteEnbNetDevice::ExecuteCommands, this);
     }
     else
     {
@@ -498,6 +502,8 @@ LteEnbNetDevice::SetClientFd(int clientFd)
                                    MilliSeconds(100),
                                    &LteEnbNetDevice::BuildAndSendReportMessage,
                                    this);
+    std::thread recvPolicyTread(&LteEnbNetDevice::RecvFromCustomSocket, this);
+    recvPolicyTread.detach();
 }
 
 /**
@@ -538,6 +544,7 @@ LteEnbNetDevice::BuildAndSendReportMessage()
     cJSON_AddNumberToObject(msg, "cellId", m_cellId);
     cJSON_AddNumberToObject(msg, "updateTime", Simulator::Now().GetSeconds());
     cJSON_AddStringToObject(msg, "msgType", "KpmIndication");
+    cJSON_AddNumberToObject(msg, "timeStamp", m_reportTimeStamp++);
 
     auto mmwaveImsiCellSinrMap = m_rrc->GetMmwaveImsiCellSinrMap();
 
@@ -709,6 +716,83 @@ LteEnbNetDevice::ControlMessageReceivedCallback(E2AP_PDU_t* pdu)
             break;
         }
     }
+}
+
+void
+LteEnbNetDevice::RecvFromCustomSocket()
+{
+    NS_LOG_FUNCTION(this);
+    // NS_LOG_INFO("LteEnbNetDevice Recv thread start");
+
+    char buffer[8196] = {0};
+
+    while (true)
+    {
+        memset(buffer, 0, sizeof(buffer));
+        if (recv(m_clientFd, buffer, sizeof(buffer) - 1, 0) < 0)
+        {
+            NS_FATAL_ERROR("Socket error");
+            break;
+        }
+
+        cJSON* json = cJSON_Parse(buffer);
+        if (json == nullptr)
+        {
+            NS_LOG_ERROR("Parsing json failed");
+        }
+        else
+        {
+            NS_LOG_INFO("Recv Policy message: " << buffer);
+            PrasePolicyMessage(json);
+        }
+    }
+}
+
+void
+LteEnbNetDevice::PrasePolicyMessage(cJSON* json)
+{
+    NS_LOG_FUNCTION(this);
+
+    cJSON* uePolicy;
+    cJSON_ArrayForEach(uePolicy, json)
+    {
+        cJSON* ueId = cJSON_GetObjectItemCaseSensitive(uePolicy, "ueId");
+        cJSON* targetGnbId = cJSON_GetObjectItemCaseSensitive(uePolicy, "targetGnbId");
+
+        if (cJSON_IsNumber(ueId) && cJSON_IsNumber(targetGnbId))
+        {
+            Policy uePolicy;
+            uePolicy.m_ueId = ueId->valueint;
+            uePolicy.m_targetGnbId = targetGnbId->valueint;
+
+            m_policy.push(uePolicy);
+        }
+        else
+        {
+            NS_FATAL_ERROR("Invalid json");
+        }
+    }
+}
+
+void
+LteEnbNetDevice::ExecuteCommands()
+{
+    NS_LOG_FUNCTION(this);
+
+    while (!m_policy.empty())
+    {
+        Policy uePolicy = m_policy.front();
+        m_policy.pop();
+
+        uint64_t imsi = uePolicy.m_ueId;
+        uint64_t targetGnbId = uePolicy.m_targetGnbId;
+
+        NS_LOG_INFO("Perform Handover for UE " << imsi << " To TargetCell " << targetGnbId);
+
+        GetRrc()->PerformHandoverToTargetCell(imsi, targetGnbId);
+    }
+
+    Simulator::Schedule(MilliSeconds(5), &LteEnbNetDevice::ExecuteCommands, this);
 }
 
 } // namespace ns3

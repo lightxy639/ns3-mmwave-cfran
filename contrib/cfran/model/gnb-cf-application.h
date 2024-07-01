@@ -1,6 +1,7 @@
 #ifndef GNB_CF_APPLICATION_H
 #define GNB_CF_APPLICATION_H
 
+#include <ns3/cJSON.h>
 #include <ns3/cf-application.h>
 #include <ns3/cf-e2e-calculator.h>
 #include <ns3/cf-model.h>
@@ -65,10 +66,19 @@ class GnbCfApplication : public CfApplication
       Local = 0, // Process locally
       E2 = 1 // Report to RIC and wait for instruction
     };
+
+    enum Action
+    {
+      StartService = 0,
+      StopService = 1,
+      RefuseService = 2
+    };
+
     struct Policy
     {
       uint64_t m_ueId;
-      uint64_t m_offloadPointId;
+      Action m_action;
+      // uint64_t m_offloadPointId;
     };
 
     /**
@@ -108,8 +118,11 @@ class GnbCfApplication : public CfApplication
 
     virtual void SendInitSuccessToConnectedGnb(uint64_t ueId);
 
+    void SendRefuseInformationToUe(uint64_t ueId);
+
     // If the application is installed on a cloud server, the traditional process is completed
     virtual void SendTaskResultToUserFromRemote(uint64_t id, Ptr<Packet> packet);
+
 
   protected:
 
@@ -154,6 +167,10 @@ class GnbCfApplication : public CfApplication
     void SendUeEventMessage (uint64_t ueId , CfranSystemInfo::UeRandomAction action);
 
     void ControlMessageReceivedCallback(E2AP_PDU_t *pdu);
+
+    void RecvFromCustomSocket();
+
+    void PrasePolicyMessage(cJSON* json);
 
     void ExecuteCommands();
 

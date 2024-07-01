@@ -62,7 +62,8 @@ CfApplication::CfApplication()
     : m_socket(nullptr),
       m_defaultPacketSize(1200),
       m_initDelay(200),
-      m_clientFd(-1)
+      m_clientFd(-1),
+      m_reportTimeStamp(1)
 {
     m_multiPacketManager = CreateObject<MultiPacketManager>();
 }

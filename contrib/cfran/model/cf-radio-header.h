@@ -26,7 +26,8 @@ class CfRadioHeader : public Header
         TaskRequest = 2,
         TaskResult = 3,
         OffloadCommand = 4,
-        TerminateCommand = 5
+        TerminateCommand = 5,
+        RefuseInform = 6
     };
 
     CfRadioHeader();

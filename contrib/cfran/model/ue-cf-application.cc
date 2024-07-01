@@ -36,10 +36,10 @@ UeCfApplication::GetTypeId()
                           MakeBooleanAccessor(&UeCfApplication::m_randomArrivalDeparture),
                           MakeBooleanChecker())
             .AddAttribute("RandomActionPeriod",
-                            "The period of random arrvival of departure",
-                            DoubleValue(0.5),
-                            MakeDoubleAccessor(&UeCfApplication::m_randomActionPeriod),
-                            MakeDoubleChecker<double>())
+                          "The period of random arrvival of departure",
+                          DoubleValue(0.5),
+                          MakeDoubleAccessor(&UeCfApplication::m_randomActionPeriod),
+                          MakeDoubleChecker<double>())
             .AddAttribute("UeGnbPort",
                           "The port used by the UE's socket to gnb in the cfran scenario",
                           UintegerValue(1234),
@@ -172,6 +172,16 @@ UeCfApplication::StartApplication()
     {
         ChangeStatus();
     }
+
+    TypeId tid = TypeId::LookupByName("ns3::UdpSocketFactory");
+    m_remoteSocket = Socket::CreateSocket(GetNode(), tid);
+    InetSocketAddress local = InetSocketAddress(Ipv4Address::GetAny(), m_ueRemotePort);
+
+    if (m_remoteSocket->Bind(local) == -1)
+    {
+        NS_FATAL_ERROR("Failed to bind socket");
+    }
+    m_remoteSocket->SetRecvCallback(MakeCallback(&UeCfApplication::HandleRead, this));
 }
 
 void
@@ -206,7 +216,7 @@ UeCfApplication::SendInitRequest()
         reqSocket = m_gnbSocket;
         rlcIntercept = true;
         NS_LOG_INFO("UE " << m_ueId << " send init request to cell "
-                           << m_mcUeNetDev->GetMmWaveTargetEnb()->GetCellId());
+                          << m_mcUeNetDev->GetMmWaveTargetEnb()->GetCellId());
     }
 
     else if (m_cfranSystemInfo->GetOffladPointType(m_offloadPointId) == CfranSystemInfo::Remote)
@@ -240,9 +250,16 @@ UeCfApplication::SendInitRequest()
 }
 
 void
-UeCfApplication::SendTaskRequest()
+UeCfApplication::SendTaskRequest(uint64_t offloadPointId)
 {
     NS_LOG_FUNCTION(this);
+
+    if (offloadPointId != m_offloadPointId)
+    {
+        NS_LOG_INFO("UE " << m_ueId << " Discarded SendTaskRequest event to CfApp "
+                          << offloadPointId);
+        return;
+    }
 
     Ptr<Socket> reqSocket = nullptr;
     // In the NSA scenario within the platform, data packets need to be intercepted in the RLC layer
@@ -255,11 +272,16 @@ UeCfApplication::SendTaskRequest()
         reqSocket = m_gnbSocket;
         rlcIntercept = true;
     }
-    else
+    else if (m_cfranSystemInfo->GetOffladPointType(m_offloadPointId) == CfranSystemInfo::Remote)
     {
-        // InitRemoteSocket();
+        InitRemoteSocket();
         reqSocket = m_remoteSocket;
         rlcIntercept = false;
+    }
+    else if (m_active == false && m_offloadPointId == 0)
+    {
+        NS_LOG_INFO("UE " << m_ueId << " Unexpected event");
+        return;
     }
 
     uint64_t requestDataSize = m_cfranSystemInfo->GetUeInfo(m_ueId).m_taskModel.m_uplinkSize;
@@ -315,7 +337,10 @@ UeCfApplication::SendTaskRequest()
                       << m_offloadPointId);
 
     m_taskId++;
-    m_reqEventId = Simulator::Schedule(MilliSeconds(m_period), &UeCfApplication::SendTaskRequest, this);
+    m_reqEventId = Simulator::Schedule(MilliSeconds(m_period),
+                                       &UeCfApplication::SendTaskRequest,
+                                       this,
+                                       offloadPointId);
 }
 
 void
@@ -332,8 +357,7 @@ UeCfApplication::SendTerminateCommand()
         InitGnbSocket();
         reqSocket = m_gnbSocket;
         rlcIntercept = true;
-        NS_LOG_INFO("UE " << m_ueId << " send terminate command to gNB "
-                           << m_mcUeNetDev->GetMmWaveTargetEnb()->GetCellId());
+        NS_LOG_INFO("UE " << m_ueId << " send terminate command to gNB " << m_offloadPointId);
     }
 
     else if (m_cfranSystemInfo->GetOffladPointType(m_offloadPointId) == CfranSystemInfo::Remote)
@@ -341,12 +365,14 @@ UeCfApplication::SendTerminateCommand()
         InitRemoteSocket();
         reqSocket = m_remoteSocket;
         rlcIntercept = false;
-        NS_LOG_INFO("UE " << m_ueId << " send terminate command to remote server " << m_offloadPointId);
+        NS_LOG_INFO("UE " << m_ueId << " send terminate command to remote server "
+                          << m_offloadPointId);
     }
 
     CfRadioHeader cfRadioHeader;
     cfRadioHeader.SetMessageType(CfRadioHeader::TerminateCommand);
     cfRadioHeader.SetUeId(m_ueId);
+    cfRadioHeader.SetGnbId(m_offloadPointId);
 
     Ptr<Packet> p = Create<Packet>(m_minSize);
     p->AddHeader(cfRadioHeader);
@@ -400,17 +426,26 @@ UeCfApplication::RecvFromNetwork(Ptr<Packet> p)
         uint64_t offloadPointId = cfRadioHeader.GetGnbId();
         if (m_cfranSystemInfo->GetOffladPointType(offloadPointId) == CfranSystemInfo::Gnb)
         {
-            NS_LOG_INFO("Init Success in gNB " << offloadPointId);
+            NS_LOG_INFO("UE " << m_ueId << " Recv Init Success from gNB " << offloadPointId);
         }
         else if (m_cfranSystemInfo->GetOffladPointType(offloadPointId) == CfranSystemInfo::Remote)
         {
-            NS_LOG_INFO("Init Success in Remote server " << offloadPointId);
+            NS_LOG_INFO("UE" << m_ueId << "Recv Init Success in Remote server " << offloadPointId);
         }
-        m_offloadPointId = offloadPointId;
 
-        Ptr<UniformRandomVariable> uv = CreateObject<UniformRandomVariable>();
-        uint16_t randomDelay = uv->GetInteger(0, 15);
-        Simulator::Schedule(MilliSeconds(randomDelay), &UeCfApplication::SendTaskRequest, this);
+        NS_LOG_INFO("Old offloadPointId " << m_offloadPointId << " New OffloadPointId "
+                                          << offloadPointId);
+
+        if (offloadPointId != m_offloadPointId)
+        {
+            m_offloadPointId = offloadPointId;
+            Ptr<UniformRandomVariable> uv = CreateObject<UniformRandomVariable>();
+            uint16_t randomDelay = uv->GetInteger(0, 15);
+            Simulator::Schedule(MilliSeconds(randomDelay),
+                                &UeCfApplication::SendTaskRequest,
+                                this,
+                                offloadPointId);
+        }
     }
 
     else if (cfRadioHeader.GetMessageType() == CfRadioHeader::OffloadCommand)
@@ -491,9 +526,19 @@ UeCfApplication::RecvFromNetwork(Ptr<Packet> p)
             E2eTrace(cfRadioHeader);
         }
     }
+
+    else if (cfRadioHeader.GetMessageType() == CfRadioHeader::RefuseInform)
+    {
+        NS_LOG_INFO("UE " << m_ueId << " recv refuse information");
+        m_offloadPointId = 0;
+        if (m_reqEventId.IsRunning())
+        {
+            Simulator::Cancel(m_reqEventId);
+        }
+    }
     else
     {
-        NS_FATAL_ERROR("Unexecpted message type");
+        NS_FATAL_ERROR("Unexecpted message type " << cfRadioHeader.GetMessageType());
     }
 }
 
