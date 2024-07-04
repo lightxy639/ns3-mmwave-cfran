@@ -51,11 +51,14 @@ CfTimeBuffer::UpdateTimeBuffer(uint64_t ueId,
                                TimeType type,
                                OffloadPosition pos)
 {
+    NS_LOG_FUNCTION(this);
+
     UeTaskIdPair_t p(ueId, taskId);
     auto it = m_timeDataBuffer.find(p);
 
     if (it == m_timeDataBuffer.end())
     {
+        // NS_LOG_INFO("Add UeTaskIdPair_t " << ueId << " " << taskId);
         m_timeDataBuffer[p] = TimeData();
     }
 
@@ -93,13 +96,22 @@ CfTimeBuffer::UpdateTimeBuffer(uint64_t ueId,
     }
 }
 
+
+bool
+CfTimeBuffer::CheckTimeData(uint64_t ueId, uint64_t taskId)
+{
+    UeTaskIdPair_t p(ueId, taskId);
+    return m_timeDataBuffer.find(p) != m_timeDataBuffer.end();
+}
+
 TimeData
 CfTimeBuffer::GetTimeData(uint64_t ueId, uint64_t taskId)
 {
     UeTaskIdPair_t p(ueId, taskId);
     auto it = m_timeDataBuffer.find(p);
 
-    NS_ASSERT(it != m_timeDataBuffer.end());
+    NS_ASSERT_MSG(it != m_timeDataBuffer.end(),
+                  "TimeData of UE " << ueId << " TASKID " << taskId << " doesn't exist");
 
     return it->second;
 }

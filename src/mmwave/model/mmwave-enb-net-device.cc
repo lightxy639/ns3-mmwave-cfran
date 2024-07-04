@@ -434,6 +434,10 @@ MmWaveEnbNetDevice::BuildAndSendReportMessage()
     cJSON_AddNumberToObject(gnbPos, "y", pos.y);
     cJSON_AddNumberToObject(gnbPos, "z", pos.z);
 
+    double denominatorPrb = 0;
+    double cellUplinkSymbols = 0;
+    double cellDownlinkSymbols = 0;
+
     auto ueMap = m_rrc->GetUeMap();
 
     NS_LOG_DEBUG("Cell " << m_cellId << " UeMap size " << ueMap.size());
@@ -461,11 +465,14 @@ MmWaveEnbNetDevice::BuildAndSendReportMessage()
         NS_LOG_DEBUG("UE " << imsi << " uplink symbols " << +macUplinkNumberOfSymbols);
         NS_LOG_DEBUG("UE " << imsi << " downlink symbols " << +macDownlinkNumberOfSymbols);
 
+        cellUplinkSymbols += macUplinkNumberOfSymbols;
+        cellDownlinkSymbols += macDownlinkNumberOfSymbols;
+
         auto phyMac = GetMac()->GetConfigurationParameters();
         // Denominator = (Periodicity of the report time window in ms*number of TTIs per ms*14)
         Time reportingWindow =
             Simulator::Now() - m_upLinkPhyCalculator->GetLastResetTime(rnti, m_cellId);
-        double denominatorPrb =
+        denominatorPrb =
             std::ceil(reportingWindow.GetNanoSeconds() / phyMac->GetSlotPeriod().GetNanoSeconds()) *
             14;
         m_upLinkPhyCalculator->ResetPhyTracesForRntiCellId(rnti, m_cellId);
@@ -518,6 +525,10 @@ MmWaveEnbNetDevice::BuildAndSendReportMessage()
 
         cJSON_AddItemToArray(ueMsgArray, ueMsg);
     }
+
+    cJSON_AddNumberToObject(msg, "cellUpPrb", cellUplinkSymbols);
+    cJSON_AddNumberToObject(msg, "cellDnPrb", cellDownlinkSymbols);
+    cJSON_AddNumberToObject(msg, "totalPrb", denominatorPrb);
 
     std::string cJsonPrint = cJSON_PrintUnformatted(msg);
     const char* reportString = cJsonPrint.c_str();
@@ -583,7 +594,7 @@ MmWaveEnbNetDevice::BuildAndSendReportMessage()
     }
 
     NS_LOG_DEBUG("MmWaveEnbNetDevice " << m_cellId << " send indication messsage");
-    
+
     Simulator::ScheduleWithContext(GetNode()->GetId(),
                                    Seconds(m_e2ReportPeriod),
                                    &MmWaveEnbNetDevice::BuildAndSendReportMessage,

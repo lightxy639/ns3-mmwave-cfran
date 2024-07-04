@@ -11,6 +11,7 @@ namespace ns3
 {
 
 typedef std::map<uint64_t, Ptr<MinMaxAvgTotalCalculator<uint64_t>>> DelayStatsMap;
+typedef std::map<uint64_t, uint64_t> QoeStatsMap;
 
 class CfE2eCalculator : public Object
 {
@@ -21,6 +22,14 @@ class CfE2eCalculator : public Object
 
     static TypeId GetTypeId();
     void DoDispose();
+
+    bool CheckQoeStat(uint64_t upWlDelay,
+                      uint64_t upWdDelay,
+                      uint64_t queueDelay,
+                      uint64_t computingDelay,
+                      uint64_t dnWdDelay,
+                      uint64_t dnWlDelay);
+    void RecordSuccessfulTask(uint64_t ueId);
 
     void UpdateDelayStats(uint64_t ueId,
                           uint64_t upWlDelay,
@@ -41,12 +50,14 @@ class CfE2eCalculator : public Object
     std::vector<double> GetDownlinkWirelessDelayStats(uint64_t ueId);
     std::vector<double> GetDownlinkWiredDelayStats(uint64_t ueId);
     std::vector<double> GetE2eDelayStats(uint64_t ueId);
+    uint64_t GetNumberOfTimeData(uint64_t ueId);
+    uint64_t GetNumberOfSuccTask(uint64_t ueId);
 
     void ResetResultForUe(uint64_t ueId);
 
     void SetUeE2eOutFileName(std::string UeE2eOutFileName);
     std::string GetUeE2eOutFileName();
-    
+
     void BackupUeE2eResults(uint64_t ueId, uint64_t assoCellId, uint64_t compCellId);
 
   private:
@@ -60,8 +71,10 @@ class CfE2eCalculator : public Object
     DelayStatsMap m_downlinkWiredDelay;
     DelayStatsMap m_downlinkWirelessDelay;
     DelayStatsMap m_e2eDelay;
+    QoeStatsMap m_qoeCount;
 
     std::string m_ueE2eOutFileName;
+    std::string m_fileSuffix;
     bool m_firstWrite;
 };
 } // namespace ns3

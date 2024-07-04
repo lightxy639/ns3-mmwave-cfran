@@ -53,6 +53,8 @@ struct TimeData
 {
     OffloadPosition m_pos;
 
+    uint64_t m_offloadPointId;
+
     uint64_t m_sendRequest;
     uint64_t m_recvResult;
 
@@ -67,6 +69,7 @@ struct TimeData
 
     TimeData()
         : m_pos(LocalGnb),
+          m_offloadPointId(0),
           m_sendRequest(0),
           m_recvResult(0),
           m_recvRequest(0),
@@ -98,12 +101,15 @@ class CfTimeBuffer : public Object
                                      uint64_t time,
                                      TimeType type,
                                      OffloadPosition pos = None);
-                                     
+
     void UpdateTimeBuffer(uint64_t ueId,
                           uint64_t taskId,
                           uint64_t time,
                           TimeType type,
                           OffloadPosition pos = None);
+    
+    bool CheckTimeData(uint64_t ueId, uint64_t taskId);
+
     TimeData GetTimeData(uint64_t ueId, uint64_t taskId);
 
     void RemoveTimeData(uint64_t ueId, uint64_t taskId);

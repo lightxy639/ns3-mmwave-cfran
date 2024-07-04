@@ -19,14 +19,19 @@ CfE2eCalculator::GetTypeId(void)
             .AddConstructor<CfE2eCalculator>()
             .AddAttribute("UeE2eOutFileName",
                           "Name of the file where the UE end-to-end data will be backed up.",
-                          StringValue("UeE2eOutBackup.csv"),
+                          StringValue("UeE2eOutBackup"),
                           MakeStringAccessor(&CfE2eCalculator::m_ueE2eOutFileName),
                           MakeStringChecker())
             .AddAttribute("FirstWrite",
                           "Balabala",
                           BooleanValue(true),
                           MakeBooleanAccessor(&CfE2eCalculator::m_firstWrite),
-                          MakeBooleanChecker());
+                          MakeBooleanChecker())
+            .AddAttribute("FileSuffix",
+                          "The suffix of files",
+                          StringValue(""),
+                          MakeStringAccessor(&CfE2eCalculator::m_fileSuffix),
+                          MakeStringChecker());
     return tid;
 }
 
@@ -108,6 +113,11 @@ CfE2eCalculator::UpdateDelayStats(uint64_t ueId,
                              upWlDelay + upWdDelay + queueDelay + computingDelay + dnWdDelay +
                                  dnWlDelay,
                              m_e2eDelay);
+
+    if (CheckQoeStat(upWlDelay, upWdDelay, queueDelay, computingDelay, dnWdDelay, dnWlDelay))
+    {
+        RecordSuccessfulTask(ueId);
+    }
 }
 
 std::vector<double>
@@ -150,6 +160,67 @@ std::vector<double>
 CfE2eCalculator::GetE2eDelayStats(uint64_t ueId)
 {
     return GetSpecificDelayStats(ueId, m_e2eDelay);
+}
+
+bool
+CfE2eCalculator::CheckQoeStat(uint64_t upWlDelay,
+                              uint64_t upWdDelay,
+                              uint64_t queueDelay,
+                              uint64_t computingDelay,
+                              uint64_t dnWdDelay,
+                              uint64_t dnWlDelay)
+{
+    // double commDelay = (double)(upWlDelay + upWdDelay + dnWdDelay + dnWlDelay) / 1e6;
+    double commDelay = (double)(dnWdDelay + dnWlDelay) / 1e6;
+    double compDelay = (double)(queueDelay + computingDelay) / 1e6;
+    // double e2eDelay =
+    //     (double)(upWlDelay + upWdDelay + queueDelay + computingDelay + dnWdDelay + dnWlDelay) / 1e6;
+    double e2eDelay =
+        (double)(queueDelay + computingDelay + dnWdDelay + dnWlDelay) / 1e6;
+
+    return (commDelay < 16.6 && compDelay < 16.6 && e2eDelay < 16.6);
+}
+
+void
+CfE2eCalculator::RecordSuccessfulTask(uint64_t ueId)
+{
+    auto it = m_qoeCount.find(ueId);
+    if (it == m_qoeCount.end())
+    {
+        m_qoeCount[ueId] = 1;
+    }
+    else
+    {
+        m_qoeCount[ueId] += 1;
+    }
+}
+
+uint64_t
+CfE2eCalculator::GetNumberOfTimeData(uint64_t ueId)
+{
+    auto it = m_e2eDelay.find(ueId);
+    if (it != m_e2eDelay.end())
+    {
+        return m_e2eDelay[ueId]->getCount();
+    }
+    else
+    {
+        return 0;
+    }
+}
+
+uint64_t
+CfE2eCalculator::GetNumberOfSuccTask(uint64_t ueId)
+{
+    auto it = m_qoeCount.find(ueId);
+    if(it != m_qoeCount.end())
+    {
+        return m_qoeCount[ueId];
+    }
+    else
+    {
+        return 0;
+    }
 }
 
 void
@@ -198,6 +269,12 @@ CfE2eCalculator::ResetResultForUe(uint64_t ueId)
     {
         m_e2eDelay.erase(e2eEntry);
     }
+
+    auto qoeEntry = m_qoeCount.find(ueId);
+    if (qoeEntry != m_qoeCount.end())
+    {
+        m_qoeCount.erase(qoeEntry);
+    }
 }
 
 void
@@ -220,9 +297,11 @@ CfE2eCalculator::BackupUeE2eResults(uint64_t ueId, uint64_t assoCellId, uint64_t
     std::ofstream ueE2eOutFile;
 
     NS_LOG_DEBUG("m_firstWrite " << m_firstWrite);
+
+    std::string fileName = m_ueE2eOutFileName + m_fileSuffix + ".csv";
     if (m_firstWrite == true)
     {
-        ueE2eOutFile.open(GetUeE2eOutFileName().c_str());
+        ueE2eOutFile.open(fileName);
         NS_LOG_DEBUG("Create " << m_ueE2eOutFileName);
         if (!ueE2eOutFile.is_open())
         {
@@ -236,26 +315,32 @@ CfE2eCalculator::BackupUeE2eResults(uint64_t ueId, uint64_t assoCellId, uint64_t
                      << "ueId,"
                      << "assoCell,"
                      << "compCell,";
+        ueE2eOutFile << "taskCount,";
+        ueE2eOutFile << "succCount,";
         ueE2eOutFile << "upWlMea,upWlStd,upWlMin,upWlMax,"
                         "upWdMea,upWdStd,upWdMin,upWdMax,"
                         "queMea,queStd,queMin,queMax,"
                         "compMea, compStd, compMin, compMax,"
                         "dnWdMea, dnWdStd, dnWdMin, dnWdMax,"
-                        "dnWlMea,dnWlStd, dnWlMin, dnWlMax";
+                        "dnWlMea,dnWlStd, dnWlMin, dnWlMax",
+                        "e2eMea,e2eStd,e2eMin,e2eMax";
 
         ueE2eOutFile << std::endl;
     }
 
     else
     {
-        ueE2eOutFile.open(GetUeE2eOutFileName().c_str(), std::ios_base::app);
+        ueE2eOutFile.open(fileName, std::ios_base::app);
         if (!ueE2eOutFile.is_open())
         {
-            NS_LOG_ERROR("Can't open file " << GetUeE2eOutFileName().c_str());
+            NS_LOG_ERROR("Can't open file " << fileName);
             return;
         }
         ueE2eOutFile << Simulator::Now().GetSeconds() << "," << ueId << "," << assoCellId << ","
                      << compCellId << ",";
+
+        ueE2eOutFile << this->GetNumberOfTimeData(ueId) << ",";
+        ueE2eOutFile << this->GetNumberOfSuccTask(ueId) << ",";
 
         std::vector<double> upWlDelay = this->GetUplinkWirelessDelayStats(ueId);
         std::vector<double> upWdDelay = this->GetUplinkWiredDelayStats(ueId);
@@ -263,9 +348,10 @@ CfE2eCalculator::BackupUeE2eResults(uint64_t ueId, uint64_t assoCellId, uint64_t
         std::vector<double> compDelay = this->GetComputingDelayStats(ueId);
         std::vector<double> dnWdDelay = this->GetDownlinkWiredDelayStats(ueId);
         std::vector<double> dnWlDelay = this->GetDownlinkWirelessDelayStats(ueId);
+        std::vector<double> e2eDelay = this->GetE2eDelayStats(ueId);
 
         std::vector<double> delayVector[] =
-            {upWlDelay, upWdDelay, queueDelay, compDelay, dnWdDelay, dnWlDelay};
+            {upWlDelay, upWdDelay, queueDelay, compDelay, dnWdDelay, dnWlDelay, e2eDelay};
 
         for (auto delay : delayVector)
         {

@@ -420,12 +420,12 @@ static ns3::GlobalValue g_rlcAmEnabled("rlcAmEnabled",
 static ns3::GlobalValue g_maxXAxis(
     "maxXAxis",
     "The maximum X coordinate for the area in which to deploy the buildings",
-    ns3::DoubleValue(250),
+    ns3::DoubleValue(2800),
     ns3::MakeDoubleChecker<double>());
 static ns3::GlobalValue g_maxYAxis(
     "maxYAxis",
     "The maximum Y coordinate for the area in which to deploy the buildings",
-    ns3::DoubleValue(250),
+    ns3::DoubleValue(2800),
     ns3::MakeDoubleChecker<double>());
 static ns3::GlobalValue g_outPath("outPath",
                                   "The path of output log files",
@@ -485,6 +485,9 @@ main(int argc, char* argv[])
 
     LogComponentEnable("LteEnbNetDevice", LOG_INFO);
     LogComponentEnable("LteEnbNetDevice", LOG_PREFIX_ALL);
+
+    LogComponentEnable("CfTimeBuffer", LOG_INFO);
+    LogComponentEnable("CfTimeBuffer", LOG_PREFIX_ALL);
     // LogComponentEnable("CfE2eCalculator", LOG_FUNCTION);
     // LogComponentEnable("CfE2eCalculator", LOG_DEBUG);
     // LogComponentEnable("CfE2eCalculator", LOG_ERROR);
@@ -494,18 +497,26 @@ main(int argc, char* argv[])
 
 
     uint16_t localPortBase = 38470;
-    uint64_t customDdluPort = 36000;
+    uint16_t customDdluPort = 36000;
+    uint16_t ues = 4;
+    uint16_t nGnbNodes = 2;
+    std::string suffix = "";
+
 
     // Command line arguments
     CommandLine cmd;
     cmd.AddValue ("e2PortBase", "The starting port allocated for the custom socket and e2Termination.", localPortBase);
     cmd.AddValue ("customDdluPort", "The port of custom ddlu", customDdluPort);
+    cmd.AddValue ("ues" , "Number of users under each base station during initialization", ues);
+    cmd.AddValue ("nGnbNodes" , "Number of Gnb ", nGnbNodes);
+    cmd.AddValue("suffix", "The suffix of the log", suffix);
     cmd.Parse(argc, argv);
 
     Config::SetDefault("ns3::MmWaveHelper::E2LocalPort", UintegerValue(localPortBase));
     Config::SetDefault("ns3::CfApplicationHelper::E2LocalPort", UintegerValue(localPortBase));
     Config::SetDefault ("ns3::MmWaveHelper::CustomServerPort", UintegerValue(customDdluPort));
     Config::SetDefault ("ns3::CfApplicationHelper::CustomServerPort", UintegerValue(customDdluPort));
+    Config::SetDefault ("ns3::CfE2eCalculator::FileSuffix", StringValue(suffix));
 
     bool harqEnabled = true;
     bool fixedTti = false;
@@ -715,11 +726,15 @@ main(int argc, char* argv[])
     Config::SetDefault("ns3::CfApplicationHelper::E2TermIp", StringValue("10.0.2.10"));
     Config::SetDefault("ns3::MmWaveHelper::EnableCustomSocket", BooleanValue(true));
     Config::SetDefault("ns3::CfApplicationHelper::EnableCustomSocket", BooleanValue(true));
+
+    Config::SetDefault("ns3::MmWavePhyMacCommon::Bandwidth", DoubleValue(100e6));
+    Config::SetDefault("ns3::MmWavePhyMacCommon::CenterFreq", DoubleValue(3.5e9));
     // Config::SetDefault("ns3::MmWaveHelper::CustemServerPort", UintegerValue(36000));
     // Config::SetDefault("ns3::CfApplicationHelper::CustemServerPort", UintegerValue(36000));
 
     Ptr<MmWaveHelper> mmwaveHelper = CreateObject<MmWaveHelper>();
-    mmwaveHelper->SetPathlossModelType("ns3::ThreeGppUmiStreetCanyonPropagationLossModel");
+    // mmwaveHelper->SetPathlossModelType("ns3::ThreeGppUmiStreetCanyonPropagationLossModel");
+    mmwaveHelper->SetPathlossModelType("ns3::ThreeGppUmaPropagationLossModel");
     mmwaveHelper->SetChannelConditionModelType("ns3::BuildingsChannelConditionModel");
 
     // set the number of antennas for both UEs and eNBs
@@ -803,9 +818,9 @@ main(int argc, char* argv[])
     NodeContainer lteEnbNodes;
     NodeContainer allEnbNodes;
 
-    uint8_t nGnbNodes = 2;
-    Ptr<UniformRandomVariable> uv = CreateObject<UniformRandomVariable>();
-    uint8_t ues = uv->GetInteger(1,4);
+    // uint8_t nGnbNodes = 2;
+    // Ptr<UniformRandomVariable> uv = CreateObject<UniformRandomVariable>();
+    // uint8_t ues = 4;
     uint8_t nUeNodes = nGnbNodes * ues;
 
     mmWaveEnbNodes.Create(nGnbNodes);
@@ -814,10 +829,10 @@ main(int argc, char* argv[])
     allEnbNodes.Add(lteEnbNodes);
     allEnbNodes.Add(mmWaveEnbNodes);
 
-    uint8_t bsHeight = 3;
-    double utHeight = 0;
-    double isd = 100;
-    double minBsUtDis = 10;
+    uint8_t bsHeight = 25;
+    double utHeight = 1.5;
+    double isd = 850;
+    double minBsUtDis = 30;
 
     Vector centerPosition = Vector(maxXAxis / 2, maxYAxis / 2, bsHeight);
     Ptr<ListPositionAllocator> enbPositionAlloc = CreateObject<ListPositionAllocator>();
@@ -1050,8 +1065,8 @@ main(int argc, char* argv[])
         // ueTaskModel.m_cfRequired = CfModel("GPU", 10);
         ueTaskModel.m_cfLoad = 0.2;
         ueTaskModel.m_deadline = 10;
-        ueTaskModel.m_uplinkSize = 500000;
-        ueTaskModel.m_downlinkSize = 500000;
+        ueTaskModel.m_uplinkSize = 500;
+        ueTaskModel.m_downlinkSize = 93750;
 
         ueInfo.m_imsi = imsi;
         ueInfo.m_ipAddr = ueAddr;
@@ -1129,8 +1144,8 @@ main(int argc, char* argv[])
 
     // Ptr<UniformRandomVariable> uv = CreateObject<UniformRandomVariable>();
     // uint8_t ues = uv->GetInteger(s1,4);
-    uint8_t nUeArrive = uv->GetInteger(1,4);
-    uint8_t nUeLeave = uv->GetInteger(1,4);
+    uint8_t nUeArrive = 5;
+    uint8_t nUeLeave = 1;
 
     cfranSystemInfo->SetUeRandomActionSequence(
         GenerateUeRandomActionSequence(nUeNodes, nUeArrive, nUeLeave, 10));

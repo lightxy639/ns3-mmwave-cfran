@@ -129,7 +129,7 @@ CfApplication::UpdateUeState(uint64_t id, UeState state)
     }
     else if (state == UeState::Over)
     {
-        NS_ASSERT(m_ueState.find(id) != m_ueState.end());
+        NS_ASSERT_MSG(m_ueState.find(id) != m_ueState.end(), "Info of UE " << id << " doesn't exist.");
         m_ueState.erase(id);
     }
     else

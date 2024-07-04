@@ -7,7 +7,6 @@
 #include <ns3/base64.h>
 #include <ns3/cJSON.h>
 #include <ns3/log.h>
-
 #include <encode_e2apv1.hpp>
 #include <thread>
 
@@ -309,6 +308,10 @@ RemoteCfApplication::BuildAndSendE2Report()
         std::vector<double> compDelay = m_cfE2eCalaulator->GetComputingDelayStats(ueId);
         std::vector<double> dnWdDelay = m_cfE2eCalaulator->GetDownlinkWiredDelayStats(ueId);
         std::vector<double> dnWlDelay = m_cfE2eCalaulator->GetDownlinkWirelessDelayStats(ueId);
+        std::vector<double> e2eDelay = m_cfE2eCalaulator->GetE2eDelayStats(ueId);
+
+        uint64_t taskCount = m_cfE2eCalaulator->GetNumberOfTimeData(ueId);
+        uint64_t succCount = m_cfE2eCalaulator->GetNumberOfSuccTask(ueId);
         m_cfE2eCalaulator->ResetResultForUe(ueId);
 
         cJSON* ueStatsMsg = cJSON_CreateObject();
@@ -325,7 +328,8 @@ RemoteCfApplication::BuildAndSendE2Report()
         cJSON_AddNumberToObject(uePos, "z", pos.z);
 
         cJSON* latencyInfo = cJSON_AddObjectToObject(ueStatsMsg, "latency");
-
+        cJSON_AddNumberToObject(latencyInfo, "taskCount", taskCount);
+        cJSON_AddNumberToObject(latencyInfo, "succCount", succCount);
         cJSON_AddNumberToObject(latencyInfo, "upWlMea", upWlDelay[0] / 1e6);
         cJSON_AddNumberToObject(latencyInfo, "upWlStd", upWlDelay[1] / 1e6);
         cJSON_AddNumberToObject(latencyInfo, "upWlMin", upWlDelay[2] / 1e6);
@@ -356,6 +360,11 @@ RemoteCfApplication::BuildAndSendE2Report()
         cJSON_AddNumberToObject(latencyInfo, "dnWlMin", dnWlDelay[2] / 1e6);
         cJSON_AddNumberToObject(latencyInfo, "dnWlMax", dnWlDelay[3] / 1e6);
 
+        cJSON_AddNumberToObject(latencyInfo, "e2eMea", e2eDelay[0] / 1e6);
+        cJSON_AddNumberToObject(latencyInfo, "e2eStd", e2eDelay[1] / 1e6);
+        cJSON_AddNumberToObject(latencyInfo, "e2eMin", e2eDelay[2] / 1e6);
+        cJSON_AddNumberToObject(latencyInfo, "e2eMax", e2eDelay[3] / 1e6);
+        
         cJSON_AddItemToArray(ueMsgArray, ueStatsMsg);
     }
 
@@ -646,7 +655,7 @@ RemoteCfApplication::RecvFromCustomSocket()
         }
         else
         {
-            NS_LOG_DEBUG("GnbCfApp " << m_serverId << " Recv Policy message: " << buffer);
+            NS_LOG_INFO("GnbCfApp " << m_serverId << " Recv Policy message: " << buffer);
             PrasePolicyMessage(json);
         }
     }

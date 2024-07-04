@@ -182,6 +182,8 @@ UeCfApplication::StartApplication()
         NS_FATAL_ERROR("Failed to bind socket");
     }
     m_remoteSocket->SetRecvCallback(MakeCallback(&UeCfApplication::HandleRead, this));
+
+    m_period = m_cfranSystemInfo->GetUeInfo(m_ueId).m_taskPeriodity;
 }
 
 void
@@ -333,8 +335,8 @@ UeCfApplication::SendTaskRequest(uint64_t offloadPointId)
                        TimeType::SendRequest,
                        offType);
 
-    NS_LOG_INFO("UE " << m_ueId << " send task request " << m_taskId << " to cell "
-                      << m_offloadPointId);
+    NS_LOG_INFO("UE " << m_ueId << " send task request " << m_taskId << " to cfApp  "
+                      << m_offloadPointId << " rlcIntercept tag " << rlcIntercept);
 
     m_taskId++;
     m_reqEventId = Simulator::Schedule(MilliSeconds(m_period),
@@ -473,7 +475,17 @@ UeCfApplication::RecvFromNetwork(Ptr<Packet> p)
 
         // PdcpTag pdcpTag;
         // p->FindFirstMatchingByteTag(pdcpTag);
+        if (sourceId != m_offloadPointId)
+        {
+            if (m_cfTimeBuffer->CheckTimeData(m_ueId, taskId))
+            {
+                m_cfTimeBuffer->RemoveTimeData(m_ueId, taskId);
+                // NS_LOG_INFO("Discard the data sent during the switching process");
+            }
+            return;
+        }
 
+        // if (timeData.m_pos == RemoteServer)
         if (m_cfranSystemInfo->GetOffladPointType(m_offloadPointId) == CfranSystemInfo::Remote)
         {
             if (m_downlinkResultManager->IsNewFile(sourceId, taskId))
@@ -508,21 +520,23 @@ UeCfApplication::RecvFromNetwork(Ptr<Packet> p)
         {
             if (m_cfranSystemInfo->GetOffladPointType(m_offloadPointId) == CfranSystemInfo::Gnb)
             {
-                // NS_LOG_INFO("UE " << m_ueId << " Recv task result " << cfRadioHeader.GetTaskId()
-                //                   << " from gnb " << cfRadioHeader.GetGnbId());
+                NS_LOG_INFO("UE " << m_ueId << " Recv task result " << cfRadioHeader.GetTaskId()
+                                  << " from gnb " << cfRadioHeader.GetGnbId());
             }
             else if (m_cfranSystemInfo->GetOffladPointType(m_offloadPointId) ==
                      CfranSystemInfo::Remote)
             {
-                // NS_LOG_INFO("UE " << m_ueId << " Recv task result " << cfRadioHeader.GetTaskId()
-                //                   << " from remote server " << cfRadioHeader.GetGnbId());
+                NS_LOG_INFO("UE " << m_ueId << " Recv task result " << cfRadioHeader.GetTaskId()
+                                  << " from remote server " << cfRadioHeader.GetGnbId());
             }
+
             m_recvResultTrace(cfRadioHeader.GetUeId(),
                               cfRadioHeader.GetTaskId(),
                               Simulator::Now().GetTimeStep(),
                               RecvResult,
                               None);
-            // m_rxResultTrace(m_ueId, cfRadioHeader.GetTaskId(), Simulator::Now().GetTimeStep());
+            // m_rxResultTrace(m_ueId, cfRadioHeader.GetTaskId(),
+            // Simulator::Now().GetTimeStep());
             E2eTrace(cfRadioHeader);
         }
     }
@@ -586,56 +600,65 @@ UeCfApplication::E2eTrace(CfRadioHeader cfRHd)
 
     TimeData timeData = m_cfTimeBuffer->GetTimeData(ueId, taskId);
 
+    uint64_t upWlDelay = 0;
+    uint64_t upWdDelay = 0;
+    uint64_t queueDelay = 0;
+    uint64_t processDelay = 0;
+    uint64_t dnWdDelay = 0;
+    uint64_t dnWlDelay = 0;
+
     if (timeData.m_pos == LocalGnb)
     {
         // NS_LOG_DEBUG("UE " << ueId << " LocalGnb");
-        uint64_t upWlDelay = timeData.m_recvRequest - timeData.m_sendRequest;
-        uint64_t queueDelay = timeData.m_processTask - timeData.m_addTask;
-        uint64_t processDelay = timeData.m_sendResult - timeData.m_processTask;
-        uint64_t dnWlDelay = timeData.m_recvResult - timeData.m_sendResult;
-
-        m_cfE2eCalculator
-            ->UpdateDelayStats(ueId, upWlDelay, 0, queueDelay, processDelay, 0, dnWlDelay);
+        upWlDelay = timeData.m_recvRequest - timeData.m_sendRequest;
+        queueDelay = timeData.m_processTask - timeData.m_addTask;
+        processDelay = timeData.m_sendResult - timeData.m_processTask;
+        dnWlDelay = timeData.m_recvResult - timeData.m_sendResult;
     }
 
     else if (timeData.m_pos == OtherGnb)
     {
         // NS_LOG_DEBUG("UE " << ueId << " OtherGnb");
-        uint64_t upWlDelay = timeData.m_recvRequestToBeForwarded - timeData.m_sendRequest;
-        uint64_t upWdDelay = timeData.m_recvRequest - timeData.m_recvRequestToBeForwarded;
-        uint64_t queueDelay = timeData.m_processTask - timeData.m_addTask;
-        uint64_t processDelay = timeData.m_sendResult - timeData.m_processTask;
-        uint64_t dnWdDelay = timeData.m_recvForwardedResult - timeData.m_sendResult;
-        uint64_t dnWlDelay = timeData.m_recvResult - timeData.m_recvForwardedResult;
-
-        m_cfE2eCalculator->UpdateDelayStats(ueId,
-                                            upWlDelay,
-                                            upWdDelay,
-                                            queueDelay,
-                                            processDelay,
-                                            dnWdDelay,
-                                            dnWlDelay);
+        upWlDelay = timeData.m_recvRequestToBeForwarded - timeData.m_sendRequest;
+        upWdDelay = timeData.m_recvRequest - timeData.m_recvRequestToBeForwarded;
+        queueDelay = timeData.m_processTask - timeData.m_addTask;
+        processDelay = timeData.m_sendResult - timeData.m_processTask;
+        dnWdDelay = timeData.m_recvForwardedResult - timeData.m_sendResult;
+        dnWlDelay = timeData.m_recvResult - timeData.m_recvForwardedResult;
     }
 
     else if (timeData.m_pos == RemoteServer)
     {
         // NS_LOG_DEBUG("UE " << ueId << " RemoteServer");
-        uint64_t upWdDelay = m_cfranSystemInfo->GetWiredLatencyInfo().m_s1ULatency +
-                             m_cfranSystemInfo->GetWiredLatencyInfo().m_x2Latency +
-                             m_cfranSystemInfo->GetRemoteInfo(offloadId).m_hostGwLatency * 1e6;
+        upWdDelay = m_cfranSystemInfo->GetWiredLatencyInfo().m_s1ULatency +
+                    m_cfranSystemInfo->GetWiredLatencyInfo().m_x2Latency +
+                    m_cfranSystemInfo->GetRemoteInfo(offloadId).m_hostGwLatency * 1e6;
         // NS_LOG_DEBUG("Remote server " << offloadId << " upWd")
-        uint64_t upWlDelay = timeData.m_recvRequest - timeData.m_sendRequest - upWdDelay;
-        uint64_t queueDelay = timeData.m_processTask - timeData.m_addTask;
-        uint64_t processDelay = timeData.m_sendResult - timeData.m_processTask;
+        upWlDelay = timeData.m_recvRequest - timeData.m_sendRequest - upWdDelay;
+        queueDelay = timeData.m_processTask - timeData.m_addTask;
+        processDelay = timeData.m_sendResult - timeData.m_processTask;
 
         // uint64_t dnWdDelay = m_cfranSystemInfo->GetWiredLatencyInfo().m_s1ULatency +
         //                      m_cfranSystemInfo->GetWiredLatencyInfo().m_x2Latency +
         //                      m_cfranSystemInfo->GetRemoteInfo(offloadId).m_hostGwLatency * 1e6;
         // uint64_t dnWlDelay = timeData.m_recvResult - timeData.m_sendResult - dnWdDelay;
-        uint64_t dnWlDelay = timeData.m_recvResult - timeData.m_recvForwardedResult;
+        dnWlDelay = timeData.m_recvResult - timeData.m_recvForwardedResult;
 
-        uint64_t dnWdDelay = timeData.m_recvResult - timeData.m_sendResult - dnWlDelay;
+        dnWdDelay = timeData.m_recvResult - timeData.m_sendResult - dnWlDelay;
 
+        // NS_LOG_DEBUG("UE " << ueId << " TASK " << taskId << " dnWlDelay " << dnWlDelay);
+    }
+
+    // issue caused by handover
+    if (dnWdDelay / 1e6 > 1000)
+    {
+        NS_LOG_UNCOND("*********\n"
+                      << "UE " << ueId << " TASK ID " << taskId << " OffloadId of TASK "
+                      << offloadId << " UE OffloadId " << m_offloadPointId);
+        NS_LOG_UNCOND("OffloadType " << timeData.m_pos << "\n******************\n");
+    }
+    else
+    {
         m_cfE2eCalculator->UpdateDelayStats(ueId,
                                             upWlDelay,
                                             upWdDelay,
@@ -643,7 +666,6 @@ UeCfApplication::E2eTrace(CfRadioHeader cfRHd)
                                             processDelay,
                                             dnWdDelay,
                                             dnWlDelay);
-        // NS_LOG_DEBUG("UE " << ueId << " TASK " << taskId << " dnWlDelay " << dnWlDelay);
     }
 
     m_cfTimeBuffer->RemoveTimeData(ueId, taskId);
