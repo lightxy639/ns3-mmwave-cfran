@@ -13,6 +13,7 @@
 namespace ns3
 {
 class CfUnit;
+class CfranSystemInfo;
 
 class CfApplication : public Application
 {

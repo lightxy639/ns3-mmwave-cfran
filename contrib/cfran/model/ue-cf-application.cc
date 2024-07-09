@@ -587,6 +587,12 @@ UeCfApplication::SetMcUeNetDevice(Ptr<mmwave::McUeNetDevice> mcUeNetDev)
     m_mcUeNetDev = mcUeNetDev;
 }
 
+Ptr<mmwave::McUeNetDevice>
+UeCfApplication::GetMcUeNetDevice()
+{
+    return m_mcUeNetDev;
+}
+
 void
 UeCfApplication::E2eTrace(CfRadioHeader cfRHd)
 {

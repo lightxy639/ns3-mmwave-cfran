@@ -5,12 +5,17 @@
 #include <ns3/cf-model.h>
 #include <ns3/mc-ue-net-device.h>
 #include <ns3/mmwave-enb-net-device.h>
+#include <ns3/cf-application.h>
+#include <ns3/ue-cf-application.h>
 
 #include <map>
 #include <queue>
 
 namespace ns3
 {
+
+class CfApplication;
+class UeCfApplication;
 /**
  * \ingroup cfran
  *
@@ -39,7 +44,9 @@ class CfranSystemInfo : public Object
         uint16_t m_port;
         float m_taskPeriodity; // ms
         Ptr<mmwave::McUeNetDevice> m_mcUeNetDevice;
+        Ptr<UeCfApplication> m_ueCfApp;
         UeTaskModel m_taskModel;
+
     };
 
     struct CellInfo
@@ -48,6 +55,7 @@ class CfranSystemInfo : public Object
         Ptr<mmwave::MmWaveEnbNetDevice> m_mmwaveEnbNetDevice;
         Ipv4Address m_ipAddrToUe;
         uint16_t m_portToUe;
+        Ptr<CfApplication> m_gnbCfApp;
     };
 
     struct RemoteInfo
@@ -56,6 +64,7 @@ class CfranSystemInfo : public Object
         Ipv4Address m_ipAddr;
         uint16_t m_port;
         float m_hostGwLatency; // ms
+        Ptr<CfApplication> m_remoteCfApp;
     };
 
     struct WiredLatencyInfo

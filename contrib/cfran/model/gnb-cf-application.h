@@ -95,6 +95,8 @@ class GnbCfApplication : public CfApplication
 
     void SetMmWaveEnbNetDevice(Ptr<mmwave::MmWaveEnbNetDevice> mmwaveEnbNetDev);
 
+    Ptr<mmwave::MmWaveEnbNetDevice> GetMmWaveEnbNetDevice();
+    
     virtual void SetClientFd(int clientFd) override;
 
     void InitX2Info();

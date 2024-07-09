@@ -105,6 +105,12 @@ GnbCfApplication::SetMmWaveEnbNetDevice(Ptr<mmwave::MmWaveEnbNetDevice> mmwaveEn
     m_mmWaveEnbNetDevice = mmwaveEnbNetDev;
 }
 
+Ptr<mmwave::MmWaveEnbNetDevice>
+GnbCfApplication::GetMmWaveEnbNetDevice()
+{
+    return m_mmWaveEnbNetDevice;
+}
+
 void
 GnbCfApplication::SetClientFd(int clientFd)
 {

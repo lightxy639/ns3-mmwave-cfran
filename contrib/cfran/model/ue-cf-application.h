@@ -14,6 +14,7 @@
 
 namespace ns3
 {
+class CfranSystemInfo;
 /**
  * \brief The implementation of applications at UE which offload tasks to gNB.
  */
@@ -33,6 +34,8 @@ class UeCfApplication : public Application
     void SetUeId(uint64_t ueId);
 
     void SetMcUeNetDevice(Ptr<mmwave::McUeNetDevice> mcUeNetDev);
+
+    Ptr<mmwave::McUeNetDevice> GetMcUeNetDevice();
 
     virtual void SendInitRequest();
 

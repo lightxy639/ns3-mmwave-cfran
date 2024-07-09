@@ -495,35 +495,33 @@ main(int argc, char* argv[])
 
     LogComponentEnable("McTwoEnbs", LOG_DEBUG);
 
-
     uint16_t localPortBase = 38470;
     uint16_t customDdluPort = 36000;
     uint16_t ues = 4;
     uint16_t nGnbNodes = 2;
     std::string suffix = "";
 
-
     // Command line arguments
     CommandLine cmd;
-    cmd.AddValue ("e2PortBase", "The starting port allocated for the custom socket and e2Termination.", localPortBase);
-    cmd.AddValue ("customDdluPort", "The port of custom ddlu", customDdluPort);
-    cmd.AddValue ("ues" , "Number of users under each base station during initialization", ues);
-    cmd.AddValue ("nGnbNodes" , "Number of Gnb ", nGnbNodes);
+    cmd.AddValue("e2PortBase",
+                 "The starting port allocated for the custom socket and e2Termination.",
+                 localPortBase);
+    cmd.AddValue("customDdluPort", "The port of custom ddlu", customDdluPort);
+    cmd.AddValue("ues", "Number of users under each base station during initialization", ues);
+    cmd.AddValue("nGnbNodes", "Number of Gnb ", nGnbNodes);
     cmd.AddValue("suffix", "The suffix of the log", suffix);
     cmd.Parse(argc, argv);
 
     Config::SetDefault("ns3::MmWaveHelper::E2LocalPort", UintegerValue(localPortBase));
     Config::SetDefault("ns3::CfApplicationHelper::E2LocalPort", UintegerValue(localPortBase));
-    Config::SetDefault ("ns3::MmWaveHelper::CustomServerPort", UintegerValue(customDdluPort));
-    Config::SetDefault ("ns3::CfApplicationHelper::CustomServerPort", UintegerValue(customDdluPort));
-    Config::SetDefault ("ns3::CfE2eCalculator::FileSuffix", StringValue(suffix));
+    Config::SetDefault("ns3::MmWaveHelper::CustomServerPort", UintegerValue(customDdluPort));
+    Config::SetDefault("ns3::CfApplicationHelper::CustomServerPort", UintegerValue(customDdluPort));
+    Config::SetDefault("ns3::CfE2eCalculator::FileSuffix", StringValue(suffix));
 
     bool harqEnabled = true;
     bool fixedTti = false;
 
     std::list<Box> m_previousBlocks;
-
-
 
     UintegerValue uintegerValue;
     BooleanValue booleanValue;
@@ -636,7 +634,8 @@ main(int argc, char* argv[])
     Config::SetDefault("ns3::MmWaveFlexTtiMaxWeightMacScheduler::SymPerSlot", UintegerValue(6));
     Config::SetDefault("ns3::MmWavePhyMacCommon::TbDecodeLatency", UintegerValue(200.0));
     Config::SetDefault("ns3::MmWavePhyMacCommon::NumHarqProcess", UintegerValue(100));
-    // Config::SetDefault("ns3::ThreeGppChannelModel::UpdatePeriod", TimeValue(MilliSeconds(100.0)));
+    // Config::SetDefault("ns3::ThreeGppChannelModel::UpdatePeriod",
+    // TimeValue(MilliSeconds(100.0)));
     Config::SetDefault("ns3::ThreeGppChannelModel::UpdatePeriod", TimeValue(MilliSeconds(0)));
     Config::SetDefault("ns3::LteEnbRrc::SystemInformationPeriodicity",
                        TimeValue(MilliSeconds(5.0)));
@@ -983,21 +982,21 @@ main(int argc, char* argv[])
 
     Ptr<CfranSystemInfo> cfranSystemInfo = CreateObject<CfranSystemInfo>();
 
-    for (uint32_t n = 0; n < mmWaveEnbDevs.GetN(); n++)
-    {
-        Ptr<NetDevice> tempMmNetDev = mmWaveEnbDevs.Get(n);
-        Ptr<MmWaveEnbNetDevice> mmNetDev = DynamicCast<MmWaveEnbNetDevice>(tempMmNetDev);
-        Ipv4Address gnbAddr = enbIpIfaces.GetAddress(n);
+    // for (uint32_t n = 0; n < mmWaveEnbDevs.GetN(); n++)
+    // {
+    //     Ptr<NetDevice> tempMmNetDev = mmWaveEnbDevs.Get(n);
+    //     Ptr<MmWaveEnbNetDevice> mmNetDev = DynamicCast<MmWaveEnbNetDevice>(tempMmNetDev);
+    //     Ipv4Address gnbAddr = enbIpIfaces.GetAddress(n);
 
-        CfranSystemInfo::CellInfo cellInfo;
-        cellInfo.m_id = mmNetDev->GetCellId();
-        cellInfo.m_mmwaveEnbNetDevice = mmNetDev;
-        cellInfo.m_ipAddrToUe = gnbAddr;
-        cellInfo.m_portToUe = 2000;
+    //     CfranSystemInfo::CellInfo cellInfo;
+    //     cellInfo.m_id = mmNetDev->GetCellId();
+    //     cellInfo.m_mmwaveEnbNetDevice = mmNetDev;
+    //     cellInfo.m_ipAddrToUe = gnbAddr;
+    //     cellInfo.m_portToUe = 2000;
 
-        cfranSystemInfo->AddCellInfo(cellInfo.m_id, cellInfo);
-        NS_LOG_DEBUG("Add CellInfo " << mmNetDev->GetCellId());
-    }
+    //     cfranSystemInfo->AddCellInfo(cellInfo.m_id, cellInfo);
+    //     NS_LOG_DEBUG("Add CellInfo " << mmNetDev->GetCellId());
+    // }
 
     // interface 0 is localhost, 1 is the p2p device
     // Ipv4Address remoteHostAddr = internetIpIfaces.GetAddress(1);
@@ -1053,30 +1052,30 @@ main(int argc, char* argv[])
     cfRanHelper->InstallCfUnit(mmWaveEnbNodes, cfUnitObj);
     cfRanHelper->InstallCfUnit(remoteHostContainer, cfUnitObj);
 
-    for (uint32_t u = 0; u < mcUeDevs.GetN(); ++u)
-    {
-        Ptr<McUeNetDevice> mcUeDev = DynamicCast<McUeNetDevice>(mcUeDevs.Get(u));
-        uint64_t imsi = mcUeDev->GetImsi();
+    // for (uint32_t u = 0; u < mcUeDevs.GetN(); ++u)
+    // {
+    //     Ptr<McUeNetDevice> mcUeDev = DynamicCast<McUeNetDevice>(mcUeDevs.Get(u));
+    //     uint64_t imsi = mcUeDev->GetImsi();
 
-        Ipv4Address ueAddr = ueIpIface.GetAddress(u);
+    //     Ipv4Address ueAddr = ueIpIface.GetAddress(u);
 
-        CfranSystemInfo::UeInfo ueInfo;
-        UeTaskModel ueTaskModel;
-        // ueTaskModel.m_cfRequired = CfModel("GPU", 10);
-        ueTaskModel.m_cfLoad = 0.2;
-        ueTaskModel.m_deadline = 10;
-        ueTaskModel.m_uplinkSize = 500;
-        ueTaskModel.m_downlinkSize = 93750;
+    //     CfranSystemInfo::UeInfo ueInfo;
+    //     UeTaskModel ueTaskModel;
+    //     // ueTaskModel.m_cfRequired = CfModel("GPU", 10);
+    //     ueTaskModel.m_cfLoad = 0.2;
+    //     ueTaskModel.m_deadline = 10;
+    //     ueTaskModel.m_uplinkSize = 500;
+    //     ueTaskModel.m_downlinkSize = 93750;
 
-        ueInfo.m_imsi = imsi;
-        ueInfo.m_ipAddr = ueAddr;
-        ueInfo.m_port = 2345;
-        ueInfo.m_taskModel = ueTaskModel;
-        ueInfo.m_taskPeriodity = 16;
-        ueInfo.m_mcUeNetDevice = mcUeDev;
+    //     ueInfo.m_imsi = imsi;
+    //     ueInfo.m_ipAddr = ueAddr;
+    //     ueInfo.m_port = 2345;
+    //     ueInfo.m_taskModel = ueTaskModel;
+    //     ueInfo.m_taskPeriodity = 16;
+    //     ueInfo.m_mcUeNetDevice = mcUeDev;
 
-        cfranSystemInfo->AddUeInfo(imsi, ueInfo);
-    }
+    //     cfranSystemInfo->AddUeInfo(imsi, ueInfo);
+    // }
 
     CfranSystemInfo::WiredLatencyInfo wiredLatencyInfo;
     wiredLatencyInfo.m_s1ULatency = s1ULatency * 1e3; // ns
@@ -1115,6 +1114,53 @@ main(int argc, char* argv[])
     UeCfApplicationHelper ueCfAppHelper;
     clientApps.Add(ueCfAppHelper.Install(ueNodes));
 
+    for (uint32_t n = 0; n < clientApps.GetN(); n++)
+    {
+        CfranSystemInfo::UeInfo ueInfo;
+
+        Ptr<UeCfApplication> ueCfApp = DynamicCast<UeCfApplication>(clientApps.Get(n));
+
+        Ptr<McUeNetDevice> mcUeDev = ueCfApp->GetMcUeNetDevice();
+
+        uint64_t imsi = mcUeDev->GetImsi();
+
+        Ipv4Address ueAddr = ueIpIface.GetAddress(n);
+
+        UeTaskModel ueTaskModel;
+        // ueTaskModel.m_cfRequired = CfModel("GPU", 10);
+        ueTaskModel.m_cfLoad = 0.2;
+        ueTaskModel.m_deadline = 10;
+        ueTaskModel.m_uplinkSize = 500;
+        ueTaskModel.m_downlinkSize = 93750;
+
+        ueInfo.m_imsi = imsi;
+        ueInfo.m_ipAddr = ueAddr;
+        ueInfo.m_port = 2345;
+        ueInfo.m_taskModel = ueTaskModel;
+        ueInfo.m_taskPeriodity = 16;
+        ueInfo.m_mcUeNetDevice = mcUeDev;
+
+        cfranSystemInfo->AddUeInfo(imsi, ueInfo);
+    }
+
+    for (uint32_t n = 0; n < gnbCfApps.GetN(); n++)
+    {
+        CfranSystemInfo::CellInfo cellInfo;
+
+        Ptr<GnbCfApplication> gnbCfApp = DynamicCast<GnbCfApplication>(gnbCfApps.Get(n));
+
+        Ptr<MmWaveEnbNetDevice> mmNetDev = gnbCfApp->GetMmWaveEnbNetDevice();
+        Ipv4Address gnbAddr = enbIpIfaces.GetAddress(n);
+
+        cellInfo.m_id = mmNetDev->GetCellId();
+        cellInfo.m_mmwaveEnbNetDevice = mmNetDev;
+        cellInfo.m_ipAddrToUe = gnbAddr;
+        cellInfo.m_portToUe = 2000;
+
+        cfranSystemInfo->AddCellInfo(cellInfo.m_id, cellInfo);
+        NS_LOG_DEBUG("Add CellInfo " << mmNetDev->GetCellId());
+    }
+
     for (uint32_t n = 0; n < remoteApps.GetN(); n++)
     {
         Ptr<RemoteCfApplication> remoteCfApp = DynamicCast<RemoteCfApplication>(remoteApps.Get(n));
@@ -1123,6 +1169,7 @@ main(int argc, char* argv[])
         remoteInfo.m_ipAddr = remoteIpIfaces.GetAddress(n);
         remoteInfo.m_port = ulPort;
         remoteInfo.m_hostGwLatency = n < edgeContainer.GetN() ? edgeLatency : centralLatency;
+        remoteInfo.m_remoteCfApp = DynamicCast<CfApplication>(remoteCfApp);
 
         cfranSystemInfo->AddRemoteInfo(remoteCfApp->GetServerId(), remoteInfo);
 
