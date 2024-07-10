@@ -48,6 +48,7 @@ class CfApplication : public Application
     void UpdateUeState(uint64_t id, UeState state);
 
     virtual void RecvFromUe(Ptr<Socket> socket) = 0;
+    virtual void ProcessPacketFromUe(Ptr<Packet> p) = 0;
     virtual void SendPacketToUe(uint64_t ueId, Ptr<Packet> packet) = 0;
 
     virtual void RecvTaskResult(uint64_t id, UeTaskModel ueTask) = 0;
@@ -62,6 +63,8 @@ class CfApplication : public Application
     int m_clientFd;
     double m_e2ReportPeriod;
     uint64_t m_reportTimeStamp;
+
+    bool m_enableIdealProtocol;
 
     std::map<uint64_t, UeState> m_ueState;
 

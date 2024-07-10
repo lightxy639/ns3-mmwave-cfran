@@ -108,6 +108,8 @@ class GnbCfApplication : public CfApplication
     void SendPacketToUe(uint64_t ueId, Ptr<Packet> packet) override;
 
     void RecvFromUe(Ptr<Socket> socket) override;
+
+    void ProcessPacketFromUe(Ptr<Packet> p) override;
     // virtual
 
     // void LoadTaskToCfUnit(uint64_t id, UeTaskModel ueTask) override;

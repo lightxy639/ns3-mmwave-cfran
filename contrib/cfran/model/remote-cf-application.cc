@@ -7,6 +7,7 @@
 #include <ns3/base64.h>
 #include <ns3/cJSON.h>
 #include <ns3/log.h>
+
 #include <encode_e2apv1.hpp>
 #include <thread>
 
@@ -101,6 +102,77 @@ RemoteCfApplication::SendRefuseInformationToUe(uint64_t ueId)
 }
 
 void
+RemoteCfApplication::ProcessPacketFromUe(Ptr<Packet> packet)
+{
+    CfRadioHeader cfRadioHeader;
+    packet->RemoveHeader(cfRadioHeader);
+
+    if (cfRadioHeader.GetMessageType() == CfRadioHeader::InitRequest)
+    {
+        NS_LOG_INFO("Remote server " << "Recv init request of UE " << cfRadioHeader.GetUeId());
+
+        auto ueId = cfRadioHeader.GetUeId();
+        UpdateUeState(ueId, UeState::Initializing);
+
+        m_cfUnit->AddNewUe(cfRadioHeader.GetUeId());
+
+        Ptr<Packet> resultPacket = Create<Packet>(500);
+        CfRadioHeader echoHeader;
+        echoHeader.SetMessageType(CfRadioHeader::InitSuccess);
+        echoHeader.SetGnbId(m_serverId);
+        resultPacket->AddHeader(echoHeader);
+        SendPacketToUe(ueId, resultPacket);
+
+        UpdateUeState(ueId, UeState::Serving);
+        NS_LOG_INFO("RemoteServer " << m_serverId << " send Init Success to UE " << ueId);
+    }
+
+    else if (cfRadioHeader.GetMessageType() == CfRadioHeader::TaskRequest)
+    {
+        auto ueId = cfRadioHeader.GetUeId();
+        auto taskId = cfRadioHeader.GetTaskId();
+        auto offloadServerId = cfRadioHeader.GetGnbId();
+
+        NS_ASSERT(offloadServerId == m_serverId);
+
+        MultiPacketHeader mpHeader;
+        bool receiveCompleted = false;
+
+        packet->RemoveHeader(mpHeader);
+        receiveCompleted = m_multiPacketManager->AddAndCheckPacket(ueId,
+                                                                   taskId,
+                                                                   mpHeader.GetPacketId(),
+                                                                   mpHeader.GetTotalPacketNum());
+        if (receiveCompleted)
+        {
+            // NS_LOG_INFO("Remote server " << m_serverId << " Recv task request "
+            //                              << cfRadioHeader.GetTaskId() << " of UE "
+            //                              << cfRadioHeader.GetUeId());
+            m_recvRequestTrace(ueId, taskId, Simulator::Now().GetTimeStep(), RecvRequest, None);
+            m_addTaskTrace(ueId, taskId, Simulator::Now().GetTimeStep(), AddTask, None);
+
+            UeTaskModel ueTask = m_cfranSystemInfo->GetUeInfo(ueId).m_taskModel;
+            ueTask.m_taskId = cfRadioHeader.GetTaskId();
+            m_cfUnit->LoadUeTask(ueId, ueTask);
+        }
+    }
+    else if (cfRadioHeader.GetMessageType() == CfRadioHeader::TerminateCommand)
+    {
+        uint64_t ueId = cfRadioHeader.GetUeId();
+        UpdateUeState(ueId, UeState::Over);
+        m_cfUnit->DeleteUe(ueId);
+        NS_LOG_INFO("RemoteServer " << m_serverId << " Recv command of UE " << ueId
+                                    << " to terminate the service");
+
+        SendUeEventMessage(ueId, CfranSystemInfo::UeRandomAction::Leave);
+    }
+    else
+    {
+        NS_FATAL_ERROR("Unkonwn CfRadioHeader");
+    }
+}
+
+void
 RemoteCfApplication::RecvFromUe(Ptr<Socket> socket)
 {
     NS_LOG_FUNCTION(this);
@@ -111,75 +183,7 @@ RemoteCfApplication::RecvFromUe(Ptr<Socket> socket)
     while (packet = socket->RecvFrom(from))
     {
         socket->GetSockName(localAddress);
-
-        CfRadioHeader cfRadioHeader;
-        packet->RemoveHeader(cfRadioHeader);
-
-        if (cfRadioHeader.GetMessageType() == CfRadioHeader::InitRequest)
-        {
-            NS_LOG_INFO("Remote server "
-                        << "Recv init request of UE " << cfRadioHeader.GetUeId());
-
-            auto ueId = cfRadioHeader.GetUeId();
-            UpdateUeState(ueId, UeState::Initializing);
-
-            m_cfUnit->AddNewUe(cfRadioHeader.GetUeId());
-
-            Ptr<Packet> resultPacket = Create<Packet>(500);
-            CfRadioHeader echoHeader;
-            echoHeader.SetMessageType(CfRadioHeader::InitSuccess);
-            echoHeader.SetGnbId(m_serverId);
-            resultPacket->AddHeader(echoHeader);
-            SendPacketToUe(ueId, resultPacket);
-
-            UpdateUeState(ueId, UeState::Serving);
-            NS_LOG_INFO("RemoteServer " << m_serverId << " send Init Success to UE " << ueId);
-        }
-
-        else if (cfRadioHeader.GetMessageType() == CfRadioHeader::TaskRequest)
-        {
-            auto ueId = cfRadioHeader.GetUeId();
-            auto taskId = cfRadioHeader.GetTaskId();
-            auto offloadServerId = cfRadioHeader.GetGnbId();
-
-            NS_ASSERT(offloadServerId == m_serverId);
-
-            MultiPacketHeader mpHeader;
-            bool receiveCompleted = false;
-
-            packet->RemoveHeader(mpHeader);
-            receiveCompleted =
-                m_multiPacketManager->AddAndCheckPacket(ueId,
-                                                        taskId,
-                                                        mpHeader.GetPacketId(),
-                                                        mpHeader.GetTotalPacketNum());
-            if (receiveCompleted)
-            {
-                // NS_LOG_INFO("Remote server " << m_serverId << " Recv task request "
-                //                              << cfRadioHeader.GetTaskId() << " of UE "
-                //                              << cfRadioHeader.GetUeId());
-                m_recvRequestTrace(ueId, taskId, Simulator::Now().GetTimeStep(), RecvRequest, None);
-                m_addTaskTrace(ueId, taskId, Simulator::Now().GetTimeStep(), AddTask, None);
-
-                UeTaskModel ueTask = m_cfranSystemInfo->GetUeInfo(ueId).m_taskModel;
-                ueTask.m_taskId = cfRadioHeader.GetTaskId();
-                m_cfUnit->LoadUeTask(ueId, ueTask);
-            }
-        }
-        else if (cfRadioHeader.GetMessageType() == CfRadioHeader::TerminateCommand)
-        {
-            uint64_t ueId = cfRadioHeader.GetUeId();
-            UpdateUeState(ueId, UeState::Over);
-            m_cfUnit->DeleteUe(ueId);
-            NS_LOG_INFO("RemoteServer " << m_serverId << " Recv command of UE " << ueId
-                                        << " to terminate the service");
-
-            SendUeEventMessage(ueId, CfranSystemInfo::UeRandomAction::Leave);
-        }
-        else
-        {
-            NS_FATAL_ERROR("Unkonwn CfRadioHeader");
-        }
+        ProcessPacketFromUe(packet);
     }
 }
 
@@ -364,7 +368,7 @@ RemoteCfApplication::BuildAndSendE2Report()
         cJSON_AddNumberToObject(latencyInfo, "e2eStd", e2eDelay[1] / 1e6);
         cJSON_AddNumberToObject(latencyInfo, "e2eMin", e2eDelay[2] / 1e6);
         cJSON_AddNumberToObject(latencyInfo, "e2eMax", e2eDelay[3] / 1e6);
-        
+
         cJSON_AddItemToArray(ueMsgArray, ueStatsMsg);
     }
 

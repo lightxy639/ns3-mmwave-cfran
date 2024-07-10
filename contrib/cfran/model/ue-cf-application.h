@@ -79,6 +79,8 @@ class UeCfApplication : public Application
     // Ipv4Address m_offloadAddress;
 
     // uint16_t m_offloadPort;
+    bool m_enableIdealProtocol;
+    
     bool m_active;
 
     bool m_randomArrivalDeparture;

@@ -22,12 +22,12 @@ UeCfApplicationHelper::~UeCfApplicationHelper()
 TypeId
 UeCfApplicationHelper::GetTypeId()
 {
-    static TypeId tid = TypeId("ns3::UeCfApplicationHelper")
-                            .SetParent<Object>()
-                            .AddConstructor<UeCfApplicationHelper>();
+    static TypeId tid =
+        TypeId("ns3::UeCfApplicationHelper")
+            .SetParent<Object>()
+            .AddConstructor<UeCfApplicationHelper>();
     return tid;
 }
-
 
 void
 CfNonIpPacketRx(Ptr<NetDevice> netDev, Ptr<Packet> packet)
@@ -44,10 +44,8 @@ CfNonIpPacketRx(Ptr<NetDevice> netDev, Ptr<Packet> packet)
             app->RecvFromNetwork(packet);
             break;
         }
-
     }
 }
-
 
 ApplicationContainer
 UeCfApplicationHelper::Install(NodeContainer c)
@@ -71,7 +69,7 @@ UeCfApplicationHelper::Install(NodeContainer c)
 
             Ptr<mmwave::McUeNetDevice> mcUeNetDev = DynamicCast<mmwave::McUeNetDevice>(netDev);
 
-            if(mcUeNetDev)
+            if (mcUeNetDev)
             {
                 DynamicCast<UeCfApplication>(app)->SetMcUeNetDevice(mcUeNetDev);
             }
@@ -83,7 +81,5 @@ UeCfApplicationHelper::Install(NodeContainer c)
 
     return apps;
 }
-
-
 
 } // namespace ns3

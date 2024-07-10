@@ -415,7 +415,7 @@ static ns3::GlobalValue g_mobileUeSpeed("mobileSpeed",
                                         ns3::MakeDoubleChecker<double>());
 static ns3::GlobalValue g_rlcAmEnabled("rlcAmEnabled",
                                        "If true, use RLC AM, else use RLC UM",
-                                       ns3::BooleanValue(true),
+                                       ns3::BooleanValue(false),
                                        ns3::MakeBooleanChecker());
 static ns3::GlobalValue g_maxXAxis(
     "maxXAxis",
@@ -458,9 +458,8 @@ main(int argc, char* argv[])
 {
     // LogComponentEnable("McTwoEnbs", LOG_DEBUG);
     LogComponentEnable("GnbCfApplication", LOG_INFO);
-    LogComponentEnable("GnbCfApplication", LOG_DEBUG);
-    // LogComponentEnable("GnbCfApplication", LOG_FUNCTION);
     LogComponentEnable("GnbCfApplication", LOG_PREFIX_ALL);
+
 
     // LogComponentEnable("UeCfApplication", LOG_DEBUG);
     // LogComponentEnable("UeCfApplication", LOG_FUNCTION);
@@ -500,6 +499,7 @@ main(int argc, char* argv[])
     uint16_t ues = 4;
     uint16_t nGnbNodes = 2;
     std::string suffix = "";
+    bool enableIdealProtocol = false;
 
     // Command line arguments
     CommandLine cmd;
@@ -510,6 +510,7 @@ main(int argc, char* argv[])
     cmd.AddValue("ues", "Number of users under each base station during initialization", ues);
     cmd.AddValue("nGnbNodes", "Number of Gnb ", nGnbNodes);
     cmd.AddValue("suffix", "The suffix of the log", suffix);
+    cmd.AddValue("enableIdealProtocol", "If true, all  control information is not delayed or lost", enableIdealProtocol);
     cmd.Parse(argc, argv);
 
     Config::SetDefault("ns3::MmWaveHelper::E2LocalPort", UintegerValue(localPortBase));
@@ -517,6 +518,9 @@ main(int argc, char* argv[])
     Config::SetDefault("ns3::MmWaveHelper::CustomServerPort", UintegerValue(customDdluPort));
     Config::SetDefault("ns3::CfApplicationHelper::CustomServerPort", UintegerValue(customDdluPort));
     Config::SetDefault("ns3::CfE2eCalculator::FileSuffix", StringValue(suffix));
+    Config::SetDefault("ns3::CfApplication::EnableIdealProtocol", BooleanValue(enableIdealProtocol));
+    Config::SetDefault("ns3::UeCfApplication::EnableIdealProtocol", BooleanValue(enableIdealProtocol));
+    
 
     bool harqEnabled = true;
     bool fixedTti = false;
@@ -1139,6 +1143,7 @@ main(int argc, char* argv[])
         ueInfo.m_taskModel = ueTaskModel;
         ueInfo.m_taskPeriodity = 16;
         ueInfo.m_mcUeNetDevice = mcUeDev;
+        ueInfo.m_ueCfApp = ueCfApp;
 
         cfranSystemInfo->AddUeInfo(imsi, ueInfo);
     }
@@ -1154,6 +1159,7 @@ main(int argc, char* argv[])
 
         cellInfo.m_id = mmNetDev->GetCellId();
         cellInfo.m_mmwaveEnbNetDevice = mmNetDev;
+        cellInfo.m_gnbCfApp = gnbCfApp;
         cellInfo.m_ipAddrToUe = gnbAddr;
         cellInfo.m_portToUe = 2000;
 

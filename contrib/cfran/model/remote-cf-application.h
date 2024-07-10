@@ -47,6 +47,8 @@ class RemoteCfApplication : public CfApplication
 
     void RecvFromUe(Ptr<Socket> socket) override;
 
+    void ProcessPacketFromUe(Ptr<Packet> p) override;
+
     void RecvTaskResult(uint64_t id, UeTaskModel ueTask) override;
 
     void BuildAndSendE2Report();

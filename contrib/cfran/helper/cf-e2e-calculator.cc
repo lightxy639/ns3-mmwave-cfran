@@ -322,7 +322,7 @@ CfE2eCalculator::BackupUeE2eResults(uint64_t ueId, uint64_t assoCellId, uint64_t
                         "queMea,queStd,queMin,queMax,"
                         "compMea, compStd, compMin, compMax,"
                         "dnWdMea, dnWdStd, dnWdMin, dnWdMax,"
-                        "dnWlMea,dnWlStd, dnWlMin, dnWlMax",
+                        "dnWlMea,dnWlStd, dnWlMin, dnWlMax,"
                         "e2eMea,e2eStd,e2eMin,e2eMax";
 
         ueE2eOutFile << std::endl;

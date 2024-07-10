@@ -19,10 +19,15 @@ CfApplication::GetTypeId()
                           MakeUintegerAccessor(&CfApplication::m_port),
                           MakeUintegerChecker<uint16_t>())
             .AddAttribute("E2ReportPeriod",
-                            "Periodicity of E2 reporting (value in seconds)",
-                            DoubleValue(0.5),
-                            MakeDoubleAccessor(&CfApplication::m_e2ReportPeriod),
-                            MakeDoubleChecker<double>())
+                          "Periodicity of E2 reporting (value in seconds)",
+                          DoubleValue(0.5),
+                          MakeDoubleAccessor(&CfApplication::m_e2ReportPeriod),
+                          MakeDoubleChecker<double>())
+            .AddAttribute("EnableIdealProtocol",
+                          "If true, all  control information is not delayed or lost",
+                          BooleanValue(false),
+                          MakeBooleanAccessor(&CfApplication::m_enableIdealProtocol),
+                          MakeBooleanChecker())
             .AddAttribute("CfranSystemInfomation",
                           "Global user information in cfran scenario",
                           PointerValue(),
@@ -129,7 +134,8 @@ CfApplication::UpdateUeState(uint64_t id, UeState state)
     }
     else if (state == UeState::Over)
     {
-        NS_ASSERT_MSG(m_ueState.find(id) != m_ueState.end(), "Info of UE " << id << " doesn't exist.");
+        NS_ASSERT_MSG(m_ueState.find(id) != m_ueState.end(),
+                      "Info of UE " << id << " doesn't exist.");
         m_ueState.erase(id);
     }
     else

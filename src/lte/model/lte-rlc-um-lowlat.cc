@@ -30,7 +30,15 @@
 
 #include "lte-rlc-um-lowlat.h"
 
+#include "intercept-tag.h"
+
+#include "ns3/ipv4-header.h"
+#include "ns3/ipv4-packet-filter.h"
+#include "ns3/ipv4-queue-disc-item.h"
+#include "ns3/ipv6-header.h"
 #include "ns3/log.h"
+#include "ns3/lte-pdcp-header.h"
+#include "ns3/lte-pdcp-tag.h"
 #include "ns3/lte-rlc-header.h"
 #include "ns3/lte-rlc-sdu-status-tag.h"
 #include "ns3/lte-rlc-tag.h"
@@ -1314,9 +1322,33 @@ LteRlcUmLowLat::TriggerReceivePdcpPdu(Ptr<Packet> p)
     }
     else
     {
-        NS_LOG_INFO(this << " MmWave Rlc Um LowLat forwards packet to remote PDCP");
-        m_ueDataParams.ueData = p;
-        m_epcX2RlcProvider->ReceiveMcPdcpSdu(m_ueDataParams);
+        // NS_LOG_INFO(this << " MmWave Rlc Um LowLat forwards packet to remote PDCP");
+        // m_ueDataParams.ueData = p;
+        // m_epcX2RlcProvider->ReceiveMcPdcpSdu(m_ueDataParams);
+            InterceptTag interceptTag;
+        PdcpTag pdcpTag;
+
+        Ipv4Header ipv4Header;
+        Ipv6Header ipv6Header;
+        LtePdcpHeader pdcpHeader;
+        p->RemoveHeader(pdcpHeader);
+
+        if (p->FindFirstMatchingByteTag(interceptTag))
+        {
+            if (p->PeekHeader(ipv4Header) != 0 || p->PeekHeader(ipv6Header) != 0)
+            {
+                m_forwardUpCallback(p);
+                NS_LOG_DEBUG("InterceptTag Detected.");
+            }
+        }
+        else
+        {
+            p->AddHeader(pdcpHeader);
+            m_ueDataParams.ueData = p;
+            m_epcX2RlcProvider->ReceiveMcPdcpSdu(m_ueDataParams);
+            NS_LOG_DEBUG("No InterceptTag Detected.");
+        }
+
     }
 }
 

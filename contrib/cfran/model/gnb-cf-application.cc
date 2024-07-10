@@ -194,7 +194,6 @@ GnbCfApplication::SendInitSuccessToUserFromGnb(uint64_t id)
     echoHeader.SetGnbId(m_mmWaveEnbNetDevice->GetCellId());
 
     resultPacket->AddHeader(echoHeader);
-
     SendPacketToUe(id, resultPacket);
 
     NS_LOG_INFO("Gnb " << m_mmWaveEnbNetDevice->GetCellId() << " send Init Success to UE " << id);
@@ -290,6 +289,12 @@ GnbCfApplication::RecvTaskResult(uint64_t ueId, UeTaskModel ueTask)
 {
     NS_LOG_FUNCTION(this << ueId << ueTask.m_taskId);
 
+    NS_LOG_INFO("Gnb " << m_mmWaveEnbNetDevice->GetCellId() << " recv task result of (UE,Task) "
+                       << ueId << " " << ueTask.m_taskId);
+
+    // std::cout << "Gnb " << m_mmWaveEnbNetDevice->GetCellId() << " recv task result of (UE,Task) "
+    //           << ueId << " " << ueTask.m_taskId;
+
     // m_getResultTrace(ueId, ueTask.m_taskId, Simulator::Now().GetTimeStep(), GetResult, None);
 
     auto ueConnectedGnbId =
@@ -319,6 +324,7 @@ GnbCfApplication::RecvTaskResult(uint64_t ueId, UeTaskModel ueTask)
             Ptr<Packet> p = Create<Packet>(m_defaultPacketSize);
             p->AddHeader(mpHeader);
             p->AddHeader(cfrHeader);
+
             SendPacketToUe(ueId, p);
         }
 
@@ -362,9 +368,6 @@ GnbCfApplication::RecvTaskResult(uint64_t ueId, UeTaskModel ueTask)
             SendPacketToOtherGnb(ueConnectedGnbId, p);
         }
     }
-
-    NS_LOG_INFO("Gnb " << m_mmWaveEnbNetDevice->GetCellId() << " recv task result of (UE,Task) "
-                       << ueId << " " << ueTask.m_taskId);
 }
 
 void
@@ -404,6 +407,130 @@ GnbCfApplication::HandleRead(Ptr<Socket> socket)
 }
 
 void
+GnbCfApplication::ProcessPacketFromUe(Ptr<Packet> packet)
+{
+    CfRadioHeader cfRadioHeader;
+    packet->RemoveHeader(cfRadioHeader);
+
+    if (cfRadioHeader.GetMessageType() == CfRadioHeader::InitRequest)
+    {
+        NS_LOG_INFO("Gnb " << m_mmWaveEnbNetDevice->GetCellId() << "Recv init request of UE "
+                           << cfRadioHeader.GetUeId());
+
+        if (m_policyMode == Local)
+        {
+            // NS_LOG_INFO("Process UEs' init requests locally");
+            UpdateUeState(cfRadioHeader.GetUeId(), UeState::Initializing);
+            m_cfUnit->AddNewUe(cfRadioHeader.GetUeId());
+            SendInitSuccessToUserFromGnb(cfRadioHeader.GetUeId());
+            UpdateUeState(cfRadioHeader.GetUeId(), UeState::Serving);
+        }
+        else if (m_policyMode == E2)
+        {
+            // NS_LOG_INFO("Report to RIC and wait for command.");
+            // SendNewUeReport(cfRadioHeader.GetUeId());
+            SendUeEventMessage(cfRadioHeader.GetUeId(), CfranSystemInfo::UeRandomAction::Arrive);
+            // AssignUe(cfRadioHeader.GetUeId(), 5);
+        }
+    }
+    else if (cfRadioHeader.GetMessageType() == CfRadioHeader::TaskRequest)
+    {
+        auto ueId = cfRadioHeader.GetUeId();
+        auto taskId = cfRadioHeader.GetTaskId();
+        auto hereGnbId = m_mmWaveEnbNetDevice->GetCellId();
+        auto offloadGnbId = cfRadioHeader.GetGnbId();
+
+        if (hereGnbId == offloadGnbId)
+        {
+            MultiPacketHeader mpHeader;
+            bool receiveCompleted = false;
+
+            packet->RemoveHeader(mpHeader);
+            receiveCompleted = m_requestManager->AddAndCheckPacket(ueId,
+                                                                   taskId,
+                                                                   mpHeader.GetPacketId(),
+                                                                   mpHeader.GetTotalPacketNum());
+            if (receiveCompleted)
+            {
+                NS_LOG_INFO("Gnb " << m_mmWaveEnbNetDevice->GetCellId() << " Recv task request "
+                                   << cfRadioHeader.GetTaskId() << " of UE "
+                                   << cfRadioHeader.GetUeId());
+                m_recvRequestTrace(ueId, taskId, Simulator::Now().GetTimeStep(), RecvRequest, None);
+                m_addTaskTrace(ueId, taskId, Simulator::Now().GetTimeStep(), AddTask, None);
+
+                UeTaskModel ueTask = m_cfranSystemInfo->GetUeInfo(ueId).m_taskModel;
+                ueTask.m_taskId = cfRadioHeader.GetTaskId();
+                m_cfUnit->LoadUeTask(ueId, ueTask);
+            }
+        }
+        else
+        {
+            NS_LOG_INFO("Gnb " << hereGnbId << " Send the request of UE " << cfRadioHeader.GetUeId()
+                               << " to other gNB.");
+
+            MultiPacketHeader mpHd;
+            packet->PeekHeader(mpHd);
+            bool receiveCompleted = m_requestManager->AddAndCheckPacket(ueId,
+                                                                        taskId,
+                                                                        mpHd.GetPacketId(),
+                                                                        mpHd.GetTotalPacketNum());
+            if (receiveCompleted)
+            {
+                // m_recvRequestTrace(ueId, taskId, Simulator::Now().GetTimeStep(), RecvRequest,
+                // None);
+                m_recvRequestToBeForwardedTrace(ueId,
+                                                taskId,
+                                                Simulator::Now().GetTimeStep(),
+                                                RecvRequestToBeForwarded,
+                                                None);
+                // m_forwardRequestTrace(ueId, taskId, Simulator::Now().GetTimeStep());
+            }
+
+            CfX2Header x2Hd;
+            x2Hd.SetMessageType(CfX2Header::TaskRequest);
+            x2Hd.SetSourceGnbId(hereGnbId);
+            x2Hd.SetTargetGnbId(offloadGnbId);
+            x2Hd.SetUeId(ueId);
+            x2Hd.SetTaskId(cfRadioHeader.GetTaskId());
+            packet->AddHeader(x2Hd);
+            SendPacketToOtherGnb(offloadGnbId, packet);
+        }
+    }
+    else if (cfRadioHeader.GetMessageType() == CfRadioHeader::TerminateCommand)
+    {
+        uint64_t hereGnbId = m_mmWaveEnbNetDevice->GetCellId();
+        uint64_t offloadGnbId = cfRadioHeader.GetGnbId();
+        uint64_t ueId = cfRadioHeader.GetUeId();
+
+        SendUeEventMessage(ueId, CfranSystemInfo::Leave);
+
+        if (hereGnbId == offloadGnbId)
+        {
+            UpdateUeState(ueId, UeState::Over);
+            m_cfUnit->DeleteUe(ueId);
+            NS_LOG_INFO("UE " << ueId << " terminate the service");
+        }
+        else
+        {
+            NS_LOG_INFO("Gnb " << m_mmWaveEnbNetDevice->GetCellId()
+                               << " Recv terminate command to Gnb " << offloadGnbId);
+            CfX2Header cfX2Header;
+            cfX2Header.SetMessageType(CfX2Header::TerminateCommand);
+            cfX2Header.SetUeId(ueId);
+            cfX2Header.SetSourceGnbId(hereGnbId);
+            cfX2Header.SetTargetGnbId(offloadGnbId);
+            packet->AddHeader(cfX2Header);
+
+            SendPacketToOtherGnb(offloadGnbId, packet);
+        }
+    }
+    else
+    {
+        NS_FATAL_ERROR("Something wrong");
+    }
+}
+
+void
 GnbCfApplication::RecvFromUe(Ptr<Socket> socket)
 {
     NS_LOG_FUNCTION(this);
@@ -414,133 +541,7 @@ GnbCfApplication::RecvFromUe(Ptr<Socket> socket)
     {
         socket->GetSockName(localAddress);
 
-        CfRadioHeader cfRadioHeader;
-        packet->RemoveHeader(cfRadioHeader);
-
-        if (cfRadioHeader.GetMessageType() == CfRadioHeader::InitRequest)
-        {
-            NS_LOG_INFO("Gnb " << m_mmWaveEnbNetDevice->GetCellId() << "Recv init request of UE "
-                               << cfRadioHeader.GetUeId());
-
-            if (m_policyMode == Local)
-            {
-                // NS_LOG_INFO("Process UEs' init requests locally");
-                UpdateUeState(cfRadioHeader.GetUeId(), UeState::Initializing);
-                m_cfUnit->AddNewUe(cfRadioHeader.GetUeId());
-                SendInitSuccessToUserFromGnb(cfRadioHeader.GetUeId());
-                UpdateUeState(cfRadioHeader.GetUeId(), UeState::Serving);
-            }
-            else if (m_policyMode == E2)
-            {
-                // NS_LOG_INFO("Report to RIC and wait for command.");
-                // SendNewUeReport(cfRadioHeader.GetUeId());
-                SendUeEventMessage(cfRadioHeader.GetUeId(),
-                                   CfranSystemInfo::UeRandomAction::Arrive);
-                // AssignUe(cfRadioHeader.GetUeId(), 5);
-            }
-        }
-        else if (cfRadioHeader.GetMessageType() == CfRadioHeader::TaskRequest)
-        {
-            auto ueId = cfRadioHeader.GetUeId();
-            auto taskId = cfRadioHeader.GetTaskId();
-            auto hereGnbId = m_mmWaveEnbNetDevice->GetCellId();
-            auto offloadGnbId = cfRadioHeader.GetGnbId();
-
-            if (hereGnbId == offloadGnbId)
-            {
-                MultiPacketHeader mpHeader;
-                bool receiveCompleted = false;
-
-                packet->RemoveHeader(mpHeader);
-                receiveCompleted =
-                    m_requestManager->AddAndCheckPacket(ueId,
-                                                        taskId,
-                                                        mpHeader.GetPacketId(),
-                                                        mpHeader.GetTotalPacketNum());
-                if (receiveCompleted)
-                {
-                    NS_LOG_INFO("Gnb " << m_mmWaveEnbNetDevice->GetCellId()
-                                       << " Recv task request "
-                                       << cfRadioHeader.GetTaskId() << " of UE "
-                                       << cfRadioHeader.GetUeId());
-                    m_recvRequestTrace(ueId,
-                                       taskId,
-                                       Simulator::Now().GetTimeStep(),
-                                       RecvRequest,
-                                       None);
-                    m_addTaskTrace(ueId, taskId, Simulator::Now().GetTimeStep(), AddTask, None);
-
-                    UeTaskModel ueTask = m_cfranSystemInfo->GetUeInfo(ueId).m_taskModel;
-                    ueTask.m_taskId = cfRadioHeader.GetTaskId();
-                    m_cfUnit->LoadUeTask(ueId, ueTask);
-                }
-            }
-            else
-            {
-                NS_LOG_INFO("Gnb " << hereGnbId << " Send the request of UE "
-                                   << cfRadioHeader.GetUeId() << " to other gNB.");
-
-                MultiPacketHeader mpHd;
-                packet->PeekHeader(mpHd);
-                bool receiveCompleted =
-                    m_requestManager->AddAndCheckPacket(ueId,
-                                                        taskId,
-                                                        mpHd.GetPacketId(),
-                                                        mpHd.GetTotalPacketNum());
-                if (receiveCompleted)
-                {
-                    // m_recvRequestTrace(ueId, taskId, Simulator::Now().GetTimeStep(), RecvRequest,
-                    // None);
-                    m_recvRequestToBeForwardedTrace(ueId,
-                                                    taskId,
-                                                    Simulator::Now().GetTimeStep(),
-                                                    RecvRequestToBeForwarded,
-                                                    None);
-                    // m_forwardRequestTrace(ueId, taskId, Simulator::Now().GetTimeStep());
-                }
-
-                CfX2Header x2Hd;
-                x2Hd.SetMessageType(CfX2Header::TaskRequest);
-                x2Hd.SetSourceGnbId(hereGnbId);
-                x2Hd.SetTargetGnbId(offloadGnbId);
-                x2Hd.SetUeId(ueId);
-                x2Hd.SetTaskId(cfRadioHeader.GetTaskId());
-                packet->AddHeader(x2Hd);
-                SendPacketToOtherGnb(offloadGnbId, packet);
-            }
-        }
-        else if (cfRadioHeader.GetMessageType() == CfRadioHeader::TerminateCommand)
-        {
-            uint64_t hereGnbId = m_mmWaveEnbNetDevice->GetCellId();
-            uint64_t offloadGnbId = cfRadioHeader.GetGnbId();
-            uint64_t ueId = cfRadioHeader.GetUeId();
-
-            SendUeEventMessage(ueId, CfranSystemInfo::Leave);
-
-            if (hereGnbId == offloadGnbId)
-            {
-                UpdateUeState(ueId, UeState::Over);
-                m_cfUnit->DeleteUe(ueId);
-                NS_LOG_INFO("UE " << ueId << " terminate the service");
-            }
-            else
-            {
-                NS_LOG_INFO("Gnb " << m_mmWaveEnbNetDevice->GetCellId()
-                                   << " Recv terminate command to Gnb " << offloadGnbId);
-                CfX2Header cfX2Header;
-                cfX2Header.SetMessageType(CfX2Header::TerminateCommand);
-                cfX2Header.SetUeId(ueId);
-                cfX2Header.SetSourceGnbId(hereGnbId);
-                cfX2Header.SetTargetGnbId(offloadGnbId);
-                packet->AddHeader(cfX2Header);
-
-                SendPacketToOtherGnb(offloadGnbId, packet);
-            }
-        }
-        else
-        {
-            NS_FATAL_ERROR("Something wrong");
-        }
+        ProcessPacketFromUe(packet);
     }
 }
 
@@ -701,6 +702,7 @@ GnbCfApplication::RecvFromOtherGnb(Ptr<Socket> socket)
             packet->AddHeader(cfRadioHeader);
             // Ptr<Packet> resultPacket = Create<Packet>(500);
             // resultPacket->AddHeader(cfRadioHeader);
+
 
             SendPacketToUe(cfX2Header.GetUeId(), packet);
             // m_downlinkTrace(cfX2Header.GetUeId(),
@@ -1102,8 +1104,8 @@ GnbCfApplication::ControlMessageReceivedCallback(E2AP_PDU_t* pdu)
                         cJSON_GetObjectItemCaseSensitive(uePolicy, "offloadPointId");
                     if (cJSON_IsNumber(imsi) && cJSON_IsNumber(offloadPointId))
                     {
-                        NS_LOG_DEBUG("Recv ctrl policy for imsi "
-                                     << " to cfNode " << offloadPointId->valueint);
+                        NS_LOG_DEBUG("Recv ctrl policy for imsi " << " to cfNode "
+                                                                  << offloadPointId->valueint);
                         // Policy uePolicy;
                         // uePolicy.m_ueId = imsi->valueint;
                         // uePolicy.m_offloadPointId = offloadPointId->valueint;

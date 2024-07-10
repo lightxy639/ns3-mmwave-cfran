@@ -5,8 +5,8 @@
 
 #include <arpa/inet.h>
 #include <iostream>
-#include <sys/socket.h>
 #include <netinet/in.h>
+#include <sys/socket.h>
 
 // #include <ns3/mmwave-enb-net-device.h>
 
@@ -150,8 +150,7 @@ CfApplicationHelper::Install(NodeContainer c, bool isGnb)
                     }
                     else
                     {
-                        NS_LOG_UNCOND("Connect success: "
-                                      << "Port " << local_port);
+                        NS_LOG_UNCOND("Connect success: " << "Port " << local_port);
                     }
                 }
             }
@@ -199,9 +198,10 @@ CfApplicationHelper::Install(NodeContainer c, bool isGnb)
                         DynamicCast<GnbCfApplication>(app)->SetE2Termination(
                             mmWaveEnbNetDev->GetE2Termination());
                     }
-                    else if( m_e2ModeCfApp && mmWaveEnbNetDev->GetClientFd() > 0)
+                    else if (m_e2ModeCfApp && mmWaveEnbNetDev->GetClientFd() > 0)
                     {
-                        DynamicCast<GnbCfApplication>(app)->SetClientFd(mmWaveEnbNetDev->GetClientFd());
+                        DynamicCast<GnbCfApplication>(app)->SetClientFd(
+                            mmWaveEnbNetDev->GetClientFd());
                     }
                     break;
                 }

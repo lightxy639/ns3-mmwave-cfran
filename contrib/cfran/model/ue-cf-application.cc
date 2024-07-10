@@ -35,6 +35,11 @@ UeCfApplication::GetTypeId()
                           BooleanValue(true),
                           MakeBooleanAccessor(&UeCfApplication::m_randomArrivalDeparture),
                           MakeBooleanChecker())
+            .AddAttribute("EnableIdealProtocol",
+                          "If true, all  control information is not delayed or lost",
+                          BooleanValue(false),
+                          MakeBooleanAccessor(&UeCfApplication::m_enableIdealProtocol),
+                          MakeBooleanChecker())
             .AddAttribute("RandomActionPeriod",
                           "The period of random arrvival of departure",
                           DoubleValue(0.5),
@@ -245,9 +250,27 @@ UeCfApplication::SendInitRequest()
 
     // std::ofstream out_file("PacketTag.txt");
     // p->PrintPacketTags(out_file);
-    if (reqSocket->Send(p) < 0)
+    if (!m_enableIdealProtocol)
     {
-        NS_LOG_ERROR("InitRequest error.");
+        if (reqSocket->Send(p) < 0)
+        {
+            NS_FATAL_ERROR("Error in sending task request.");
+        }
+    }
+
+    else
+    {
+        NS_LOG_INFO("UE Ideal SendInitRequest Process");
+        m_cfranSystemInfo->GetCellInfo(m_accessGnbId).m_gnbCfApp->ProcessPacketFromUe(p);
+        // if (m_cfranSystemInfo->GetOffladPointType(m_offloadPointId) == CfranSystemInfo::Gnb)
+        // {
+        //     m_cfranSystemInfo->GetCellInfo(m_offloadPointId).m_gnbCfApp->ProcessPacketFromUe(p);
+        // }
+        // else if (m_cfranSystemInfo->GetOffladPointType(m_offloadPointId) == CfranSystemInfo::Remote)
+        // {
+        //     m_cfranSystemInfo->GetRemoteInfo(m_offloadPointId)
+        //         .m_remoteCfApp->ProcessPacketFromUe(p);
+        // }
     }
 }
 
@@ -314,9 +337,27 @@ UeCfApplication::SendTaskRequest(uint64_t offloadPointId)
             p->AddByteTag(interceptTag);
         }
         // if (reqSocket->Send(p) < 0)
-        if (reqSocket->Send(p) < 0)
+        if (!m_enableIdealProtocol)
         {
-            NS_FATAL_ERROR("Error in sending task request.");
+            if (reqSocket->Send(p) < 0)
+            {
+                NS_FATAL_ERROR("Error in sending task request.");
+            }
+        }
+
+        else
+        {
+            NS_LOG_INFO("UE Ideal SendTaskRequest Process");
+            if (m_cfranSystemInfo->GetOffladPointType(m_offloadPointId) == CfranSystemInfo::Gnb)
+            {
+                m_cfranSystemInfo->GetCellInfo(m_offloadPointId).m_gnbCfApp->ProcessPacketFromUe(p);
+            }
+            else if (m_cfranSystemInfo->GetOffladPointType(m_offloadPointId) ==
+                     CfranSystemInfo::Remote)
+            {
+                m_cfranSystemInfo->GetRemoteInfo(m_offloadPointId)
+                    .m_remoteCfApp->ProcessPacketFromUe(p);
+            }
         }
     }
 
@@ -384,9 +425,26 @@ UeCfApplication::SendTerminateCommand()
         InterceptTag interceptTag;
         p->AddByteTag(interceptTag);
     }
-    if (reqSocket->Send(p) < 0)
+    if (!m_enableIdealProtocol)
     {
-        NS_LOG_ERROR("TerminateCommand error.");
+        if (reqSocket->Send(p) < 0)
+        {
+            NS_FATAL_ERROR("Error in sending task request.");
+        }
+    }
+
+    else
+    {
+        NS_LOG_INFO("UE Ideal SendTerminateCommand Process");
+        if (m_cfranSystemInfo->GetOffladPointType(m_offloadPointId) == CfranSystemInfo::Gnb)
+        {
+            m_cfranSystemInfo->GetCellInfo(m_offloadPointId).m_gnbCfApp->ProcessPacketFromUe(p);
+        }
+        else if (m_cfranSystemInfo->GetOffladPointType(m_offloadPointId) == CfranSystemInfo::Remote)
+        {
+            m_cfranSystemInfo->GetRemoteInfo(m_offloadPointId)
+                .m_remoteCfApp->ProcessPacketFromUe(p);
+        }
     }
 }
 
