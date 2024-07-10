@@ -438,7 +438,7 @@ static ns3::GlobalValue g_noiseAndFilter(
     ns3::MakeBooleanChecker());
 static ns3::GlobalValue g_handoverMode("handoverMode",
                                        "Handover mode",
-                                       ns3::UintegerValue(4),
+                                       ns3::UintegerValue(3),
                                        ns3::MakeUintegerChecker<uint8_t>());
 static ns3::GlobalValue g_reportTablePeriodicity("reportTablePeriodicity",
                                                  "Periodicity of RTs",
@@ -520,6 +520,8 @@ main(int argc, char* argv[])
     Config::SetDefault("ns3::CfE2eCalculator::FileSuffix", StringValue(suffix));
     Config::SetDefault("ns3::CfApplication::EnableIdealProtocol", BooleanValue(enableIdealProtocol));
     Config::SetDefault("ns3::UeCfApplication::EnableIdealProtocol", BooleanValue(enableIdealProtocol));
+
+    // Config::SetDefault("ns3::MmWaveHelper::Scheduler", StringValue("ns3::MmWaveFlexTtiPfMacScheduler"));
     
 
     bool harqEnabled = true;

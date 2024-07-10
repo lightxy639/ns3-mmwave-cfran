@@ -266,7 +266,8 @@ UeCfApplication::SendInitRequest()
         // {
         //     m_cfranSystemInfo->GetCellInfo(m_offloadPointId).m_gnbCfApp->ProcessPacketFromUe(p);
         // }
-        // else if (m_cfranSystemInfo->GetOffladPointType(m_offloadPointId) == CfranSystemInfo::Remote)
+        // else if (m_cfranSystemInfo->GetOffladPointType(m_offloadPointId) ==
+        // CfranSystemInfo::Remote)
         // {
         //     m_cfranSystemInfo->GetRemoteInfo(m_offloadPointId)
         //         .m_remoteCfApp->ProcessPacketFromUe(p);
@@ -683,8 +684,12 @@ UeCfApplication::E2eTrace(CfRadioHeader cfRHd)
     else if (timeData.m_pos == OtherGnb)
     {
         // NS_LOG_DEBUG("UE " << ueId << " OtherGnb");
-        upWlDelay = timeData.m_recvRequestToBeForwarded - timeData.m_sendRequest;
-        upWdDelay = timeData.m_recvRequest - timeData.m_recvRequestToBeForwarded;
+        if (timeData.m_addTask != timeData.m_sendRequest)
+        {
+            upWlDelay = timeData.m_recvRequestToBeForwarded - timeData.m_sendRequest;
+            upWdDelay = timeData.m_recvRequest - timeData.m_recvRequestToBeForwarded;
+        }
+
         queueDelay = timeData.m_processTask - timeData.m_addTask;
         processDelay = timeData.m_sendResult - timeData.m_processTask;
         dnWdDelay = timeData.m_recvForwardedResult - timeData.m_sendResult;
@@ -693,12 +698,16 @@ UeCfApplication::E2eTrace(CfRadioHeader cfRHd)
 
     else if (timeData.m_pos == RemoteServer)
     {
+        if (timeData.m_addTask != timeData.m_sendRequest)
+        {
+            upWdDelay = m_cfranSystemInfo->GetWiredLatencyInfo().m_s1ULatency +
+                        m_cfranSystemInfo->GetWiredLatencyInfo().m_x2Latency +
+                        m_cfranSystemInfo->GetRemoteInfo(offloadId).m_hostGwLatency * 1e6;
+            // NS_LOG_DEBUG("Remote server " << offloadId << " upWd")
+            upWlDelay = timeData.m_recvRequest - timeData.m_sendRequest - upWdDelay;
+        }
         // NS_LOG_DEBUG("UE " << ueId << " RemoteServer");
-        upWdDelay = m_cfranSystemInfo->GetWiredLatencyInfo().m_s1ULatency +
-                    m_cfranSystemInfo->GetWiredLatencyInfo().m_x2Latency +
-                    m_cfranSystemInfo->GetRemoteInfo(offloadId).m_hostGwLatency * 1e6;
-        // NS_LOG_DEBUG("Remote server " << offloadId << " upWd")
-        upWlDelay = timeData.m_recvRequest - timeData.m_sendRequest - upWdDelay;
+
         queueDelay = timeData.m_processTask - timeData.m_addTask;
         processDelay = timeData.m_sendResult - timeData.m_processTask;
 

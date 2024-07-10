@@ -109,7 +109,8 @@ RemoteCfApplication::ProcessPacketFromUe(Ptr<Packet> packet)
 
     if (cfRadioHeader.GetMessageType() == CfRadioHeader::InitRequest)
     {
-        NS_LOG_INFO("Remote server " << "Recv init request of UE " << cfRadioHeader.GetUeId());
+        NS_LOG_INFO("Remote server "
+                    << "Recv init request of UE " << cfRadioHeader.GetUeId());
 
         auto ueId = cfRadioHeader.GetUeId();
         UpdateUeState(ueId, UeState::Initializing);
@@ -145,9 +146,9 @@ RemoteCfApplication::ProcessPacketFromUe(Ptr<Packet> packet)
                                                                    mpHeader.GetTotalPacketNum());
         if (receiveCompleted)
         {
-            // NS_LOG_INFO("Remote server " << m_serverId << " Recv task request "
-            //                              << cfRadioHeader.GetTaskId() << " of UE "
-            //                              << cfRadioHeader.GetUeId());
+            NS_LOG_INFO("Remote server " << m_serverId << " Recv task request "
+                                         << cfRadioHeader.GetTaskId() << " of UE "
+                                         << cfRadioHeader.GetUeId());
             m_recvRequestTrace(ueId, taskId, Simulator::Now().GetTimeStep(), RecvRequest, None);
             m_addTaskTrace(ueId, taskId, Simulator::Now().GetTimeStep(), AddTask, None);
 
@@ -159,12 +160,23 @@ RemoteCfApplication::ProcessPacketFromUe(Ptr<Packet> packet)
     else if (cfRadioHeader.GetMessageType() == CfRadioHeader::TerminateCommand)
     {
         uint64_t ueId = cfRadioHeader.GetUeId();
-        UpdateUeState(ueId, UeState::Over);
+        Simulator::Schedule(Seconds((double)m_e2ReportPeriod / 2),
+                            &RemoteCfApplication::UpdateUeState,
+                            this,
+                            ueId,
+                            UeState::Over);
+        // UpdateUeState(ueId, UeState::Over);
         m_cfUnit->DeleteUe(ueId);
         NS_LOG_INFO("RemoteServer " << m_serverId << " Recv command of UE " << ueId
                                     << " to terminate the service");
 
-        SendUeEventMessage(ueId, CfranSystemInfo::UeRandomAction::Leave);
+        // SendUeEventMessage(ueId, CfranSystemInfo::UeRandomAction::Leave);
+        Ptr<UniformRandomVariable> uv = CreateObject<UniformRandomVariable>();
+        Simulator::Schedule(MilliSeconds(uv->GetInteger(0, 20)),
+                            &RemoteCfApplication::SendUeEventMessage,
+                            this,
+                            cfRadioHeader.GetUeId(),
+                            CfranSystemInfo::UeRandomAction::Leave);
     }
     else
     {

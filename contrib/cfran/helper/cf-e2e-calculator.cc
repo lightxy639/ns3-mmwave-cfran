@@ -174,9 +174,9 @@ CfE2eCalculator::CheckQoeStat(uint64_t upWlDelay,
     double commDelay = (double)(dnWdDelay + dnWlDelay) / 1e6;
     double compDelay = (double)(queueDelay + computingDelay) / 1e6;
     // double e2eDelay =
-    //     (double)(upWlDelay + upWdDelay + queueDelay + computingDelay + dnWdDelay + dnWlDelay) / 1e6;
-    double e2eDelay =
-        (double)(queueDelay + computingDelay + dnWdDelay + dnWlDelay) / 1e6;
+    //     (double)(upWlDelay + upWdDelay + queueDelay + computingDelay + dnWdDelay + dnWlDelay) /
+    //     1e6;
+    double e2eDelay = (double)(queueDelay + computingDelay + dnWdDelay + dnWlDelay) / 1e6;
 
     return (commDelay < 16.6 && compDelay < 16.6 && e2eDelay < 16.6);
 }
@@ -213,7 +213,7 @@ uint64_t
 CfE2eCalculator::GetNumberOfSuccTask(uint64_t ueId)
 {
     auto it = m_qoeCount.find(ueId);
-    if(it != m_qoeCount.end())
+    if (it != m_qoeCount.end())
     {
         return m_qoeCount[ueId];
     }
@@ -299,16 +299,16 @@ CfE2eCalculator::BackupUeE2eResults(uint64_t ueId, uint64_t assoCellId, uint64_t
     NS_LOG_DEBUG("m_firstWrite " << m_firstWrite);
 
     std::string fileName = m_ueE2eOutFileName + m_fileSuffix + ".csv";
+
     if (m_firstWrite == true)
     {
         ueE2eOutFile.open(fileName);
-        NS_LOG_DEBUG("Create " << m_ueE2eOutFileName);
         if (!ueE2eOutFile.is_open())
         {
             NS_LOG_ERROR("Can't open file " << GetUeE2eOutFileName().c_str());
             return;
         }
-
+        NS_LOG_DEBUG("Create " << m_ueE2eOutFileName);
         m_firstWrite = false;
 
         ueE2eOutFile << "Time,"
@@ -326,44 +326,44 @@ CfE2eCalculator::BackupUeE2eResults(uint64_t ueId, uint64_t assoCellId, uint64_t
                         "e2eMea,e2eStd,e2eMin,e2eMax";
 
         ueE2eOutFile << std::endl;
+        ueE2eOutFile.close();
     }
 
-    else
+    // ueE2eOutFile.open(fileName, std::ios_base::app);
+    // if (!ueE2eOutFile.is_open())
+    // {
+    //     NS_LOG_ERROR("Can't open file " << fileName);
+    //     return;
+    // }
+    ueE2eOutFile.open(fileName, std::ios_base::app);
+    ueE2eOutFile << Simulator::Now().GetSeconds() << "," << ueId << "," << assoCellId << ","
+                 << compCellId << ",";
+
+    ueE2eOutFile << this->GetNumberOfTimeData(ueId) << ",";
+    ueE2eOutFile << this->GetNumberOfSuccTask(ueId) << ",";
+
+    std::vector<double> upWlDelay = this->GetUplinkWirelessDelayStats(ueId);
+    std::vector<double> upWdDelay = this->GetUplinkWiredDelayStats(ueId);
+    std::vector<double> queueDelay = this->GetQueueDelayStats(ueId);
+    std::vector<double> compDelay = this->GetComputingDelayStats(ueId);
+    std::vector<double> dnWdDelay = this->GetDownlinkWiredDelayStats(ueId);
+    std::vector<double> dnWlDelay = this->GetDownlinkWirelessDelayStats(ueId);
+    std::vector<double> e2eDelay = this->GetE2eDelayStats(ueId);
+
+    std::vector<double> delayVector[] =
+        {upWlDelay, upWdDelay, queueDelay, compDelay, dnWdDelay, dnWlDelay, e2eDelay};
+
+    for (auto delay : delayVector)
     {
-        ueE2eOutFile.open(fileName, std::ios_base::app);
-        if (!ueE2eOutFile.is_open())
+        for (auto delayData : delay)
         {
-            NS_LOG_ERROR("Can't open file " << fileName);
-            return;
+            ueE2eOutFile << delayData / 1e6 << ",";
         }
-        ueE2eOutFile << Simulator::Now().GetSeconds() << "," << ueId << "," << assoCellId << ","
-                     << compCellId << ",";
-
-        ueE2eOutFile << this->GetNumberOfTimeData(ueId) << ",";
-        ueE2eOutFile << this->GetNumberOfSuccTask(ueId) << ",";
-
-        std::vector<double> upWlDelay = this->GetUplinkWirelessDelayStats(ueId);
-        std::vector<double> upWdDelay = this->GetUplinkWiredDelayStats(ueId);
-        std::vector<double> queueDelay = this->GetQueueDelayStats(ueId);
-        std::vector<double> compDelay = this->GetComputingDelayStats(ueId);
-        std::vector<double> dnWdDelay = this->GetDownlinkWiredDelayStats(ueId);
-        std::vector<double> dnWlDelay = this->GetDownlinkWirelessDelayStats(ueId);
-        std::vector<double> e2eDelay = this->GetE2eDelayStats(ueId);
-
-        std::vector<double> delayVector[] =
-            {upWlDelay, upWdDelay, queueDelay, compDelay, dnWdDelay, dnWlDelay, e2eDelay};
-
-        for (auto delay : delayVector)
-        {
-            for (auto delayData : delay)
-            {
-                ueE2eOutFile << delayData / 1e6 << ",";
-            }
-        }
-
-        ueE2eOutFile << std::endl;
-
-        NS_LOG_DEBUG("Backup e2e data of UE " << ueId);
     }
+
+    ueE2eOutFile << std::endl;
+    ueE2eOutFile.close();
+
+    NS_LOG_DEBUG("Backup e2e data of UE " << ueId);
 }
 } // namespace ns3

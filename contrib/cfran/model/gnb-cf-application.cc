@@ -429,7 +429,13 @@ GnbCfApplication::ProcessPacketFromUe(Ptr<Packet> packet)
         {
             // NS_LOG_INFO("Report to RIC and wait for command.");
             // SendNewUeReport(cfRadioHeader.GetUeId());
-            SendUeEventMessage(cfRadioHeader.GetUeId(), CfranSystemInfo::UeRandomAction::Arrive);
+            Ptr<UniformRandomVariable> uv = CreateObject<UniformRandomVariable>();
+            Simulator::Schedule(MilliSeconds(uv->GetInteger(0, 20)),
+                                &GnbCfApplication::SendUeEventMessage,
+                                this,
+                                cfRadioHeader.GetUeId(),
+                                CfranSystemInfo::UeRandomAction::Arrive);
+            // SendUeEventMessage(cfRadioHeader.GetUeId(), CfranSystemInfo::UeRandomAction::Arrive);
             // AssignUe(cfRadioHeader.GetUeId(), 5);
         }
     }
@@ -502,11 +508,22 @@ GnbCfApplication::ProcessPacketFromUe(Ptr<Packet> packet)
         uint64_t offloadGnbId = cfRadioHeader.GetGnbId();
         uint64_t ueId = cfRadioHeader.GetUeId();
 
-        SendUeEventMessage(ueId, CfranSystemInfo::Leave);
+        Ptr<UniformRandomVariable> uv = CreateObject<UniformRandomVariable>();
+        Simulator::Schedule(MilliSeconds(uv->GetInteger(0, 20)),
+                            &GnbCfApplication::SendUeEventMessage,
+                            this,
+                            cfRadioHeader.GetUeId(),
+                            CfranSystemInfo::UeRandomAction::Leave);
+        // SendUeEventMessage(ueId, CfranSystemInfo::Leave);
 
         if (hereGnbId == offloadGnbId)
         {
-            UpdateUeState(ueId, UeState::Over);
+            Simulator::Schedule(Seconds((double)m_e2ReportPeriod / 2),
+                                &GnbCfApplication::UpdateUeState,
+                                this,
+                                ueId,
+                                UeState::Over);
+            // UpdateUeState(ueId, UeState::Over);
             m_cfUnit->DeleteUe(ueId);
             NS_LOG_INFO("UE " << ueId << " terminate the service");
         }
@@ -703,7 +720,6 @@ GnbCfApplication::RecvFromOtherGnb(Ptr<Socket> socket)
             // Ptr<Packet> resultPacket = Create<Packet>(500);
             // resultPacket->AddHeader(cfRadioHeader);
 
-
             SendPacketToUe(cfX2Header.GetUeId(), packet);
             // m_downlinkTrace(cfX2Header.GetUeId(),
             //                 cfX2Header.GetTaskId(),
@@ -747,7 +763,12 @@ GnbCfApplication::RecvFromOtherGnb(Ptr<Socket> socket)
         else if (cfX2Header.GetMessageType() == CfX2Header::TerminateCommand)
         {
             uint64_t ueId = cfX2Header.GetUeId();
-            UpdateUeState(ueId, UeState::Over);
+            Simulator::Schedule(Seconds((double)m_e2ReportPeriod / 2),
+                                &GnbCfApplication::UpdateUeState,
+                                this,
+                                ueId,
+                                UeState::Over);
+            // UpdateUeState(ueId, UeState::Over);
             m_cfUnit->DeleteUe(ueId);
             NS_LOG_INFO("UE " << ueId << " terminate the service");
         }
@@ -1104,8 +1125,8 @@ GnbCfApplication::ControlMessageReceivedCallback(E2AP_PDU_t* pdu)
                         cJSON_GetObjectItemCaseSensitive(uePolicy, "offloadPointId");
                     if (cJSON_IsNumber(imsi) && cJSON_IsNumber(offloadPointId))
                     {
-                        NS_LOG_DEBUG("Recv ctrl policy for imsi " << " to cfNode "
-                                                                  << offloadPointId->valueint);
+                        NS_LOG_DEBUG("Recv ctrl policy for imsi "
+                                     << " to cfNode " << offloadPointId->valueint);
                         // Policy uePolicy;
                         // uePolicy.m_ueId = imsi->valueint;
                         // uePolicy.m_offloadPointId = offloadPointId->valueint;
@@ -1150,13 +1171,31 @@ GnbCfApplication::ExecuteCommands()
             m_cfUnit->AddNewUe(ueId);
             UpdateUeState(ueId, UeState::Serving);
 
-            if (ueConnectingGnbId == hereGnbId)
+            if (!m_enableIdealProtocol)
             {
-                SendInitSuccessToUserFromGnb(ueId);
+                if (ueConnectingGnbId == hereGnbId)
+                {
+                    SendInitSuccessToUserFromGnb(ueId);
+                }
+                else
+                {
+                    SendInitSuccessToConnectedGnb(ueId);
+                }
             }
             else
             {
-                SendInitSuccessToConnectedGnb(ueId);
+                Ptr<Packet> p = Create<Packet>(500);
+
+                CfRadioHeader echoHeader;
+                echoHeader.SetMessageType(CfRadioHeader::InitSuccess);
+                echoHeader.SetGnbId(m_mmWaveEnbNetDevice->GetCellId());
+
+                p->AddHeader(echoHeader);
+                // SendPacketToUe(id, resultPacket);
+
+                m_cfranSystemInfo->GetUeInfo(ueId).m_ueCfApp->RecvFromNetwork(p);
+                NS_LOG_INFO("Gnb " << m_mmWaveEnbNetDevice->GetCellId()
+                                   << " send Init Success to UE " << ueId);
             }
         }
 
@@ -1336,8 +1375,8 @@ GnbCfApplication::RecvFromCustomSocket()
         }
         else
         {
-            NS_LOG_DEBUG(" GnbCfApp " << m_mmWaveEnbNetDevice->GetCellId()
-                                      << " Recv Policy message: " << buffer);
+            NS_LOG_INFO(" GnbCfApp " << m_mmWaveEnbNetDevice->GetCellId()
+                                     << " Recv Policy message: " << buffer);
             PrasePolicyMessage(json);
         }
     }
