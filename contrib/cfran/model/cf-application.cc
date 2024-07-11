@@ -111,6 +111,12 @@ CfApplication::SetClientFd(int clientFd)
     m_clientFd = clientFd;
 }
 
+Ptr<CfranSystemInfo>
+CfApplication::GetSystemInfo() const
+{
+    return m_cfranSystemInfo;
+}
+
 void
 CfApplication::UpdateUeState(uint64_t id, UeState state)
 {

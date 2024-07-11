@@ -487,6 +487,9 @@ main(int argc, char* argv[])
 
     LogComponentEnable("CfTimeBuffer", LOG_INFO);
     LogComponentEnable("CfTimeBuffer", LOG_PREFIX_ALL);
+
+    LogComponentEnable("CfUnitUeIso", LOG_INFO);
+    LogComponentEnable("CfUnitUeIso", LOG_PREFIX_ALL);
     // LogComponentEnable("CfE2eCalculator", LOG_FUNCTION);
     // LogComponentEnable("CfE2eCalculator", LOG_DEBUG);
     // LogComponentEnable("CfE2eCalculator", LOG_ERROR);
@@ -1048,15 +1051,19 @@ main(int argc, char* argv[])
 
     mmwaveHelper->AttachToClosestEnb(mcUeDevs, mmWaveEnbDevs, lteEnbDevs);
 
+    CfModel gnbCfModel("GPU", 82.6);
+    CfModel edgeCfModel("GPU", 200);
+    CfModel centralCfModel("GPU", 500);
     ObjectFactory cfUnitObj;
-    cfUnitObj.SetTypeId("ns3::CfUnitUeIso");
-    CfModel cfModel("GPU", 82.6);
     // cfUnitObj.Set("EnableAutoSchedule", BooleanVaslue(false));
-    cfUnitObj.Set("CfModel", CfModelValue(cfModel));
 
     Ptr<CfRanHelper> cfRanHelper = CreateObject<CfRanHelper>();
+    cfUnitObj.Set("CfModel", CfModelValue(gnbCfModel));
     cfRanHelper->InstallCfUnit(mmWaveEnbNodes, cfUnitObj);
-    cfRanHelper->InstallCfUnit(remoteHostContainer, cfUnitObj);
+    cfUnitObj.Set("CfModel", CfModelValue(edgeCfModel));
+    cfRanHelper->InstallCfUnit(edgeContainer, cfUnitObj);
+    cfUnitObj.Set("CfModel", CfModelValue(centralCfModel));
+    cfRanHelper->InstallCfUnit(centralContainer, cfUnitObj);
 
     // for (uint32_t u = 0; u < mcUeDevs.GetN(); ++u)
     // {
@@ -1102,7 +1109,7 @@ main(int argc, char* argv[])
     bool dl = 0;
     bool ul = 1;
 
-    double statePeriod = 0.3;
+    double statePeriod = 0.5;
 
     Config::SetDefault("ns3::CfApplication::Port", UintegerValue(ulPort));
     Config::SetDefault("ns3::UeCfApplication::RandomActionPeriod", DoubleValue(statePeriod));
@@ -1188,11 +1195,11 @@ main(int argc, char* argv[])
     // Start applications
 
     double serverAppStartTime = 0.3;
-    double clientAppStartTime = 0.8;
+    double clientAppStartTime = 0.9;
 
-    uint16_t maxCycles = 10;
+    uint16_t maxCycles = 7;
 
-    double simTime = maxCycles * statePeriod + 2;
+    double simTime = maxCycles * statePeriod + 1;
 
     NS_LOG_DEBUG("serverAppStartTime: " << serverAppStartTime << " clientAppStartTime: "
                                         << clientAppStartTime << " simTime: " << simTime);

@@ -43,6 +43,8 @@ class CfApplication : public Application
 
     Ptr<E2Termination> GetE2Termination() const;
 
+    Ptr<CfranSystemInfo> GetSystemInfo() const;
+
     virtual void SetClientFd (int clientFd);
 
     void UpdateUeState(uint64_t id, UeState state);

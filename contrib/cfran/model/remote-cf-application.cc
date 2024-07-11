@@ -741,7 +741,15 @@ RemoteCfApplication::ExecuteCommands()
             echoHeader.SetMessageType(CfRadioHeader::InitSuccess);
             echoHeader.SetGnbId(m_serverId);
             resultPacket->AddHeader(echoHeader);
-            SendPacketToUe(ueId, resultPacket);
+
+            if (!m_enableIdealProtocol)
+            {
+                SendPacketToUe(ueId, resultPacket);
+            }
+            else
+            {
+                m_cfranSystemInfo->GetUeInfo(ueId).m_ueCfApp->RecvFromNetwork(resultPacket);
+            }
 
             UpdateUeState(ueId, UeState::Serving);
 

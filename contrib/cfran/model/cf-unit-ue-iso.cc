@@ -16,6 +16,7 @@ CfUnitUeIso::GetTypeId()
 }
 
 CfUnitUeIso::CfUnitUeIso()
+    : m_latencyGear({1.0 / 240, 1.0 / 120, 1.0 / 60})
 {
     NS_LOG_FUNCTION(this);
 }
@@ -101,16 +102,21 @@ CfUnitUeIso::ExecuteUeTask(uint64_t ueId, UeTaskModel ueTask)
     {
         CfModel ueCf = it->second;
         double executeLatency = 1000 * ueTask.m_cfLoad / ueCf.m_cfCapacity; // ms
-        Simulator::Schedule(MilliSeconds(executeLatency),
-                            &CfUnitUeIso::EndUeTask,
-                            this,
-                            ueId,
-                            ueTask);
+        Simulator::Schedule(
+            MicroSeconds(executeLatency * 1000),
+            &CfUnitUeIso::EndUeTask,
+            this,
+            ueId,
+            ueTask);
         m_busy[ueId] = true;
         NS_LOG_DEBUG("The computing latency of (UE, Task) " << ueId << " " << ueTask.m_taskId
                                                             << " is " << executeLatency << "ms");
 
-        m_processTaskTrace(ueId, ueTask.m_taskId, Simulator::Now().GetTimeStep(), ProcessTask, None);
+        m_processTaskTrace(ueId,
+                           ueTask.m_taskId,
+                           Simulator::Now().GetTimeStep(),
+                           ProcessTask,
+                           None);
     }
     else
     {
@@ -146,10 +152,29 @@ CfUnitUeIso::ReAllocateCf()
 {
     uint16_t ueNum = m_cfAllocation.size();
 
+    // for (auto it = m_cfAllocation.begin(); it != m_cfAllocation.end(); it++)
+    // {
+    //     it->second = m_cf / ueNum;
+    //     NS_LOG_DEBUG("UE " << it->first << " get " << m_cf / ueNum << "TFLOPS");
+    // }
+    Ptr<CfranSystemInfo> systemInfo = m_cfApplication->GetSystemInfo();
+
     for (auto it = m_cfAllocation.begin(); it != m_cfAllocation.end(); it++)
     {
-        it->second = m_cf / ueNum;
-        NS_LOG_DEBUG("UE " << it->first << " get " << m_cf / ueNum << "TFLOPS");
+        for (auto itLatency = m_latencyGear.begin(); itLatency != m_latencyGear.end(); itLatency++)
+        {
+            uint64_t ueId = it->first;
+            double taskLoad = systemInfo->GetUeInfo(ueId).m_taskModel.m_cfLoad;
+            double cfPrediction = taskLoad / *itLatency;
+
+            if (ueNum * cfPrediction < m_cf.m_cfCapacity)
+            {
+                it->second = CfModel(m_cf.m_cfType, cfPrediction);
+                NS_LOG_INFO("CfUnit " << m_id << " UE " << ueId << " cfCapacity " << cfPrediction
+                                      << " latency " << *itLatency);
+                break;
+            }
+        }
     }
 }
 

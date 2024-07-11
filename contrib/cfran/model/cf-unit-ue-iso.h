@@ -43,9 +43,13 @@ class CfUnitUeIso : public CfUnit
   private:
     std::map<uint64_t, std::queue<UeTaskModel>> m_ueTask;
 
+    std::map<uint64_t, UeTaskModel> m_ueTaskInfo;
+
     std::map<uint64_t, CfModel> m_cfAllocation;
 
     std::map<uint64_t, bool> m_busy;
+
+    std::vector<double> m_latencyGear;
 
 };
 
