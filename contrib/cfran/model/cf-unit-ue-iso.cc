@@ -170,7 +170,7 @@ CfUnitUeIso::ReAllocateCf()
             if (ueNum * cfPrediction < m_cf.m_cfCapacity)
             {
                 it->second = CfModel(m_cf.m_cfType, cfPrediction);
-                NS_LOG_INFO("CfUnit " << m_id << " UE " << ueId << " cfCapacity " << cfPrediction
+                NS_LOG_INFO("CfUnit " << m_id << " Capacity " << m_cf.m_cfCapacity << " UeNum " << ueNum << " UE " << ueId << " cfCapacity " << cfPrediction
                                       << " latency " << *itLatency);
                 break;
             }

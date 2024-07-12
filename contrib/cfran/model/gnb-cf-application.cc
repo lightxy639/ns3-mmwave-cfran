@@ -430,7 +430,7 @@ GnbCfApplication::ProcessPacketFromUe(Ptr<Packet> packet)
             // NS_LOG_INFO("Report to RIC and wait for command.");
             // SendNewUeReport(cfRadioHeader.GetUeId());
             Ptr<UniformRandomVariable> uv = CreateObject<UniformRandomVariable>();
-            Simulator::Schedule(MilliSeconds(uv->GetInteger(0, 20)),
+            Simulator::Schedule(MilliSeconds(uv->GetInteger(0, 50)),
                                 &GnbCfApplication::SendUeEventMessage,
                                 this,
                                 cfRadioHeader.GetUeId(),
@@ -509,7 +509,7 @@ GnbCfApplication::ProcessPacketFromUe(Ptr<Packet> packet)
         uint64_t ueId = cfRadioHeader.GetUeId();
 
         Ptr<UniformRandomVariable> uv = CreateObject<UniformRandomVariable>();
-        Simulator::Schedule(MilliSeconds(uv->GetInteger(0, 20)),
+        Simulator::Schedule(MilliSeconds(uv->GetInteger(0, 50)),
                             &GnbCfApplication::SendUeEventMessage,
                             this,
                             cfRadioHeader.GetUeId(),

@@ -1054,16 +1054,24 @@ main(int argc, char* argv[])
     CfModel gnbCfModel("GPU", 82.6);
     CfModel edgeCfModel("GPU", 200);
     CfModel centralCfModel("GPU", 500);
-    ObjectFactory cfUnitObj;
+    
+    ObjectFactory gnbCfUnitObj;
+    ObjectFactory edgeCfUnitObj;
+    ObjectFactory centralfUnitObj;
+    gnbCfUnitObj.SetTypeId("ns3::CfUnitUeIso");
+    edgeCfUnitObj.SetTypeId("ns3::CfUnitUeIso");
+    centralfUnitObj.SetTypeId("ns3::CfUnitUeIso");
+
+    gnbCfUnitObj.Set("CfModel", CfModelValue(gnbCfModel));
+    edgeCfUnitObj.Set("CfModel", CfModelValue(edgeCfModel));
+    centralfUnitObj.Set("CfModel", CfModelValue(centralCfModel));
     // cfUnitObj.Set("EnableAutoSchedule", BooleanVaslue(false));
 
     Ptr<CfRanHelper> cfRanHelper = CreateObject<CfRanHelper>();
-    cfUnitObj.Set("CfModel", CfModelValue(gnbCfModel));
-    cfRanHelper->InstallCfUnit(mmWaveEnbNodes, cfUnitObj);
-    cfUnitObj.Set("CfModel", CfModelValue(edgeCfModel));
-    cfRanHelper->InstallCfUnit(edgeContainer, cfUnitObj);
-    cfUnitObj.Set("CfModel", CfModelValue(centralCfModel));
-    cfRanHelper->InstallCfUnit(centralContainer, cfUnitObj);
+
+    cfRanHelper->InstallCfUnit(mmWaveEnbNodes, gnbCfUnitObj);
+    cfRanHelper->InstallCfUnit(edgeContainer, edgeCfUnitObj);
+    cfRanHelper->InstallCfUnit(centralContainer, centralfUnitObj);
 
     // for (uint32_t u = 0; u < mcUeDevs.GetN(); ++u)
     // {

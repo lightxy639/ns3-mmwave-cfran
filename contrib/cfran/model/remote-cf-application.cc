@@ -172,7 +172,7 @@ RemoteCfApplication::ProcessPacketFromUe(Ptr<Packet> packet)
 
         // SendUeEventMessage(ueId, CfranSystemInfo::UeRandomAction::Leave);
         Ptr<UniformRandomVariable> uv = CreateObject<UniformRandomVariable>();
-        Simulator::Schedule(MilliSeconds(uv->GetInteger(0, 20)),
+        Simulator::Schedule(MilliSeconds(uv->GetInteger(0, 50)),
                             &RemoteCfApplication::SendUeEventMessage,
                             this,
                             cfRadioHeader.GetUeId(),
