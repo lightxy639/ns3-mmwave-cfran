@@ -2200,10 +2200,31 @@ MmWaveHelper::InstallSingleEnbDevice(Ptr<Node> n)
             sockaddr_in clientAddr, serverAddr;
             const uint16_t local_port = m_e2localPort + (uint16_t)cellId;
             int status;
+            // if ((clientFd = socket(AF_INET, SOCK_STREAM, 0)) < 0)
             if ((clientFd = socket(AF_INET, SOCK_STREAM, 0)) < 0)
             {
                 NS_FATAL_ERROR("Test socket creation error");
             }
+
+            // int err = -1;
+            // unsigned long snd_size = 0;
+            // socklen_t optlen;
+            // optlen = sizeof(snd_size);
+            // err = getsockopt(clientFd, SOL_SOCKET, SO_SNDBUF, &snd_size, &optlen);
+            // if (err)
+            // {
+            //     printf("获取发送缓冲区大小错误!!!\n");
+            // }
+            // printf("发送缓冲区原始大小为:%ld \n", snd_size);
+
+            // snd_size = 1024; /*发送缓冲区大小为4k*/
+            // optlen = sizeof(snd_size);
+            // err = setsockopt(clientFd, SOL_SOCKET, SO_SNDBUF, &snd_size, optlen);
+            // if (err)
+            // {
+            //     printf("获取发送缓冲区大小错误!!!\n");
+            // }
+
             clientAddr.sin_family = AF_INET;
             clientAddr.sin_addr.s_addr = INADDR_ANY;
             clientAddr.sin_port = htons(local_port);
@@ -2229,7 +2250,7 @@ MmWaveHelper::InstallSingleEnbDevice(Ptr<Node> n)
                 NS_LOG_UNCOND("Connect success: "
                               << "Port " << local_port);
             }
-            
+
             device->SetClientFd(clientFd);
         }
 

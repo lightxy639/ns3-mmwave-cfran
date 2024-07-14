@@ -233,6 +233,10 @@ UeCfApplication::SendInitRequest()
         rlcIntercept = false;
         NS_LOG_INFO("UE " << m_ueId << " send init request to remote server " << m_offloadPointId);
     }
+    else
+    {
+        NS_FATAL_ERROR("Unexpected situation");
+    }
 
     CfRadioHeader cfRadioHeader;
     cfRadioHeader.SetMessageType(CfRadioHeader::InitRequest);
@@ -611,7 +615,8 @@ UeCfApplication::RecvFromNetwork(Ptr<Packet> p)
     }
     else
     {
-        NS_FATAL_ERROR("Unexecpted message type " << cfRadioHeader.GetMessageType());
+        // NS_FATAL_ERROR("Unexecpted message type " << cfRadioHeader.GetMessageType());
+        std::cout << Simulator::Now().GetSeconds() << "Unexecpted message type " << cfRadioHeader.GetMessageType() << " UE " << m_ueId << std::endl;
     }
 }
 
@@ -768,6 +773,7 @@ UeCfApplication::ChangeStatus()
     {
         NS_ASSERT(m_active == false);
         NS_LOG_INFO("UE " << m_ueId << " arrive");
+        std::cout << Simulator::Now().GetSeconds() << "s" << " UE " << m_ueId << " arrive" << std::endl;
         m_active = true;
         SendInitRequest();
     }
@@ -775,12 +781,15 @@ UeCfApplication::ChangeStatus()
     else if (action == CfranSystemInfo::Hold)
     {
         NS_LOG_INFO("Ue " << m_ueId << " keep the state unchanged");
+        std::cout << Simulator::Now().GetSeconds() << "s" << " UE " << m_ueId << " keep the state unchanged" << std::endl;
     }
 
     else if (action == CfranSystemInfo::Leave)
     {
         NS_ASSERT(m_active == true);
         NS_LOG_INFO("UE " << m_ueId << " leave");
+        std::cout << Simulator::Now().GetSeconds() << "s" << " UE " << m_ueId << " leave" << std::endl;
+        
 
         m_active = false;
         Simulator::Cancel(m_reqEventId);

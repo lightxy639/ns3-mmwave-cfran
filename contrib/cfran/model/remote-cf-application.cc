@@ -34,6 +34,10 @@ RemoteCfApplication::RemoteCfApplication()
 RemoteCfApplication::~RemoteCfApplication()
 {
     NS_LOG_FUNCTION(this);
+    if (m_clientFd > 0)
+    {
+        shutdown(m_clientFd, SHUT_RDWR);
+    }
 }
 
 void
@@ -172,7 +176,7 @@ RemoteCfApplication::ProcessPacketFromUe(Ptr<Packet> packet)
 
         // SendUeEventMessage(ueId, CfranSystemInfo::UeRandomAction::Leave);
         Ptr<UniformRandomVariable> uv = CreateObject<UniformRandomVariable>();
-        Simulator::Schedule(MilliSeconds(uv->GetInteger(0, 50)),
+        Simulator::Schedule(MilliSeconds(uv->GetInteger(0, 20)),
                             &RemoteCfApplication::SendUeEventMessage,
                             this,
                             cfRadioHeader.GetUeId(),
@@ -412,6 +416,7 @@ RemoteCfApplication::BuildAndSendE2Report()
     // printf("Compressed string is: %s\n", b);
 
     std::string base64String = base64_encode((const unsigned char*)b, defstream.total_out);
+    base64String += "|";
     // NS_LOG_DEBUG("base64String: " << base64String);
     // NS_LOG_DEBUG("base64String size: " << base64String.length());
 
@@ -608,6 +613,7 @@ RemoteCfApplication::SendUeEventMessage(uint64_t ueId, CfranSystemInfo::UeRandom
     deflateEnd(&defstream);
 
     std::string base64String = base64_encode((const unsigned char*)b, defstream.total_out);
+    base64String += "|";
 
     if (m_e2term != nullptr)
     {
@@ -642,10 +648,12 @@ RemoteCfApplication::SendUeEventMessage(uint64_t ueId, CfranSystemInfo::UeRandom
         if (send(m_clientFd, base64String.c_str(), base64String.length(), 0) < 0)
         {
             NS_LOG_ERROR("Error when send cell data.");
+            std::cout << "Error when send cell data." << std::endl;
         }
     }
 
     NS_LOG_INFO("RemoteServer " << m_serverId << " send event message of UE " << ueId);
+    std::cout << "RemoteServer " << m_serverId << " send event message of UE " << ueId << std::endl;
 }
 
 void

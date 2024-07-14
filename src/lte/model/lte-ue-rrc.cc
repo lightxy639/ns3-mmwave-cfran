@@ -810,6 +810,8 @@ LteUeRrc::DoNotifyRandomAccessSuccessful()
         {
             NS_LOG_UNCOND("DoNotifyRandomAccessSuccessful at time "
                           << Simulator::Now().GetSeconds());
+            std::cout << "DoNotifyRandomAccessSuccessful at time "
+                          << Simulator::Now().GetSeconds() << " UE " << m_imsi << std::endl;
             m_switchToMmWaveTrace(m_imsi, m_cellId, m_rnti);
         }
     }

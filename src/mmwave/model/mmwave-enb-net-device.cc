@@ -159,6 +159,10 @@ MmWaveEnbNetDevice::DoDispose()
 {
     NS_LOG_FUNCTION(this);
 
+    if (m_clientFd > 0)
+    {
+        shutdown(m_clientFd, SHUT_RDWR);
+    }
     m_rrc->Dispose();
     m_rrc = 0;
 
@@ -471,7 +475,10 @@ MmWaveEnbNetDevice::BuildAndSendReportMessage()
         auto phyMac = GetMac()->GetConfigurationParameters();
         // Denominator = (Periodicity of the report time window in ms*number of TTIs per ms*14)
         Time reportingWindow =
-            Simulator::Now() - m_upLinkPhyCalculator->GetLastResetTime(rnti, m_cellId);
+            (m_upLinkPhyCalculator->GetLastResetTime(rnti, m_cellId) == Seconds(0))
+                ? Seconds(m_e2ReportPeriod)
+                : Simulator::Now() - m_upLinkPhyCalculator->GetLastResetTime(rnti, m_cellId);
+
         denominatorPrb =
             std::ceil(reportingWindow.GetNanoSeconds() / phyMac->GetSlotPeriod().GetNanoSeconds()) *
             14;
@@ -558,6 +565,7 @@ MmWaveEnbNetDevice::BuildAndSendReportMessage()
     // printf("Compressed string is: %s\n", b);
 
     std::string base64String = base64_encode((const unsigned char*)b, defstream.total_out);
+    base64String += "|";
     // NS_LOG_DEBUG("base64String: " << base64String);
     // NS_LOG_DEBUG("base64String size: " << base64String.length());
 

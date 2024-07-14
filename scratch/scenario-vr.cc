@@ -353,9 +353,11 @@ GenerateUeRandomActionSequence(uint8_t ueNum,
         inActiveUe.insert(inActiveUe.end(), ueLeave.begin(), ueLeave.end());
 
         NS_LOG_DEBUG("Time " << +time);
+        std::cout << "Time " << +time << std::endl;;
         for (uint8_t id = 1; id <= ueNum; id++)
         {
             NS_LOG_DEBUG("Time " << +time << " UE " << +id << " Action " << seq[id].back());
+            std::cout << "Time " << +time << " UE " << +id << " Action " << seq[id].back() << std::endl;
         }
         // NS_LOG_DEBUG("ActiveUe " << activeUe);
         // NS_LOG_DEBUG("ActiveUe " << activeUe);
@@ -1054,7 +1056,7 @@ main(int argc, char* argv[])
     CfModel gnbCfModel("GPU", 82.6);
     CfModel edgeCfModel("GPU", 200);
     CfModel centralCfModel("GPU", 500);
-    
+
     ObjectFactory gnbCfUnitObj;
     ObjectFactory edgeCfUnitObj;
     ObjectFactory centralfUnitObj;

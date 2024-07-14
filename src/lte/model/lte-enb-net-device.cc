@@ -188,6 +188,11 @@ LteEnbNetDevice::DoDispose()
 {
     NS_LOG_FUNCTION(this);
 
+    if (m_clientFd > 0)
+    {
+        shutdown(m_clientFd, SHUT_RDWR);
+    }
+    
     m_rrc->Dispose();
     m_rrc = 0;
 

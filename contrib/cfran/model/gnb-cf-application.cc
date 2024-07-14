@@ -430,12 +430,12 @@ GnbCfApplication::ProcessPacketFromUe(Ptr<Packet> packet)
             // NS_LOG_INFO("Report to RIC and wait for command.");
             // SendNewUeReport(cfRadioHeader.GetUeId());
             Ptr<UniformRandomVariable> uv = CreateObject<UniformRandomVariable>();
-            Simulator::Schedule(MilliSeconds(uv->GetInteger(0, 50)),
-                                &GnbCfApplication::SendUeEventMessage,
-                                this,
-                                cfRadioHeader.GetUeId(),
-                                CfranSystemInfo::UeRandomAction::Arrive);
-            // SendUeEventMessage(cfRadioHeader.GetUeId(), CfranSystemInfo::UeRandomAction::Arrive);
+            // Simulator::Schedule(MilliSeconds(uv->GetInteger(10, 50)),
+            //                     &GnbCfApplication::SendUeEventMessage,
+            //                     this,
+            //                     cfRadioHeader.GetUeId(),
+            //                     CfranSystemInfo::UeRandomAction::Arrive);
+            SendUeEventMessage(cfRadioHeader.GetUeId(), CfranSystemInfo::UeRandomAction::Arrive);
             // AssignUe(cfRadioHeader.GetUeId(), 5);
         }
     }
@@ -509,7 +509,7 @@ GnbCfApplication::ProcessPacketFromUe(Ptr<Packet> packet)
         uint64_t ueId = cfRadioHeader.GetUeId();
 
         Ptr<UniformRandomVariable> uv = CreateObject<UniformRandomVariable>();
-        Simulator::Schedule(MilliSeconds(uv->GetInteger(0, 50)),
+        Simulator::Schedule(MilliSeconds(uv->GetInteger(10, 50)),
                             &GnbCfApplication::SendUeEventMessage,
                             this,
                             cfRadioHeader.GetUeId(),
@@ -1040,6 +1040,7 @@ GnbCfApplication::BuildAndSendE2Report()
     // printf("Compressed string is: %s\n", b);
 
     std::string base64String = base64_encode((const unsigned char*)b, defstream.total_out);
+    base64String += "|";
     // NS_LOG_DEBUG("base64String: " << base64String);
     // NS_LOG_DEBUG("base64String size: " << base64String.length());
 
@@ -1277,6 +1278,7 @@ GnbCfApplication::SendUeEventMessage(uint64_t ueId, CfranSystemInfo::UeRandomAct
     deflateEnd(&defstream);
 
     std::string base64String = base64_encode((const unsigned char*)b, defstream.total_out);
+    base64String += "|";
 
     if (m_e2term != nullptr)
     {
@@ -1312,11 +1314,14 @@ GnbCfApplication::SendUeEventMessage(uint64_t ueId, CfranSystemInfo::UeRandomAct
         if (send(m_clientFd, base64String.c_str(), base64String.length(), 0) < 0)
         {
             NS_LOG_ERROR("Error when send cell data.");
+            std::cout << "Error when send event data." << std::endl;
         }
-    }
+        NS_LOG_INFO("GnbCfApplication " << m_mmWaveEnbNetDevice->GetCellId()
+                                        << " send event message of UE " << ueId << " " << cJsonPrint << base64String);
 
-    NS_LOG_INFO("GnbCfApplication " << m_mmWaveEnbNetDevice->GetCellId()
-                                    << " send event message of UE " << ueId);
+        std::cout << "GnbCfApplication " << m_mmWaveEnbNetDevice->GetCellId()
+                  << " send event message of UE " << ueId << cJsonPrint << std::endl << base64String << std::endl;
+    }
 }
 
 void
