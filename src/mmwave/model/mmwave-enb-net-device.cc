@@ -442,10 +442,16 @@ MmWaveEnbNetDevice::BuildAndSendReportMessage()
     double cellUplinkSymbols = 0;
     double cellDownlinkSymbols = 0;
 
+    uint32_t macPduCellSpecific = 0;
+    // only for downlink
+    uint32_t macQpskCellSpecific = 0;
+    uint32_t mac16QamCellSpecific = 0;
+    uint32_t mac64QamCellSpecific = 0;
+    uint32_t macRetxCellSpecific = 0;
+
     auto ueMap = m_rrc->GetUeMap();
 
     NS_LOG_DEBUG("Cell " << m_cellId << " UeMap size " << ueMap.size());
-    uint32_t macPduCellSpecific = 0;
 
     cJSON* ueMsgArray = cJSON_AddArrayToObject(msg, "UeMsgArray");
 
@@ -454,10 +460,6 @@ MmWaveEnbNetDevice::BuildAndSendReportMessage()
         uint64_t imsi = ue.second->GetImsi();
         std::string ueImsiComplete = GetImsiString(imsi);
         uint16_t rnti = ue.second->GetRnti();
-
-        uint32_t macPduUe = m_upLinkPhyCalculator->GetMacPduUeSpecific(rnti, m_cellId);
-
-        macPduCellSpecific += macPduUe;
 
         // Numerator = (Sum of number of symbols across all rows (TTIs) group by cell ID and UE ID
         // within a given time window)
@@ -471,6 +473,22 @@ MmWaveEnbNetDevice::BuildAndSendReportMessage()
 
         cellUplinkSymbols += macUplinkNumberOfSymbols;
         cellDownlinkSymbols += macDownlinkNumberOfSymbols;
+
+        uint32_t macPduUe = m_downLinkPhyCalculator->GetMacPduUeSpecific(rnti, m_cellId);
+        macPduCellSpecific += macPduUe;
+
+        uint32_t macQpsk = m_downLinkPhyCalculator->GetMacPduQpskUeSpecific(rnti, m_cellId);
+        macQpskCellSpecific += macQpsk;
+
+        uint32_t mac16Qam = m_downLinkPhyCalculator->GetMacPdu16QamUeSpecific(rnti, m_cellId);
+        mac16QamCellSpecific += mac16Qam;
+
+        uint32_t mac64Qam = m_downLinkPhyCalculator->GetMacPdu64QamUeSpecific(rnti, m_cellId);
+        mac64QamCellSpecific += mac64Qam;
+
+        uint32_t macRetx =
+            m_downLinkPhyCalculator->GetMacPduRetransmissionUeSpecific(rnti, m_cellId);
+        macRetxCellSpecific += macRetx;
 
         auto phyMac = GetMac()->GetConfigurationParameters();
         // Denominator = (Periodicity of the report time window in ms*number of TTIs per ms*14)
@@ -508,7 +526,21 @@ MmWaveEnbNetDevice::BuildAndSendReportMessage()
             (downlinkRlcLatency == 0) ? 0 : downlinkpduStats / downlinkRlcLatency; // unit kbit/s
         double downlinkThroughput = downlinkDataSize / periodTime;
 
+        double pdcpPeriodTime =
+            (Simulator::Now() - m_pdcpStatsCalculator->GetLastImsiLcidResetTime(imsi, 3))
+                .GetMilliSeconds();
+        double downlinkPdcpLatency = m_pdcpStatsCalculator->GetDlDelay(imsi, 3) / 1e6;
+        double downlinkPdcpPduStats =
+            m_pdcpStatsCalculator->GetDlPduSizeStats(imsi, 3)[0] * 8.0 / 1e3;
+        double downlinkPdcpDataSize = m_pdcpStatsCalculator->GetDlRxData(imsi, 3) * 8.0 / 1e3;
+        double downlinkPdcpBitrate =
+            (downlinkPdcpLatency == 0) ? 0
+                                       : downlinkPdcpPduStats / downlinkPdcpLatency; // unit kbit/s
+        double downlinkPdcpThroughput = downlinkPdcpDataSize / pdcpPeriodTime;
+
         m_rlcStatsCalculator->ResetResultsForImsiLcid(imsi, 3);
+        m_pdcpStatsCalculator->ResetResultsForImsiLcid(imsi, 3);
+
         NS_LOG_DEBUG("Period Time: " << periodTime << "s");
         NS_LOG_DEBUG("uplink RLC latency " << uplinkRlcLatency << "ms "
                                            << " dataSize " << uplinkDataSize << "kbit "
@@ -523,12 +555,19 @@ MmWaveEnbNetDevice::BuildAndSendReportMessage()
         cJSON_AddNumberToObject(ueMsg, "imsi", imsi);
         cJSON_AddNumberToObject(ueMsg, "upPrb", macUplinkNumberOfSymbols);
         cJSON_AddNumberToObject(ueMsg, "downPrb", macDownlinkNumberOfSymbols);
+        cJSON_AddNumberToObject(ueMsg, "downMacPdu", macPduUe);
+        cJSON_AddNumberToObject(ueMsg, "downMacQpsk", macQpsk);
+        cJSON_AddNumberToObject(ueMsg, "downMac16Qam", mac16Qam);
+        cJSON_AddNumberToObject(ueMsg, "downMac64Qam", mac64Qam);
+        cJSON_AddNumberToObject(ueMsg, "downMacRetx", macRetx);
         cJSON_AddNumberToObject(ueMsg, "upRlcLatency", uplinkRlcLatency);
         cJSON_AddNumberToObject(ueMsg, "upThroughput", uplinkThroughput);
         cJSON_AddNumberToObject(ueMsg, "upRlcSize", uplinkDataSize);
         cJSON_AddNumberToObject(ueMsg, "downRlcLatency", downlinkRlcLatency);
         cJSON_AddNumberToObject(ueMsg, "downRlcSize", downlinkDataSize);
         cJSON_AddNumberToObject(ueMsg, "downThroughput", downlinkThroughput);
+        cJSON_AddNumberToObject(ueMsg, "downPdcpSize", downlinkPdcpDataSize);
+        cJSON_AddNumberToObject(ueMsg, "downPdcpLatency", downlinkPdcpLatency);
 
         cJSON_AddItemToArray(ueMsgArray, ueMsg);
     }
@@ -536,6 +575,11 @@ MmWaveEnbNetDevice::BuildAndSendReportMessage()
     cJSON_AddNumberToObject(msg, "cellUpPrb", cellUplinkSymbols);
     cJSON_AddNumberToObject(msg, "cellDnPrb", cellDownlinkSymbols);
     cJSON_AddNumberToObject(msg, "totalPrb", denominatorPrb);
+    cJSON_AddNumberToObject(msg, "cellDnMacPdu", macPduCellSpecific);
+    cJSON_AddNumberToObject(msg, "cellDnMacQpsk", macQpskCellSpecific);
+    cJSON_AddNumberToObject(msg, "cellDnMac16Qam", mac16QamCellSpecific);
+    cJSON_AddNumberToObject(msg, "cellDnMac64Qam", mac64QamCellSpecific);
+    cJSON_AddNumberToObject(msg, "cellDnMacRetx", macRetxCellSpecific);
 
     std::string cJsonPrint = cJSON_PrintUnformatted(msg);
     const char* reportString = cJsonPrint.c_str();

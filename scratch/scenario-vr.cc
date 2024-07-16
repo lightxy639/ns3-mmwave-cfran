@@ -440,7 +440,7 @@ static ns3::GlobalValue g_noiseAndFilter(
     ns3::MakeBooleanChecker());
 static ns3::GlobalValue g_handoverMode("handoverMode",
                                        "Handover mode",
-                                       ns3::UintegerValue(3),
+                                       ns3::UintegerValue(4),
                                        ns3::MakeUintegerChecker<uint8_t>());
 static ns3::GlobalValue g_reportTablePeriodicity("reportTablePeriodicity",
                                                  "Periodicity of RTs",
@@ -1207,7 +1207,7 @@ main(int argc, char* argv[])
     double serverAppStartTime = 0.3;
     double clientAppStartTime = 0.9;
 
-    uint16_t maxCycles = 7;
+    uint16_t maxCycles = 10;
 
     double simTime = maxCycles * statePeriod + 1;
 
