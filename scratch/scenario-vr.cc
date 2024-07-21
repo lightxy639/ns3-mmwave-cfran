@@ -774,8 +774,8 @@ main(int argc, char* argv[])
 
     uint8_t nEdgeNodes = 2;
     uint8_t nCentralNodes = 1;
-    float edgeLatency = 5;
-    float centralLatency = 10;
+    float edgeLatency = 5 - (x2Latency + s1ULatency) / 1000;
+    float centralLatency = 10 - (x2Latency + s1ULatency) / 1000;
 
     NodeContainer edgeContainer;
     NodeContainer centralContainer;
@@ -801,7 +801,7 @@ main(int argc, char* argv[])
         PointToPointHelper p2ph;
         p2ph.SetDeviceAttribute("DataRate", DataRateValue(DataRate("100Gb/s")));
         p2ph.SetDeviceAttribute("Mtu", UintegerValue(2500));
-        p2ph.SetChannelAttribute("Delay", TimeValue(MilliSeconds(hostGwLatency)));
+        p2ph.SetChannelAttribute("Delay", TimeValue(MicroSeconds(hostGwLatency * 1000)));
         NetDeviceContainer internetDevices = p2ph.Install(pgw, remoteHost);
 
         Ipv4InterfaceContainer internetIpIfaces = ipv4h.Assign(internetDevices);
@@ -1101,8 +1101,11 @@ main(int argc, char* argv[])
     // }
 
     CfranSystemInfo::WiredLatencyInfo wiredLatencyInfo;
-    wiredLatencyInfo.m_s1ULatency = s1ULatency * 1e3; // ns
-    wiredLatencyInfo.m_x2Latency = x2Latency * 1e3;   // ns
+    wiredLatencyInfo.m_edgeLatency = edgeLatency;
+    wiredLatencyInfo.m_centralLatency = centralLatency;
+
+    wiredLatencyInfo.m_s1ULatency = s1ULatency / 1e3; // ms
+    wiredLatencyInfo.m_x2Latency = x2Latency / 1e3;   // ms
     cfranSystemInfo->SetWiredLatencyInfo(wiredLatencyInfo);
 
     Config::SetDefault("ns3::CfApplication::CfranSystemInfomation", PointerValue(cfranSystemInfo));
@@ -1160,7 +1163,7 @@ main(int argc, char* argv[])
         ueInfo.m_ipAddr = ueAddr;
         ueInfo.m_port = 2345;
         ueInfo.m_taskModel = ueTaskModel;
-        ueInfo.m_taskPeriodity = 16;
+        ueInfo.m_taskPeriodity = 1.0 / 60 * 1000;
         ueInfo.m_mcUeNetDevice = mcUeDev;
         ueInfo.m_ueCfApp = ueCfApp;
 

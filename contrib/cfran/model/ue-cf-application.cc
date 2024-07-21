@@ -385,7 +385,7 @@ UeCfApplication::SendTaskRequest(uint64_t offloadPointId)
                       << m_offloadPointId << " rlcIntercept tag " << rlcIntercept);
 
     m_taskId++;
-    m_reqEventId = Simulator::Schedule(MilliSeconds(m_period),
+    m_reqEventId = Simulator::Schedule(MicroSeconds(m_period * 1000),
                                        &UeCfApplication::SendTaskRequest,
                                        this,
                                        offloadPointId);

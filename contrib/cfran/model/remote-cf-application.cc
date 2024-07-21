@@ -309,6 +309,13 @@ RemoteCfApplication::BuildAndSendE2Report()
     cJSON_AddNumberToObject(msg, "updateTime", Simulator::Now().GetSeconds());
     cJSON_AddStringToObject(msg, "msgType", "KpmIndication");
     cJSON_AddNumberToObject(msg, "timeStamp", m_reportTimeStamp++);
+    cJSON_AddNumberToObject(msg, "cfCapacity", m_cfUnit->GetCf().m_cfCapacity);
+
+    cJSON_AddNumberToObject(msg,
+                            "wdLatency",
+                            m_cfranSystemInfo->GetRemoteInfo(m_serverId).m_hostGwLatency +
+                                m_cfranSystemInfo->GetWiredLatencyInfo().m_x2Latency +
+                                m_cfranSystemInfo->GetWiredLatencyInfo().m_s1ULatency);
 
     cJSON* ueMsgArray = cJSON_AddArrayToObject(msg, "UeMsgArray");
 

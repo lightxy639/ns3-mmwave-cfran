@@ -69,6 +69,8 @@ class CfranSystemInfo : public Object
 
     struct WiredLatencyInfo
     {
+        float m_edgeLatency;
+        float m_centralLatency;
         float m_s1ULatency; // ms
         float m_x2Latency;  // ms
     };

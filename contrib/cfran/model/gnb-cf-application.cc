@@ -928,6 +928,8 @@ GnbCfApplication::BuildAndSendE2Report()
     cJSON_AddNumberToObject(msg, "updateTime", Simulator::Now().GetSeconds());
     cJSON_AddStringToObject(msg, "msgType", "KpmIndication");
     cJSON_AddNumberToObject(msg, "timeStamp", m_reportTimeStamp++);
+    cJSON_AddNumberToObject(msg, "cfCapacity", m_cfUnit->GetCf().m_cfCapacity);
+    cJSON_AddNumberToObject(msg, "x2Latency", m_cfranSystemInfo->GetWiredLatencyInfo().m_x2Latency);
 
     cJSON* ueMsgArray = cJSON_AddArrayToObject(msg, "UeMsgArray");
     for (auto it = m_ueState.begin(); it != m_ueState.end(); it++)

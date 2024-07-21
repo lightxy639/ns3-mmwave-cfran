@@ -102,15 +102,16 @@ CfUnitUeIso::ExecuteUeTask(uint64_t ueId, UeTaskModel ueTask)
     {
         CfModel ueCf = it->second;
         double executeLatency = 1000 * ueTask.m_cfLoad / ueCf.m_cfCapacity; // ms
-        Simulator::Schedule(
-            MicroSeconds(executeLatency * 1000),
-            &CfUnitUeIso::EndUeTask,
-            this,
-            ueId,
-            ueTask);
+        Simulator::Schedule(MicroSeconds(executeLatency * 1000),
+                            &CfUnitUeIso::EndUeTask,
+                            this,
+                            ueId,
+                            ueTask);
         m_busy[ueId] = true;
         NS_LOG_DEBUG("The computing latency of (UE, Task) " << ueId << " " << ueTask.m_taskId
                                                             << " is " << executeLatency << "ms");
+        // std::cout << "The computing latency of (UE, Task) " << ueId << " " << ueTask.m_taskId
+        //           << " is " << executeLatency << "ms" << " " << ueCf.m_cfCapacity << "TFLOPs\n" ;
 
         m_processTaskTrace(ueId,
                            ueTask.m_taskId,
@@ -170,8 +171,12 @@ CfUnitUeIso::ReAllocateCf()
             if (ueNum * cfPrediction < m_cf.m_cfCapacity)
             {
                 it->second = CfModel(m_cf.m_cfType, cfPrediction);
-                NS_LOG_INFO("CfUnit " << m_id << " Capacity " << m_cf.m_cfCapacity << " UeNum " << ueNum << " UE " << ueId << " cfCapacity " << cfPrediction
+                NS_LOG_INFO("CfUnit " << m_id << " Capacity " << m_cf.m_cfCapacity << " UeNum "
+                                      << ueNum << " UE " << ueId << " cfCapacity " << cfPrediction
                                       << " latency " << *itLatency);
+                // std::cout << "CfUnit " << m_id << " Capacity " << m_cf.m_cfCapacity << " UeNum "
+                //           << ueNum << " UE " << ueId << " cfCapacity " << cfPrediction
+                //           << " latency " << *itLatency << std::endl;
                 break;
             }
         }

@@ -69,4 +69,10 @@ CfUnit::SetCfApplication(Ptr<CfApplication> cfApp)
     m_cfApplication = cfApp;
 }
 
+CfModel
+CfUnit::GetCf()
+{
+    return m_cf;
+}
+
 } // namespace ns3
