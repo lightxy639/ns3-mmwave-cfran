@@ -791,7 +791,14 @@ RemoteCfApplication::ExecuteCommands()
             cfrHeader.SetGnbId(m_serverId);
             refusePacket->AddHeader(cfrHeader);
 
-            SendPacketToUe(ueId, refusePacket);
+            if(!m_enableIdealProtocol)
+            {
+                SendPacketToUe(ueId, refusePacket);
+            }
+            else
+            {
+                m_cfranSystemInfo->GetUeInfo(ueId).m_ueCfApp->RecvFromNetwork(refusePacket);
+            }
         }
     }
 

@@ -516,6 +516,11 @@ GnbCfApplication::ProcessPacketFromUe(Ptr<Packet> packet)
                             CfranSystemInfo::UeRandomAction::Leave);
         // SendUeEventMessage(ueId, CfranSystemInfo::Leave);
 
+        // This is considered an event message sent by a user who has been denied service
+        if (offloadGnbId == 0)
+        {
+            return;
+        }
         if (hereGnbId == offloadGnbId)
         {
             Simulator::Schedule(Seconds((double)m_e2ReportPeriod / 2),
@@ -1220,7 +1225,21 @@ GnbCfApplication::ExecuteCommands()
                 m_cfUnit->DeleteUe(ueId);
             }
 
-            SendRefuseInformationToUe(ueId);
+            if (!m_enableIdealProtocol)
+            {
+                SendRefuseInformationToUe(ueId);
+            }
+            else
+            {
+                Ptr<Packet> refusePacket = Create<Packet>(500);
+                CfRadioHeader cfrHeader;
+                cfrHeader.SetMessageType(CfRadioHeader::RefuseInform);
+                cfrHeader.SetUeId(ueId);
+                refusePacket->AddHeader(cfrHeader);
+
+                m_cfranSystemInfo->GetUeInfo(ueId).m_ueCfApp->RecvFromNetwork(refusePacket);
+
+            }
         }
         // AssignUe(uePolicy.m_ueId, uePolicy.m_offloadPointId);
     }
@@ -1319,10 +1338,12 @@ GnbCfApplication::SendUeEventMessage(uint64_t ueId, CfranSystemInfo::UeRandomAct
             std::cout << "Error when send event data." << std::endl;
         }
         NS_LOG_INFO("GnbCfApplication " << m_mmWaveEnbNetDevice->GetCellId()
-                                        << " send event message of UE " << ueId << " " << cJsonPrint << base64String);
+                                        << " send event message of UE " << ueId << " " << cJsonPrint
+                                        << base64String);
 
         std::cout << "GnbCfApplication " << m_mmWaveEnbNetDevice->GetCellId()
-                  << " send event message of UE " << ueId << cJsonPrint << std::endl << base64String << std::endl;
+                  << " send event message of UE " << ueId << cJsonPrint << std::endl
+                  << base64String << std::endl;
     }
 }
 

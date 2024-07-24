@@ -441,7 +441,11 @@ UeCfApplication::SendTerminateCommand()
     else
     {
         NS_LOG_INFO("UE Ideal SendTerminateCommand Process");
-        if (m_cfranSystemInfo->GetOffladPointType(m_offloadPointId) == CfranSystemInfo::Gnb)
+        if (m_offloadPointId == 0)
+        {
+            m_cfranSystemInfo->GetCellInfo(m_accessGnbId).m_gnbCfApp->ProcessPacketFromUe(p);
+        }
+        else if (m_cfranSystemInfo->GetOffladPointType(m_offloadPointId) == CfranSystemInfo::Gnb)
         {
             m_cfranSystemInfo->GetCellInfo(m_offloadPointId).m_gnbCfApp->ProcessPacketFromUe(p);
         }

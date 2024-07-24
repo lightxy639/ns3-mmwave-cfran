@@ -405,7 +405,7 @@ static ns3::GlobalValue g_s1uLatency("s1ULatency",
                                      ns3::MakeDoubleChecker<double>());
 static ns3::GlobalValue g_x2Latency("x2Latency",
                                     "Latency on X2 interface (us)",
-                                    ns3::DoubleValue(500),
+                                    ns3::DoubleValue(1000),
                                     ns3::MakeDoubleChecker<double>());
 static ns3::GlobalValue g_mmeLatency("mmeLatency",
                                      "Latency on MME interface (us)",
