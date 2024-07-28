@@ -455,6 +455,8 @@ MmWaveEnbNetDevice::BuildAndSendReportMessage()
 
     cJSON* ueMsgArray = cJSON_AddArrayToObject(msg, "UeMsgArray");
 
+    denominatorPrb = 5600; // TODO
+
     for (auto ue : ueMap)
     {
         uint64_t imsi = ue.second->GetImsi();
