@@ -364,6 +364,8 @@ UeCfApplication::SendTaskRequest(uint64_t offloadPointId)
                     .m_remoteCfApp->ProcessPacketFromUe(p);
             }
         }
+
+        m_cfE2eCalculator->RecordRequest(m_ueId);
     }
 
     OffloadPosition offType = None;

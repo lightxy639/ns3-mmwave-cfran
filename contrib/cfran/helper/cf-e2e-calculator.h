@@ -12,6 +12,7 @@ namespace ns3
 
 typedef std::map<uint64_t, Ptr<MinMaxAvgTotalCalculator<uint64_t>>> DelayStatsMap;
 typedef std::map<uint64_t, uint64_t> QoeStatsMap;
+typedef std::map<uint64_t, uint64_t> ReqStatsMap;
 
 class CfE2eCalculator : public Object
 {
@@ -29,6 +30,9 @@ class CfE2eCalculator : public Object
                       uint64_t computingDelay,
                       uint64_t dnWdDelay,
                       uint64_t dnWlDelay);
+
+    void RecordRequest(uint64_t ueId);
+
     void RecordSuccessfulTask(uint64_t ueId);
 
     void UpdateDelayStats(uint64_t ueId,
@@ -50,6 +54,8 @@ class CfE2eCalculator : public Object
     std::vector<double> GetDownlinkWirelessDelayStats(uint64_t ueId);
     std::vector<double> GetDownlinkWiredDelayStats(uint64_t ueId);
     std::vector<double> GetE2eDelayStats(uint64_t ueId);
+
+    uint64_t GetNumberOfRequest(uint64_t ueId);
     uint64_t GetNumberOfTimeData(uint64_t ueId);
     uint64_t GetNumberOfSuccTask(uint64_t ueId);
 
@@ -72,6 +78,7 @@ class CfE2eCalculator : public Object
     DelayStatsMap m_downlinkWirelessDelay;
     DelayStatsMap m_e2eDelay;
     QoeStatsMap m_qoeCount;
+    ReqStatsMap m_reqCount;
 
     std::string m_ueE2eOutFileName;
     std::string m_fileSuffix;

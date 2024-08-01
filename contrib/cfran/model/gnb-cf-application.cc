@@ -955,6 +955,8 @@ GnbCfApplication::BuildAndSendE2Report()
         std::vector<double> dnWlDelay = m_cfE2eCalaulator->GetDownlinkWirelessDelayStats(ueId);
         std::vector<double> e2eDelay = m_cfE2eCalaulator->GetE2eDelayStats(ueId);
 
+        // uint64_t reqCount = m_cfE2eCalaulator->
+        uint64_t reqCount = m_cfE2eCalaulator->GetNumberOfRequest(ueId);
         uint64_t taskCount = m_cfE2eCalaulator->GetNumberOfTimeData(ueId);
         uint64_t succCount = m_cfE2eCalaulator->GetNumberOfSuccTask(ueId);
 
@@ -975,6 +977,7 @@ GnbCfApplication::BuildAndSendE2Report()
 
         cJSON* latencyInfo = cJSON_AddObjectToObject(ueStatsMsg, "latency");
 
+        cJSON_AddNumberToObject(latencyInfo, "reqCount", reqCount);
         cJSON_AddNumberToObject(latencyInfo, "taskCount", taskCount);
         cJSON_AddNumberToObject(latencyInfo, "succCount", succCount);
         cJSON_AddNumberToObject(latencyInfo, "upWlMea", upWlDelay[0] / 1e6);

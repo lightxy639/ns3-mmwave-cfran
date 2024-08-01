@@ -182,6 +182,20 @@ CfE2eCalculator::CheckQoeStat(uint64_t upWlDelay,
 }
 
 void
+CfE2eCalculator::RecordRequest(uint64_t ueId)
+{
+    auto it = m_reqCount.find(ueId);
+    if (it == m_reqCount.end())
+    {
+        m_reqCount[ueId] = 1;
+    }
+    else
+    {
+        m_reqCount[ueId] += 1;
+    }
+}
+
+void
 CfE2eCalculator::RecordSuccessfulTask(uint64_t ueId)
 {
     auto it = m_qoeCount.find(ueId);
@@ -202,6 +216,20 @@ CfE2eCalculator::GetNumberOfTimeData(uint64_t ueId)
     if (it != m_e2eDelay.end())
     {
         return m_e2eDelay[ueId]->getCount();
+    }
+    else
+    {
+        return 0;
+    }
+}
+
+uint64_t
+CfE2eCalculator::GetNumberOfRequest(uint64_t ueId)
+{
+    auto it = m_reqCount.find(ueId);
+    if (it != m_reqCount.end())
+    {
+        return m_reqCount[ueId];
     }
     else
     {
@@ -275,6 +303,12 @@ CfE2eCalculator::ResetResultForUe(uint64_t ueId)
     {
         m_qoeCount.erase(qoeEntry);
     }
+
+    auto reqEntry = m_reqCount.find(ueId);
+    if (reqEntry != m_reqCount.end())
+    {
+        m_reqCount.erase(reqEntry);
+    }
 }
 
 void
@@ -315,6 +349,7 @@ CfE2eCalculator::BackupUeE2eResults(uint64_t ueId, uint64_t assoCellId, uint64_t
                      << "ueId,"
                      << "assoCell,"
                      << "compCell,";
+        ueE2eOutFile << "reqCount,";
         ueE2eOutFile << "taskCount,";
         ueE2eOutFile << "succCount,";
         ueE2eOutFile << "upWlMea,upWlStd,upWlMin,upWlMax,"
@@ -339,6 +374,7 @@ CfE2eCalculator::BackupUeE2eResults(uint64_t ueId, uint64_t assoCellId, uint64_t
     ueE2eOutFile << Simulator::Now().GetSeconds() << "," << ueId << "," << assoCellId << ","
                  << compCellId << ",";
 
+    ueE2eOutFile << this->GetNumberOfRequest(ueId) << ",";
     ueE2eOutFile << this->GetNumberOfTimeData(ueId) << ",";
     ueE2eOutFile << this->GetNumberOfSuccTask(ueId) << ",";
 
