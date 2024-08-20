@@ -1,2 +1,1 @@
-SwitchToLte 3.0074 1 1 1 
-SwitchToLte 9.4138 1 1 1 
+SwitchToLte 1.2191 4 1 4 

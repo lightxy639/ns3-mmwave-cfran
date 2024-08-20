@@ -396,7 +396,7 @@ static ns3::GlobalValue g_interPckInterval("interPckInterval",
                                            ns3::MakeUintegerChecker<uint32_t>());
 static ns3::GlobalValue g_bufferSize("bufferSize",
                                      "RLC tx buffer size (MB)",
-                                     ns3::UintegerValue(50),
+                                     ns3::UintegerValue(5),
                                      ns3::MakeUintegerChecker<uint32_t>());
 
 static ns3::GlobalValue g_s1uLatency("s1ULatency",
@@ -437,6 +437,7 @@ static ns3::GlobalValue g_noiseAndFilter(
     "noiseAndFilter",
     "If true, use noisy SINR samples, filtered. If false, just use the SINR measure",
     ns3::BooleanValue(true),
+    // ns3::BooleanValue(false),
     ns3::MakeBooleanChecker());
 static ns3::GlobalValue g_handoverMode("handoverMode",
                                        "Handover mode",
@@ -626,7 +627,8 @@ main(int argc, char* argv[])
     std::string version;
     version = "mc";
     Config::SetDefault("ns3::MmWaveUeMac::UpdateUeSinrEstimatePeriod", DoubleValue(0));
-
+    Config::SetDefault("ns3::MmWaveEnbPhy::TxPower", DoubleValue(40.0));
+    Config::SetDefault("ns3::MmWaveUePhy::TxPower", DoubleValue(40.0));
     // get current time
     time_t rawtime;
     struct tm* timeinfo;
@@ -644,7 +646,7 @@ main(int argc, char* argv[])
     Config::SetDefault("ns3::MmWaveFlexTtiMaxWeightMacScheduler::FixedTti", BooleanValue(fixedTti));
     Config::SetDefault("ns3::MmWaveFlexTtiMaxWeightMacScheduler::SymPerSlot", UintegerValue(6));
     Config::SetDefault("ns3::MmWavePhyMacCommon::TbDecodeLatency", UintegerValue(200.0));
-    Config::SetDefault("ns3::MmWavePhyMacCommon::NumHarqProcess", UintegerValue(100));
+    Config::SetDefault("ns3::MmWavePhyMacCommon::NumHarqProcess", UintegerValue(64));
     // Config::SetDefault("ns3::ThreeGppChannelModel::UpdatePeriod",
     // TimeValue(MilliSeconds(100.0)));
     Config::SetDefault("ns3::ThreeGppChannelModel::UpdatePeriod", TimeValue(MilliSeconds(0)));
@@ -653,7 +655,8 @@ main(int argc, char* argv[])
     Config::SetDefault("ns3::LteRlcAm::ReportBufferStatusTimer", TimeValue(MicroSeconds(100.0)));
     Config::SetDefault("ns3::LteRlcUmLowLat::ReportBufferStatusTimer",
                        TimeValue(MicroSeconds(100.0)));
-    Config::SetDefault("ns3::LteEnbRrc::SrsPeriodicity", UintegerValue(320));
+    // Config::SetDefault("ns3::LteEnbRrc::SrsPeriodicity", UintegerValue(320));
+    Config::SetDefault("ns3::LteEnbRrc::SrsPeriodicity", UintegerValue(40));
     Config::SetDefault("ns3::LteEnbRrc::FirstSibTime", UintegerValue(2));
     Config::SetDefault("ns3::MmWavePointToPointEpcHelper::X2LinkDelay",
                        TimeValue(MicroSeconds(x2Latency)));
@@ -745,13 +748,14 @@ main(int argc, char* argv[])
     Ptr<MmWaveHelper> mmwaveHelper = CreateObject<MmWaveHelper>();
     // mmwaveHelper->SetPathlossModelType("ns3::ThreeGppUmiStreetCanyonPropagationLossModel");
     mmwaveHelper->SetPathlossModelType("ns3::ThreeGppUmaPropagationLossModel");
-    mmwaveHelper->SetChannelConditionModelType("ns3::BuildingsChannelConditionModel");
+    mmwaveHelper->SetChannelConditionModelType("ns3::ThreeGppUmaChannelConditionModel");
+    // mmwaveHelper->SetChannelConditionModelType("ns3::BuildingsChannelConditionModel");
 
     // set the number of antennas for both UEs and eNBs
     mmwaveHelper->SetUePhasedArrayModelAttribute("NumColumns", UintegerValue(4));
     mmwaveHelper->SetUePhasedArrayModelAttribute("NumRows", UintegerValue(4));
-    mmwaveHelper->SetEnbPhasedArrayModelAttribute("NumColumns", UintegerValue(8));
-    mmwaveHelper->SetEnbPhasedArrayModelAttribute("NumRows", UintegerValue(8));
+    mmwaveHelper->SetEnbPhasedArrayModelAttribute("NumColumns", UintegerValue(16));
+    mmwaveHelper->SetEnbPhasedArrayModelAttribute("NumRows", UintegerValue(16));
 
     Ptr<MmWavePointToPointEpcHelper> epcHelper = CreateObject<MmWavePointToPointEpcHelper>();
     mmwaveHelper->SetEpcHelper(epcHelper);
@@ -861,7 +865,7 @@ main(int argc, char* argv[])
     Ptr<UniformRandomVariable> distTheta = CreateObject<UniformRandomVariable>();
 
     distR->SetAttribute("Min", DoubleValue(minBsUtDis));
-    distR->SetAttribute("Max", DoubleValue(isd / 2));
+    distR->SetAttribute("Max", DoubleValue(isd / 3));
     distTheta->SetAttribute("Min", DoubleValue(-1.0 * M_PI));
     distTheta->SetAttribute("Max", DoubleValue(M_PI));
 
@@ -903,13 +907,15 @@ main(int argc, char* argv[])
     MobilityHelper uemobility;
     Ptr<UniformRandomVariable> speed = CreateObject<UniformRandomVariable>();
     speed->SetAttribute("Min", DoubleValue(0));
-    speed->SetAttribute("Max", DoubleValue(0.1));
-
+    speed->SetAttribute("Max", DoubleValue(0.5));
+    
     uemobility.SetMobilityModel("ns3::RandomWalk2dOutdoorMobilityModel",
                                 "Speed",
                                 PointerValue(speed),
                                 "Bounds",
                                 RectangleValue(Rectangle(0, maxXAxis, 0, maxYAxis)));
+
+    // uemobility.SetMobilityModel("ns3::ConstantPositionMobilityModel");
     uemobility.SetPositionAllocator(uePositionAlloc);
     uemobility.Install(ueNodes);
 
@@ -1212,7 +1218,8 @@ main(int argc, char* argv[])
 
     uint16_t maxCycles = 10;
 
-    double simTime = maxCycles * statePeriod + 1;
+    // double simTime = maxCycles * statePeriod + 1;
+    double simTime = maxCycles * statePeriod + 0.55;
 
     NS_LOG_DEBUG("serverAppStartTime: " << serverAppStartTime << " clientAppStartTime: "
                                         << clientAppStartTime << " simTime: " << simTime);
