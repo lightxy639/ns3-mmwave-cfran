@@ -224,6 +224,8 @@ McEnbPdcp::DoTransmitPdcpSdu(Ptr<Packet> p)
 
     if (m_epcX2PdcpProvider == 0 || (!m_useMmWaveConnection))
     {
+        std::cout << "Using LTE ENB for downlink of RNTI  " << m_rnti << std::endl;
+        std::cout << "m_epcX2PdcpProvider " << m_epcX2PdcpProvider << " m_useMmWaveConnection " << m_useMmWaveConnection << std::endl;
         NS_LOG_INFO(this << " McEnbPdcp: Tx packet to downlink local stack");
 
         // Sender timestamp. We will use this to measure the delay on top of RLC

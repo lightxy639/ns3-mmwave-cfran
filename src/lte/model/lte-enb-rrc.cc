@@ -4635,11 +4635,16 @@ LteEnbRrc::TriggerUeAssociationUpdate()
                                    << " sinrDifference " << sinrDifference);
             if ((maxSinrDb < m_outageThreshold ||
                  (m_imsiUsingLte[imsi] && maxSinrDb < m_outageThreshold + 2)) &&
-                alreadyAssociatedImsi) // no MmWaveCell can serve this UE
+                alreadyAssociatedImsi 
+                && m_handoverMode != NO_AUTO) // no MmWaveCell can serve this UE
             {
                 // outage, perform fast switching if MC device or hard handover
                 NS_LOG_INFO("----- Warn: outage detected ------ at time "
                             << Simulator::Now().GetSeconds());
+                std::cout << "----- Warn: outage detected ------ at time "
+                            << Simulator::Now().GetSeconds() << std::endl;
+
+                std::cout << "maxSinrDb " << maxSinrDb << " m_outageThreshold " << m_outageThreshold << std::endl;
                 if (m_imsiUsingLte[imsi] == false)
                 {
                     ueMan = GetUeManager(GetRntiFromImsi(imsi));
@@ -4868,6 +4873,7 @@ LteEnbRrc::UpdateUeHandoverAssociation()
             {
                 // outage, perform handover to LTE
                 NS_LOG_INFO("----- Warn: outage detected ------");
+                std::cout << "----- Warn: outage detected ------" << " imsi " << imsi << std::endl;
                 if (m_imsiUsingLte[imsi] == false)
                 {
                     NS_LOG_INFO("Handover to LTE");

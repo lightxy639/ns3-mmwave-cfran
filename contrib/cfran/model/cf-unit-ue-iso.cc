@@ -16,7 +16,7 @@ CfUnitUeIso::GetTypeId()
 }
 
 CfUnitUeIso::CfUnitUeIso()
-    : m_latencyGear({1.0 / 240, 1.0 / 120, 1.0 / 60})
+    : m_latencyGear({1.0 / 240, 1.0 / 120, 1.0 / 60, 1.0 / 10})
 {
     NS_LOG_FUNCTION(this);
 }

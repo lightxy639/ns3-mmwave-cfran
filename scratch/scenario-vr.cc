@@ -628,7 +628,7 @@ main(int argc, char* argv[])
     version = "mc";
     Config::SetDefault("ns3::MmWaveUeMac::UpdateUeSinrEstimatePeriod", DoubleValue(0));
     Config::SetDefault("ns3::MmWaveEnbPhy::TxPower", DoubleValue(40.0));
-    Config::SetDefault("ns3::MmWaveUePhy::TxPower", DoubleValue(40.0));
+    Config::SetDefault("ns3::MmWaveUePhy::TxPower", DoubleValue(15.0));
     // get current time
     time_t rawtime;
     struct tm* timeinfo;
@@ -723,7 +723,7 @@ main(int argc, char* argv[])
                        TimeValue(MilliSeconds(
                            100))); // interval after which the channel for a moving user is updated,
     Config::SetDefault("ns3::ThreeGppChannelModel::Blockage",
-                       BooleanValue(true)); // use blockage or not
+                       BooleanValue(false)); // use blockage or not
     Config::SetDefault("ns3::ThreeGppChannelModel::PortraitMode",
                        BooleanValue(true)); // use blockage model with UT in portrait mode
     Config::SetDefault("ns3::ThreeGppChannelModel::NumNonselfBlocking",
@@ -748,7 +748,9 @@ main(int argc, char* argv[])
     Ptr<MmWaveHelper> mmwaveHelper = CreateObject<MmWaveHelper>();
     // mmwaveHelper->SetPathlossModelType("ns3::ThreeGppUmiStreetCanyonPropagationLossModel");
     mmwaveHelper->SetPathlossModelType("ns3::ThreeGppUmaPropagationLossModel");
-    mmwaveHelper->SetChannelConditionModelType("ns3::ThreeGppUmaChannelConditionModel");
+    // mmwaveHelper->SetChannelConditionModelType("ns3::ThreeGppUmaChannelConditionModel");
+    mmwaveHelper->SetChannelConditionModelType("ns3::AlwaysLosChannelConditionModel");
+    // mmwaveHelper->SetChannelConditionModelType("ns3::NeverLosChannelConditionModel");
     // mmwaveHelper->SetChannelConditionModelType("ns3::BuildingsChannelConditionModel");
 
     // set the number of antennas for both UEs and eNBs
@@ -866,6 +868,7 @@ main(int argc, char* argv[])
 
     distR->SetAttribute("Min", DoubleValue(minBsUtDis));
     distR->SetAttribute("Max", DoubleValue(isd / 3));
+    // distR->SetAttribute("Max", DoubleValue(isd));
     distTheta->SetAttribute("Min", DoubleValue(-1.0 * M_PI));
     distTheta->SetAttribute("Max", DoubleValue(M_PI));
 

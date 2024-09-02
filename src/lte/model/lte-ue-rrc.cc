@@ -1471,6 +1471,7 @@ LteUeRrc::DoRecvRrcConnectionSwitch(LteRrcSap::RrcConnectionSwitch msg)
                 }
                 else // I was on mmWave, and I switch to LTE
                 {
+                    std::cout << "I was on mmWave, and I switch to LTE" << std::endl;
                     // m_mmWaveCmacSapProvider->RemoveLc(m_rlcMap.find(*iter)->second->logicalChannelIdentity);
                     // Remove LCID
                     for (uint32_t i = 0; i < m_numberOfMmWaveComponentCarriers; i++)

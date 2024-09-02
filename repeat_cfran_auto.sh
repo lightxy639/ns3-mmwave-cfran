@@ -23,6 +23,6 @@ do
     
     
     # 运行实验，并将输出重定向到日志文件
-    nohup ~/ns3-mmwave-cfran/ns3 run "scenario-vr.cc --customDdluPort=${customDdluPortBase} --e2PortBase=${e2PortBase} --nGnbNodes=5 --ues=4 --enableIdealProtocol=true --RngRun=0 --suffix=_${currentNumBase}" > "${logFile}" 2>&1 &
+    nohup ~/ns3-mmwave-cfran/ns3 run "scenario-vr.cc --customDdluPort=${customDdluPortBase} --e2PortBase=${e2PortBase} --nGnbNodes=5 --ues=6 --enableIdealProtocol=true --RngRun=${currentNumBase} --suffix=_${currentNumBase}" > "${logFile}" 2>&1 &
 done
 
