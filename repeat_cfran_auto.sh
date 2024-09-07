@@ -7,7 +7,8 @@ numBase=$(cat ~/last_numbase.txt)
 
 # 读取repeatNum参数
 repeatNum=$1
-
+# ./ns3 configure --disable-werror --build-profile=optimized
+# ./ns3 &&
 # 循环执行repeatNum次实验
 for ((i = 0; i < repeatNum; i++))
 do

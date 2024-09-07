@@ -449,7 +449,7 @@ static ns3::GlobalValue g_reportTablePeriodicity("reportTablePeriodicity",
                                                  ns3::MakeUintegerChecker<uint32_t>());
 static ns3::GlobalValue g_outageThreshold("outageTh",
                                           "Outage threshold",
-                                          ns3::DoubleValue(-5),
+                                          ns3::DoubleValue(-20),
                                           ns3::MakeDoubleChecker<double>());
 static ns3::GlobalValue g_lteUplink("lteUplink",
                                     "If true, always use LTE for uplink signalling",
@@ -628,7 +628,7 @@ main(int argc, char* argv[])
     version = "mc";
     Config::SetDefault("ns3::MmWaveUeMac::UpdateUeSinrEstimatePeriod", DoubleValue(0));
     Config::SetDefault("ns3::MmWaveEnbPhy::TxPower", DoubleValue(40.0));
-    Config::SetDefault("ns3::MmWaveUePhy::TxPower", DoubleValue(15.0));
+    Config::SetDefault("ns3::MmWaveUePhy::TxPower", DoubleValue(30));
     // get current time
     time_t rawtime;
     struct tm* timeinfo;
@@ -748,16 +748,16 @@ main(int argc, char* argv[])
     Ptr<MmWaveHelper> mmwaveHelper = CreateObject<MmWaveHelper>();
     // mmwaveHelper->SetPathlossModelType("ns3::ThreeGppUmiStreetCanyonPropagationLossModel");
     mmwaveHelper->SetPathlossModelType("ns3::ThreeGppUmaPropagationLossModel");
-    // mmwaveHelper->SetChannelConditionModelType("ns3::ThreeGppUmaChannelConditionModel");
-    mmwaveHelper->SetChannelConditionModelType("ns3::AlwaysLosChannelConditionModel");
+    mmwaveHelper->SetChannelConditionModelType("ns3::ThreeGppUmaChannelConditionModel");
+    // mmwaveHelper->SetChannelConditionModelType("ns3::AlwaysLosChannelConditionModel");
     // mmwaveHelper->SetChannelConditionModelType("ns3::NeverLosChannelConditionModel");
     // mmwaveHelper->SetChannelConditionModelType("ns3::BuildingsChannelConditionModel");
 
     // set the number of antennas for both UEs and eNBs
     mmwaveHelper->SetUePhasedArrayModelAttribute("NumColumns", UintegerValue(4));
     mmwaveHelper->SetUePhasedArrayModelAttribute("NumRows", UintegerValue(4));
-    mmwaveHelper->SetEnbPhasedArrayModelAttribute("NumColumns", UintegerValue(16));
-    mmwaveHelper->SetEnbPhasedArrayModelAttribute("NumRows", UintegerValue(16));
+    mmwaveHelper->SetEnbPhasedArrayModelAttribute("NumColumns", UintegerValue(8));
+    mmwaveHelper->SetEnbPhasedArrayModelAttribute("NumRows", UintegerValue(8));
 
     Ptr<MmWavePointToPointEpcHelper> epcHelper = CreateObject<MmWavePointToPointEpcHelper>();
     mmwaveHelper->SetEpcHelper(epcHelper);

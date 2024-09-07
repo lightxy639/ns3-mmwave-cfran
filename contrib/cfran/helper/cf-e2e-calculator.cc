@@ -178,7 +178,7 @@ CfE2eCalculator::CheckQoeStat(uint64_t upWlDelay,
     //     1e6;
     double e2eDelay = (double)(queueDelay + computingDelay + dnWdDelay + dnWlDelay) / 1e6;
 
-    return (commDelay < 16.6 && compDelay < 16.6 && e2eDelay < 16.6);
+    return (commDelay < 16.6 && compDelay < 16.6 && e2eDelay < 20);
 }
 
 void
