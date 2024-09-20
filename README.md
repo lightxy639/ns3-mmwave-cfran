@@ -1,6 +1,6 @@
 # mmWave ns-3 module #
 
-The code of cfran module is in contrib/cfran.
+The code of cfran module is in contrib/cfran (master).
 
 A detailed README is coming soon.
 
