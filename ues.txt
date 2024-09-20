@@ -1,1 +1,0 @@
-set label "1" at 1426.9,1252.06 left font "Helvetica,8" textcolor rgb "black" front point pt 1 ps 0.3 lc rgb "black" offset 0,0

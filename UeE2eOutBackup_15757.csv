@@ -1,2 +1,0 @@
-Time,ueId,assoCell,compCell,reqCount,taskCount,succCount,upWlMea,upWlStd,upWlMin,upWlMax,upWdMea,upWdStd,upWdMin,upWdMax,queMea,queStd,queMin,queMax,compMea, compStd, compMin, compMax,dnWdMea, dnWdStd, dnWdMin, dnWdMax,dnWlMea,dnWlStd, dnWlMin, dnWlMax,e2eMea,e2eStd,e2eMin,e2eMax
-1.1,3,3,2,2,2,2,0,0,0,0,0,0,0,0,0,0,0,0,4.166,0,4.166,4.166,1.00072,0,1.00072,1.00072,3.05742,0.294156,2.84942,3.26542,8.22414,0.294156,8.01614,8.43214,
